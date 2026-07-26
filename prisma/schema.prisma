@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STUDENT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  PIX
+  CARD
+}
+
+enum ReminderType {
+  UPCOMING
+  DUE_TODAY
+}
+
+model User {
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  passwordHash     String
+  role             UserRole          @default(STUDENT)
+  active           Boolean           @default(true)
+  joinedAt         DateTime          @default(now())
+  leftAt           DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  session          Session[]
+  subscription     Subscription?
+  payments         Payment[]
+  renewalReminders RenewalReminder[]
+
+  @@index([role])
+  @@index([joinedAt])
+  @@index([leftAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  userId                 String             @unique
+  status                 SubscriptionStatus @default(INCOMPLETE)
+  planName               String             @default("Treinamento mensal")
+  priceCents             Int                @default(15000)
+  nextBillingAt          DateTime?
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments               Payment[]
+
+  @@index([status])
+  @@index([nextBillingAt])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  userId            String
+  subscriptionId    String?
+  amountCents       Int
+  status            PaymentStatus @default(PENDING)
+  method            PaymentMethod
+  dueAt             DateTime
+  paidAt            DateTime?
+  providerPaymentId String?
+  pixCopyPaste      String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status, dueAt])
+}
+
+model RenewalReminder {
+  id           String       @id @default(cuid())
+  userId       String
+  type         ReminderType
+  scheduledFor DateTime
+  sentAt       DateTime?
+  createdAt    DateTime     @default(now())
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, scheduledFor])
+  @@index([scheduledFor, sentAt])
+}
