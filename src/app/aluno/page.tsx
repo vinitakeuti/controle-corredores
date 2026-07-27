@@ -1,8 +1,10 @@
 import { UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
-import { PixGenerator } from "@/components/pix-generator";
+import { CheckoutPayment } from "@/components/checkout-payment";
+import { PasswordChangeForm } from "@/components/password-change-form";
+import { getAppmaxCheckoutConfig } from "@/lib/appmax";
 import { requireRole } from "@/lib/auth";
-import { formatCurrency, formatDate, paymentLabel, subscriptionLabel } from "@/lib/format";
+import { formatCurrency, formatDate, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 export default async function StudentPage() {
@@ -12,6 +14,11 @@ export default async function StudentPage() {
     include: { subscription: true, payments: { orderBy: { createdAt: "desc" }, take: 6 } },
   });
   const subscription = account?.subscription;
+  const appmax = await getAppmaxCheckoutConfig();
+
+  if (!subscription || subscription.status !== "ACTIVE") {
+    return <AppShell user={user} current="student"><header className="page-heading"><div><p className="eyebrow">Acesso pendente</p><h1>Finalize seu pagamento.</h1><p>A área do aluno será liberada depois que o pagamento for confirmado.</p></div></header><section className="panel checkout-message"><h2>Seu cadastro está reservado.</h2><p>Use o link de pagamento enviado pela assessoria para concluir sua inscrição.</p></section><section className="panel security-panel"><div className="panel-heading"><div><h2>Segurança</h2><p>A senha temporária não expira. Altere-a quando quiser.</p></div></div><PasswordChangeForm /></section></AppShell>;
+  }
 
   return (
     <AppShell user={user} current="student">
@@ -28,15 +35,23 @@ export default async function StudentPage() {
         </div>
       </section>
 
-      <section className="student-actions">
-        <article className="panel action-card"><h3>Pagamento via PIX</h3><p>Gere um código PIX para quitar sua próxima mensalidade.</p><PixGenerator /></article>
-        <article className="panel action-card"><h3>Cartão recorrente</h3><p>Em breve você poderá cadastrar um cartão para cobrança automática.</p><div className="card-placeholder"><span>Integração do gateway</span><span className="pill">Em breve</span></div></article>
+      <section className="panel student-payment-panel">
+        <CheckoutPayment
+          name={account?.name ?? user.name}
+          cpf={account?.cpf ?? ""}
+          amountCents={subscription.priceCents}
+          gatewayEnabled={appmax.enabled}
+          appmaxExternalId={appmax.externalId}
+          recurrenceEnabled={appmax.recurrenceEnabled}
+          embedded
+        />
       </section>
 
       <section className="panel" style={{ marginTop: 18 }}>
         <div className="panel-heading"><div><h2>Histórico de pagamentos</h2><p>Seus últimos lançamentos.</p></div></div>
-        {account?.payments.length ? <div className="table-scroll"><table className="payments-table"><thead><tr><th>Data</th><th>Método</th><th>Status</th><th>Valor</th></tr></thead><tbody>{account.payments.map((payment) => <tr key={payment.id}><td>{formatDate(payment.createdAt)}</td><td>{payment.method === "PIX" ? "PIX" : "Cartão"}</td><td><span className={`pill ${payment.status === "PAID" ? "" : "pill-coral"}`}>{paymentLabel(payment.status)}</span></td><td>{formatCurrency(payment.amountCents)}</td></tr>)}</tbody></table></div> : <div className="empty-state">Nenhum pagamento registrado ainda.</div>}
+        {account?.payments.length ? <div className="table-scroll"><table className="payments-table"><thead><tr><th>Data</th><th>Método</th><th>Status</th><th>Valor</th></tr></thead><tbody>{account.payments.map((payment) => <tr key={payment.id}><td>{formatDate(payment.createdAt)}</td><td>{paymentMethodLabel(payment.method)}</td><td><span className={`pill ${payment.status === "PAID" ? "" : "pill-coral"}`}>{paymentLabel(payment.status)}</span></td><td>{formatCurrency(payment.amountCents)}</td></tr>)}</tbody></table></div> : <div className="empty-state">Nenhum pagamento registrado ainda.</div>}
       </section>
+      <section className="panel security-panel"><div className="panel-heading"><div><h2>Segurança</h2><p>A senha temporária não expira. Altere-a quando quiser.</p></div></div><PasswordChangeForm /></section>
     </AppShell>
   );
 }

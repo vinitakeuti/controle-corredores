@@ -3,11 +3,11 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: pabula
+      POSTGRES_DB: pabula_acxel_dashboard
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pabula_postgres_data:/var/lib/postgresql/data
 

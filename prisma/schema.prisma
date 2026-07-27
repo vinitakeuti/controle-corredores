@@ -23,12 +23,14 @@ enum PaymentStatus {
   PENDING
   PAID
   FAILED
+  EXPIRED
   REFUNDED
 }
 
 enum PaymentMethod {
   PIX
   CARD
+  BOLETO
 }
 
 enum ReminderType {
@@ -36,21 +38,40 @@ enum ReminderType {
   DUE_TODAY
 }
 
+enum PaymentLinkStatus {
+  OPEN
+  COMPLETED
+  REVOKED
+}
+
+enum GatewayEventStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
 model User {
-  id               String            @id @default(cuid())
-  name             String
-  email            String            @unique
-  passwordHash     String
-  role             UserRole          @default(STUDENT)
-  active           Boolean           @default(true)
-  joinedAt         DateTime          @default(now())
-  leftAt           DateTime?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  session          Session[]
-  subscription     Subscription?
-  payments         Payment[]
-  renewalReminders RenewalReminder[]
+  id                  String            @id @default(cuid())
+  name                String
+  email               String            @unique
+  passwordHash        String
+  passwordIsTemporary Boolean           @default(false)
+  phone               String?
+  cpf                 String?           @unique
+  birthDate           DateTime?
+  role                UserRole          @default(STUDENT)
+  active              Boolean           @default(true)
+  joinedAt            DateTime          @default(now())
+  leftAt              DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  session             Session[]
+  subscription        Subscription?
+  payments            Payment[]
+  renewalReminders    RenewalReminder[]
+  paymentLinks        PaymentLink[]     @relation("PaymentLinkStudent")
+  createdPaymentLinks PaymentLink[]     @relation("PaymentLinkCreator")
 
   @@index([role])
   @@index([joinedAt])
@@ -59,7 +80,7 @@ model User {
 
 model Session {
   id        String   @id @default(cuid())
-  token     String   @unique
+  tokenHash String   @unique
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
@@ -78,6 +99,8 @@ model Subscription {
   nextBillingAt          DateTime?
   providerCustomerId     String?
   providerSubscriptionId String?
+  recurringEnabled       Boolean            @default(false)
+  recurringMethod        PaymentMethod?
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -88,23 +111,57 @@ model Subscription {
 }
 
 model Payment {
-  id                String        @id @default(cuid())
-  userId            String
-  subscriptionId    String?
-  amountCents       Int
-  status            PaymentStatus @default(PENDING)
-  method            PaymentMethod
-  dueAt             DateTime
-  paidAt            DateTime?
-  providerPaymentId String?
-  pixCopyPaste      String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription      Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  id                  String        @id @default(cuid())
+  userId              String
+  subscriptionId      String?
+  paymentLinkId       String?
+  requestKey          String?       @unique
+  amountCents         Int
+  status              PaymentStatus @default(PENDING)
+  method              PaymentMethod
+  dueAt               DateTime
+  expiresAt           DateTime?
+  paidAt              DateTime?
+  recurringRequested  Boolean       @default(false)
+  providerOrderId     String?       @unique
+  providerPaymentId   String?
+  providerStatus      String?
+  pixCopyPaste        String?
+  pixQrCode           String?
+  boletoUrl           String?
+  boletoDigitableLine String?
+  lastError           String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription        Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  paymentLink         PaymentLink?  @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([status, dueAt])
+  @@index([expiresAt])
+  @@index([paymentLinkId])
+}
+
+model GatewayEvent {
+  id                     String             @id @default(cuid())
+  provider               String             @default("APPMAX")
+  eventKey               String             @unique
+  eventName              String
+  eventType              String
+  providerOrderId        String?
+  providerSubscriptionId String?
+  providerCustomerId     String?
+  amountCents            Int?
+  occurredAt             DateTime?
+  status                 GatewayEventStatus @default(RECEIVED)
+  error                  String?
+  receivedAt             DateTime           @default(now())
+  processedAt            DateTime?
+
+  @@index([provider, status, receivedAt])
+  @@index([providerOrderId])
+  @@index([providerSubscriptionId])
 }
 
 model RenewalReminder {
@@ -118,4 +175,40 @@ model RenewalReminder {
 
   @@unique([userId, type, scheduledFor])
   @@index([scheduledFor, sentAt])
+}
+
+model PaymentLink {
+  id          String            @id @default(cuid())
+  tokenHash   String            @unique
+  userId      String?
+  createdById String
+  status      PaymentLinkStatus @default(OPEN)
+  planName    String            @default("Treinamento mensal")
+  amountCents Int               @default(15000)
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  user        User?             @relation("PaymentLinkStudent", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy   User              @relation("PaymentLinkCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  payments    Payment[]
+
+  @@index([userId, status])
+  @@index([createdById, createdAt])
+}
+
+model PaymentIntegration {
+  id                    String   @id @default(cuid())
+  provider              String   @unique @default("APPMAX")
+  isActive              Boolean  @default(false)
+  environment           String   @default("sandbox")
+  clientId              String
+  clientSecretEncrypted String
+  externalId            String?
+  appId                 String?
+  softDescriptor        String   @default("PACELAB")
+  recurrenceEnabled     Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([updatedAt])
 }

@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_SEED !== "true") {
+    throw new Error("Demo seed bloqueado em produção. Defina ALLOW_DEMO_SEED=true apenas conscientemente.");
+  }
+
   const adminPassword = await bcrypt.hash("Admin@123", 12);
   const studentPassword = await bcrypt.hash("Aluno@123", 12);
   const now = new Date();
@@ -14,13 +18,13 @@ async function main() {
   const admin = await prisma.user.upsert({
     where: { email: "admin@pabula.com" },
     update: { passwordHash: adminPassword, role: UserRole.ADMIN, active: true },
-    create: { name: "Admin Pabula", email: "admin@pabula.com", passwordHash: adminPassword, role: UserRole.ADMIN },
+    create: { name: "Admin Pace Lab", email: "admin@pabula.com", passwordHash: adminPassword, role: UserRole.ADMIN },
   });
 
   const student = await prisma.user.upsert({
     where: { email: "aluno@pabula.com" },
-    update: { passwordHash: studentPassword, role: UserRole.STUDENT, active: true },
-    create: { name: "Ana Corredora", email: "aluno@pabula.com", passwordHash: studentPassword, role: UserRole.STUDENT, joinedAt: lastMonth },
+    update: { passwordHash: studentPassword, role: UserRole.STUDENT, active: true, phone: "82999990001", cpf: "12345678909", birthDate: new Date("1995-04-12") },
+    create: { name: "Ana Corredora", email: "aluno@pabula.com", passwordHash: studentPassword, role: UserRole.STUDENT, joinedAt: lastMonth, phone: "82999990001", cpf: "12345678909", birthDate: new Date("1995-04-12") },
   });
 
   const studentSubscription = await prisma.subscription.upsert({
@@ -31,8 +35,8 @@ async function main() {
 
   const pastDueStudent = await prisma.user.upsert({
     where: { email: "carlos@pabula.com" },
-    update: { passwordHash: studentPassword, role: UserRole.STUDENT, active: true },
-    create: { name: "Carlos Velocista", email: "carlos@pabula.com", passwordHash: studentPassword, role: UserRole.STUDENT, joinedAt: lastMonth },
+    update: { passwordHash: studentPassword, role: UserRole.STUDENT, active: true, phone: "82999990002", cpf: "98765432100", birthDate: new Date("1990-09-27") },
+    create: { name: "Carlos Velocista", email: "carlos@pabula.com", passwordHash: studentPassword, role: UserRole.STUDENT, joinedAt: lastMonth, phone: "82999990002", cpf: "98765432100", birthDate: new Date("1990-09-27") },
   });
   const pastDueSubscription = await prisma.subscription.upsert({
     where: { userId: pastDueStudent.id },

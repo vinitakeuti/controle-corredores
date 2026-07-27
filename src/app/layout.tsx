@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Pabula | Assinaturas",
+  title: "Pace Lab | Assinaturas",
   description: "Controle simples de assinaturas para equipes de corrida e atletas.",
 };
 
