@@ -584,8 +584,8 @@ input[type="date"] { color-scheme: dark; }
   .student-primary { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
   .student-secondary { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
   .pagination { padding: 15px 0 0; }
-  .filter-form { flex-wrap: wrap; }
-  .filter-form .field { min-width: calc(50% - 5px); }
+  .filter-form { display: grid; grid-template-columns: 1fr; align-items: stretch; gap: 12px; }
+  .filter-form .field { width: 100%; min-width: 0; }
   .filter-form .button { width: 100%; }
   .data-row { grid-template-columns: minmax(0, 1fr) auto; gap: 9px; }
   .data-row .row-date { grid-column: 1; }

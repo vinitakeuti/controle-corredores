@@ -1,7 +1,7 @@
 import { PaymentStatus, SubscriptionStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { requireRole } from "@/lib/auth";
-import { formatCurrency, formatDate, formatTime, paymentMethodLabel, toDateEnd, toDateStart } from "@/lib/format";
+import { formatCurrency, formatDate, formatTime, greetingForDate, paymentMethodLabel, toDateEnd, toDateStart } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 type AdminSearchParams = { from?: string; to?: string };
@@ -45,7 +45,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   return (
     <AppShell user={user} current="admin">
       <header className="page-heading">
-        <div><p className="eyebrow">Visão geral</p><h1>Bom dia, {user.name.split(" ")[0]}.</h1><p>Acompanhe a saúde das assinaturas da equipe.</p></div>
+        <div><p className="eyebrow">Visão geral</p><h1>{greetingForDate(now)}, {user.name.split(" ")[0]}.</h1><p>Acompanhe a saúde das assinaturas da equipe.</p></div>
         <div className="date-now">Atualizado hoje</div>
       </header>
 

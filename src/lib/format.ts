@@ -17,6 +17,13 @@ export function formatTime(date: Date | string | null | undefined) {
   return new Intl.DateTimeFormat("pt-BR", { timeStyle: "short" }).format(new Date(date));
 }
 
+export function greetingForDate(date = new Date()) {
+  const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Maceio", hour: "2-digit", hourCycle: "h23" }).formatToParts(date).find((part) => part.type === "hour")?.value ?? 0);
+  if (hour < 12) return "Bom dia";
+  if (hour < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
 export function formatCpf(cpf: string | null | undefined) {
   if (!cpf) return "—";
   const digits = cpf.replace(/\D/g, "");
