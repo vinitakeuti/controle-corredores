@@ -720,7 +720,9 @@ body::before {
   background: rgba(255, 255, 255, 0.82);
   border-radius: 2px;
 }
-input[type="date"] { color-scheme: light; }
+input[type="date"] { width: 100%; min-width: 0; max-width: 100%; min-height: 46px; padding-inline: 12px; color-scheme: light; font-size: 16px; line-height: 1.2; text-align: left; }
+.field:has(input[type="date"]) { min-width: 0; }
+.checkout-form-grid > .field { min-width: 0; }
 .button { border-radius: 2px; }
 .button-primary { background: var(--accent); border-color: var(--accent); }
 .button-primary:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
@@ -835,6 +837,27 @@ input[type="date"] { color-scheme: light; }
 .billing-fields { grid-template-columns: minmax(170px, 0.45fr) minmax(260px, 0.55fr); }
 .method-options { background: rgba(255, 255, 255, 0.58); border-radius: 0; }
 .method-options label { padding: 4px 0; }
+.billing-price-groups { display: grid; gap: 0; margin-top: 30px; border-top: 1px solid var(--line); }
+.billing-price-groups-heading { padding: 25px 0 20px; }
+.billing-price-groups-heading h3 { margin: 0 0 6px; color: var(--text); font-size: 19px; letter-spacing: -0.04em; }
+.billing-price-groups-heading p:last-child { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.billing-price-group { border-top: 1px solid var(--line-soft); }
+.billing-price-group:last-child { border-bottom: 1px solid var(--line-soft); }
+.billing-price-group-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; padding: 13px 0; }
+.billing-price-group-heading strong { color: var(--text); font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; font-size: 23px; font-weight: 500; letter-spacing: 0.02em; }
+.billing-price-group-heading span { color: var(--muted); font-size: 11px; }
+.billing-student-list { display: grid; padding-bottom: 9px; }
+.billing-student-option { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 11px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line-soft); cursor: pointer; }
+.billing-student-option input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.billing-student-option span { min-width: 0; }
+.billing-student-option strong, .billing-student-option small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.billing-student-option strong { color: var(--text); font-size: 12px; }
+.billing-student-option small { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.billing-student-option em { color: var(--accent-bright); font-size: 10px; font-style: normal; font-weight: 750; text-align: right; white-space: nowrap; }
+.billing-student-option input:not(:checked) + span + em { color: var(--muted); }
+.billing-student-names { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 0 14px; }
+.billing-student-names span { padding: 6px 8px; color: var(--muted-strong); background: rgba(255, 255, 255, 0.55); border: 1px solid var(--line-soft); border-radius: 999px; font-size: 10px; }
+.billing-adjustment-note { margin: 16px 0 0; color: var(--muted); font-size: 11px; }
 
 .checkout-frame { padding: 34px; background: rgba(255, 255, 255, 0.82); border: 1px solid rgba(255, 255, 255, 0.9); border-top: 4px solid var(--accent); border-radius: 0; box-shadow: var(--shadow); }
 .checkout-methods { gap: 0; }
@@ -890,8 +913,17 @@ input[type="date"] { color-scheme: light; }
   .checkout-methods button { min-height: 58px; padding: 11px 12px; border: 1px solid var(--line); text-align: left; }
   .checkout-methods button span { min-height: 0; }
   .checkout-form-grid { grid-template-columns: 1fr; }
+  .field input[type="date"] { min-height: 48px; }
   .card-expiration-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .integration-app-card, .integration-catalog-sidebar, .integration-config-panel { border-right: 0; border-left: 0; }
+}
+
+@media (max-width: 560px) {
+  .analysis-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; overflow: hidden; }
+  .analysis-tab { min-width: 0; display: grid; gap: 3px; justify-items: center; padding: 0 5px 10px; font-size: 10px; line-height: 1.25; text-align: center; white-space: normal; }
+  .analysis-tab span { font-size: 10px; }
+  .billing-student-option { grid-template-columns: auto minmax(0, 1fr); }
+  .billing-student-option em { grid-column: 2; text-align: left; white-space: normal; }
 }
 
 @media (max-width: 560px) {
