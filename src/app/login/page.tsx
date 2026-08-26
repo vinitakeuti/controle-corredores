@@ -13,12 +13,12 @@ export default async function LoginPage() {
         <section className="login-identity">
           <Brand />
           <div>
-            <p className="eyebrow">Gestão de assinaturas</p>
-            <h1>Ritmo para a sua operação.</h1>
-            <p>Controle alunos, pagamentos e vencimentos com a precisão da Pace Lab.</p>
+            <p className="eyebrow">Pace Lab</p>
+            <h1>A academia do corredor.</h1>
+            <p>Um espaço para acompanhar sua jornada e manter o foco no próximo treino.</p>
           </div>
           <div className="login-route" aria-hidden="true"><i /><span /><b /></div>
-          <small>PACE LAB · CONTROLE DE ALUNOS</small>
+          <small>PACE LAB · ACADEMIA DO CORREDOR</small>
         </section>
         <section className="login-card">
           <p className="eyebrow">Acesso à plataforma</p>
