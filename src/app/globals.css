@@ -437,6 +437,7 @@ input[type="date"] { color-scheme: dark; }
 .checkout-payment-heading > strong { flex: 0 0 auto; color: var(--text); font-size: 17px; white-space: nowrap; }
 .checkout-payment-heading > strong small { color: var(--muted); font-size: 10px; font-weight: 500; }
 .checkout-methods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 25px 0 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.checkout-methods.two-methods { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .checkout-methods button { padding: 12px; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 4px; font-size: 12px; font-weight: 750; text-align: left; }
 .checkout-methods button span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; font-weight: 500; }
 .checkout-methods button.active { color: var(--text); background: var(--surface-raised); border-color: var(--line); }

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-export type IntegrationProviderKey = "APPMAX" | "OTHER";
+export type IntegrationProviderKey = "APPMAX" | "ASAAS" | "OTHER";
 
 export type IntegrationDirectoryItem = {
   provider: IntegrationProviderKey;
@@ -32,6 +32,7 @@ export async function getIntegrationDirectory(): Promise<IntegrationDirectory> {
     select: { provider: true, isActive: true },
   });
   const appmax = records.find((record) => record.provider === "APPMAX");
+  const asaas = records.find((record) => record.provider === "ASAAS");
   const activeProvider = records.find((record) => record.isActive)?.provider ?? null;
 
   return {
@@ -47,6 +48,17 @@ export async function getIntegrationDirectory(): Promise<IntegrationDirectory> {
         available: true,
         configured: Boolean(appmax),
         active: appmax?.isActive ?? false,
+      },
+      {
+        provider: "ASAAS",
+        name: "Asaas",
+        abbreviation: "AS",
+        category: "Gateways & vendas",
+        description: "Pix e cartão em um único checkout.",
+        detail: "Cria cobranças e recebe confirmações de pagamento pelo webhook oficial do Asaas.",
+        available: true,
+        configured: Boolean(asaas),
+        active: asaas?.isActive ?? false,
       },
       {
         provider: "OTHER",

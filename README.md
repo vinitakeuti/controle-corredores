@@ -56,3 +56,13 @@ A Appmax não assina webhooks com HMAC. Por isso o endpoint exige o token secret
 No sandbox, use o cartão de sucesso `4000000000000010` ou o cartão de falha `4000000000000028`, sempre com uma validade futura. Nunca coloque credenciais de produção em arquivos versionados.
 
 Pix e cartão recebem o objeto de recorrência apenas quando a opção é habilitada na tela de integração. O boleto continua avulso. A data da próxima cobrança local passa a ser um mês após a confirmação do primeiro pagamento; a execução automática dos próximos ciclos fica sob responsabilidade da recorrência da Appmax.
+
+## Asaas
+
+Abra `Administração > Integrações > Asaas` e informe a API key do ambiente e um token secreto de webhook com 32 a 255 caracteres. A chave fica criptografada no banco e o token é armazenado somente como hash.
+
+No painel do Asaas, cadastre o webhook `https://SEU_DOMINIO/api/webhooks/asaas` com o mesmo token no campo de autenticação. O endpoint valida o header `asaas-access-token`, deduplica pelo ID do evento e confirma a cobrança na API antes de liberar a assinatura.
+
+O checkout gera o QR Code Pix dentro do sistema. Para cartão, o aluno é direcionado à fatura hospedada pelo Asaas; assim, número do cartão e CVV não passam pelo servidor da aplicação. A integração Asaas é avulsa e não habilita recorrência automática.
+
+Comece em `sandbox`, valide Pix, cartão e webhook, e só então troque para `production`. Nunca coloque API keys em arquivos versionados.

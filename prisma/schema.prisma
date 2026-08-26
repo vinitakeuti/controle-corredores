@@ -59,6 +59,7 @@ model User {
   passwordIsTemporary Boolean           @default(false)
   phone               String?
   cpf                 String?           @unique
+  asaasCustomerId     String?           @unique
   birthDate           DateTime?
   role                UserRole          @default(STUDENT)
   active              Boolean           @default(true)
@@ -123,9 +124,11 @@ model Payment {
   expiresAt           DateTime?
   paidAt              DateTime?
   recurringRequested  Boolean       @default(false)
-  providerOrderId     String?       @unique
+  provider            String        @default("APPMAX")
+  providerOrderId     String?
   providerPaymentId   String?
   providerStatus      String?
+  checkoutUrl         String?
   pixCopyPaste        String?
   pixQrCode           String?
   boletoUrl           String?
@@ -141,6 +144,7 @@ model Payment {
   @@index([status, dueAt])
   @@index([expiresAt])
   @@index([paymentLinkId])
+  @@unique([provider, providerOrderId])
 }
 
 model GatewayEvent {
@@ -201,8 +205,10 @@ model PaymentIntegration {
   provider              String   @unique @default("APPMAX")
   isActive              Boolean  @default(false)
   environment           String   @default("sandbox")
-  clientId              String
-  clientSecretEncrypted String
+  clientId              String?
+  clientSecretEncrypted String?
+  apiKeyEncrypted       String?
+  webhookTokenHash      String?
   externalId            String?
   appId                 String?
   softDescriptor        String   @default("PACELAB")

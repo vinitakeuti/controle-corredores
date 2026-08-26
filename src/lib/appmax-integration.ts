@@ -45,7 +45,7 @@ export function maskClientId(value: string) {
 
 export async function getStoredAppmaxIntegration(): Promise<StoredAppmaxIntegration | null> {
   const record = await prisma.paymentIntegration.findUnique({ where: { provider: "APPMAX" } });
-  if (!record) return null;
+  if (!record?.clientId || !record.clientSecretEncrypted) return null;
 
   const environment = normalizeAppmaxEnvironment(record.environment);
   if (!environment) throw new Error("Ambiente da integração Appmax inválido.");
@@ -65,7 +65,9 @@ export async function getStoredAppmaxIntegration(): Promise<StoredAppmaxIntegrat
 
 export async function getAppmaxIntegrationSummary(): Promise<AppmaxIntegrationSummary> {
   const record = await prisma.paymentIntegration.findUnique({ where: { provider: "APPMAX" } });
-  if (!record) return { configured: false, active: false, integration: null };
+  if (!record?.clientId || !record.clientSecretEncrypted) {
+    return { configured: false, active: record?.isActive ?? false, integration: null };
+  }
 
   const environment = normalizeAppmaxEnvironment(record.environment);
   if (!environment) return { configured: false, active: record.isActive, integration: null };

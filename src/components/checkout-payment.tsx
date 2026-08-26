@@ -8,10 +8,12 @@ import { formatCurrency, formatDate } from "@/lib/format";
 type Method = "PIX" | "BOLETO" | "CARD";
 type PaymentResult = {
   paymentId: string;
+  provider: "APPMAX" | "ASAAS";
   status: "PENDING" | "PAID" | "FAILED" | "EXPIRED" | "REFUNDED";
   providerStatus: string | null;
   recurringRequested: boolean;
   expiresAt: string | null;
+  checkoutUrl: string | null;
   pix: { copyPaste: string | null; qrCode: string | null } | null;
   boleto: { url: string | null; digitableLine: string | null; dueDate: string | null } | null;
 };
@@ -39,6 +41,7 @@ type CheckoutPaymentProps = {
   cpf: string;
   amountCents: number;
   gatewayEnabled: boolean;
+  activeProvider: "APPMAX" | "ASAAS" | null;
   appmaxExternalId: string | null;
   recurrenceEnabled: boolean;
   embedded?: boolean;
@@ -56,6 +59,7 @@ export function CheckoutPayment({
   cpf,
   amountCents,
   gatewayEnabled,
+  activeProvider,
   appmaxExternalId,
   recurrenceEnabled,
   embedded = false,
@@ -63,7 +67,7 @@ export function CheckoutPayment({
   const router = useRouter();
   const endpoint = token
     ? `/api/checkout/${encodeURIComponent(token)}/payment`
-    : "/api/payments/appmax";
+    : "/api/payments";
   const [method, setMethod] = useState<Method>("PIX");
   const [customerIp, setCustomerIp] = useState("");
   const [appmaxReady, setAppmaxReady] = useState(false);
@@ -94,6 +98,7 @@ export function CheckoutPayment({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           method: selectedMethod,
+          expectedProvider: activeProvider,
           requestKey: requestKeyRef.current,
           customerIp: customerIpRef.current,
           cardToken,
@@ -105,13 +110,18 @@ export function CheckoutPayment({
       });
       const data = await response.json();
       if (!response.ok) {
-        requestKeyRef.current = newRequestKey();
+        // Em falhas de servidor a cobrança pode ter sido criada remotamente.
+        // Reutilizar a chave permite ao backend recuperar a mesma tentativa.
+        if (response.status < 500) requestKeyRef.current = newRequestKey();
         setError(data.error ?? "Não foi possível processar o pagamento.");
         return;
       }
-      requestKeyRef.current = newRequestKey();
+      if (data.status !== "PENDING") requestKeyRef.current = newRequestKey();
       setResult(data);
       if (data.status === "PAID") router.refresh();
+      if (data.provider === "ASAAS" && selectedMethod === "CARD" && data.checkoutUrl) {
+        window.location.assign(data.checkoutUrl);
+      }
     } catch {
       setError("Não foi possível conectar ao servidor. Tente novamente.");
     } finally {
@@ -122,7 +132,7 @@ export function CheckoutPayment({
   submitPaymentRef.current = submitPayment;
 
   function initializeAppmax() {
-    if (!gatewayEnabled || initializedRef.current || !window.AppmaxScripts) return;
+    if (activeProvider !== "APPMAX" || !gatewayEnabled || initializedRef.current || !window.AppmaxScripts) return;
     initializedRef.current = true;
     const onSuccess = (data: AppmaxCallbackData) => {
       if (data.ip) {
@@ -144,7 +154,7 @@ export function CheckoutPayment({
   }
 
   useEffect(() => {
-    if (window.AppmaxScripts) initializeAppmax();
+    if (activeProvider === "APPMAX" && window.AppmaxScripts) initializeAppmax();
   });
 
   useEffect(() => {
@@ -192,12 +202,12 @@ export function CheckoutPayment({
     requestKeyRef.current = newRequestKey();
   }
 
-  const paymentReady = gatewayEnabled && appmaxReady && Boolean(customerIp);
+  const paymentReady = gatewayEnabled && (activeProvider === "ASAAS" || (appmaxReady && Boolean(customerIp)));
   const cardReady = paymentReady && Boolean(appmaxExternalId);
 
   return (
     <section className={`checkout-payment ${embedded ? "checkout-payment-embedded" : ""}`}>
-      {gatewayEnabled ? (
+      {gatewayEnabled && activeProvider === "APPMAX" ? (
         <Script src="https://scripts.appmax.com.br/appmax.min.js" strategy="afterInteractive" onLoad={initializeAppmax} />
       ) : null}
       {!embedded ? <div className="checkout-payment-heading"><div><p className="eyebrow">Pagamento</p><h2>Olá, {name.split(" ")[0]}.</h2><p>Escolha uma forma de pagamento para iniciar sua assinatura.</p></div><strong>{formatCurrency(amountCents)}<small>/mês</small></strong></div> : null}
@@ -205,9 +215,9 @@ export function CheckoutPayment({
 
       {!gatewayEnabled ? <div className="payment-configuration-notice"><strong>Gateway aguardando ativação</strong><p>Um administrador precisa configurar e ativar um provedor de pagamentos para liberar o checkout.</p></div> : null}
 
-      <div className="checkout-methods" role="tablist" aria-label="Método de pagamento">
+      <div className={`checkout-methods ${activeProvider === "ASAAS" ? "two-methods" : ""}`} role="tablist" aria-label="Método de pagamento">
         <button className={method === "PIX" ? "active" : ""} type="button" role="tab" aria-selected={method === "PIX"} onClick={() => selectMethod("PIX")}>Pix<span>{recurrenceEnabled ? "automático mensal" : "pagamento único"}</span></button>
-        <button className={method === "BOLETO" ? "active" : ""} type="button" role="tab" aria-selected={method === "BOLETO"} onClick={() => selectMethod("BOLETO")}>Boleto<span>pagamento único</span></button>
+        {activeProvider === "APPMAX" ? <button className={method === "BOLETO" ? "active" : ""} type="button" role="tab" aria-selected={method === "BOLETO"} onClick={() => selectMethod("BOLETO")}>Boleto<span>pagamento único</span></button> : null}
         <button className={method === "CARD" ? "active" : ""} type="button" role="tab" aria-selected={method === "CARD"} onClick={() => selectMethod("CARD")}>Cartão<span>{recurrenceEnabled ? "cobrança mensal" : "pagamento único"}</span></button>
       </div>
 
@@ -218,11 +228,11 @@ export function CheckoutPayment({
           {result.pix.qrCode ? <img className="pix-qr-code" src={result.pix.qrCode} alt="QR Code do Pix" /> : null}
           <div className="payment-code"><span>Pix copia e cola</span><code>{result.pix.copyPaste}</code></div>
           <button className="button button-secondary" type="button" onClick={() => copyText("pix", result.pix?.copyPaste ?? null)}>{copied === "pix" ? "Código copiado" : "Copiar código"}</button>
-          <small>Válido até {formatDate(result.expiresAt)}. A liberação ocorre após a confirmação da Appmax.</small>
+          <small>Válido até {formatDate(result.expiresAt)}. A liberação ocorre após a confirmação do {activeProvider === "ASAAS" ? "Asaas" : "Appmax"}.</small>
         </div> : null}
       </div> : null}
 
-      {method === "BOLETO" ? <div className="checkout-method-body">
+      {method === "BOLETO" && activeProvider === "APPMAX" ? <div className="checkout-method-body">
         <p>Gere o boleto e pague pelo aplicativo do banco ou em um ponto autorizado. Boleto não possui recorrência automática.</p>
         <button className="button button-dark" type="button" onClick={() => submitPayment("BOLETO")} disabled={!paymentReady || loading}>{loading ? "Gerando..." : result?.boleto ? "Gerar novamente" : "Gerar boleto"}</button>
         {result?.boleto ? <div className="gateway-payment-result">
@@ -235,7 +245,13 @@ export function CheckoutPayment({
         </div> : null}
       </div> : null}
 
-      {method === "CARD" ? <form className="checkout-method-body" method="POST" data-appmax-checkout onSubmit={() => {
+      {method === "CARD" && activeProvider === "ASAAS" ? <div className="checkout-method-body">
+        <p>Você será direcionado à Fatura Asaas para informar os dados do cartão em um ambiente seguro.</p>
+        <button className="button button-dark" type="button" onClick={() => submitPayment("CARD")} disabled={!paymentReady || loading}>{loading ? "Preparando..." : "Continuar para o Asaas"}</button>
+        {result?.checkoutUrl ? <p className="checkout-note">Se o redirecionamento não ocorrer, <a href={result.checkoutUrl}>abra a Fatura Asaas</a>.</p> : null}
+      </div> : null}
+
+      {method === "CARD" && activeProvider === "APPMAX" ? <form className="checkout-method-body" method="POST" data-appmax-checkout onSubmit={() => {
         cardSubmissionRef.current = true;
         setError("");
         setResult(null);
@@ -255,7 +271,7 @@ export function CheckoutPayment({
         {result && method === "CARD" ? <div className={`card-payment-status ${result.status === "PAID" ? "success" : ""}`}><strong>{result.status === "PAID" ? "Pagamento confirmado" : "Cartão enviado para análise"}</strong><p>{result.status === "PAID" ? "Sua assinatura já foi atualizada." : "A liberação ocorrerá após a aprovação antifraude da Appmax."}</p></div> : null}
       </form> : null}
 
-      {gatewayEnabled && !appmaxReady ? <p className="checkout-note">Preparando o ambiente seguro da Appmax...</p> : null}
+      {gatewayEnabled && activeProvider === "APPMAX" && !appmaxReady ? <p className="checkout-note">Preparando o ambiente seguro da Appmax...</p> : null}
       {error ? <p className="error-message checkout-error">{error}</p> : null}
       {recurrenceEnabled && method !== "BOLETO" ? <p className="checkout-note">A recorrência depende da habilitação do recurso beta na conta Appmax.</p> : null}
     </section>

@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { AsaasIntegrationSummary } from "@/lib/asaas-integration";
 import type { AppmaxIntegrationSummary } from "@/lib/appmax-integration";
 import type { IntegrationDirectory, IntegrationDirectoryItem, IntegrationProviderKey } from "@/lib/integration-directory";
+import { AsaasIntegrationForm } from "@/components/asaas-integration-form";
 import { AppmaxIntegrationForm } from "@/components/appmax-integration-form";
 
 type Props = {
   initialDirectory: IntegrationDirectory;
   initialAppmaxSummary: AppmaxIntegrationSummary;
+  initialAsaasSummary: AsaasIntegrationSummary;
 };
 
 type Filter = "all" | "payments";
@@ -26,9 +29,10 @@ function statusClass(item: IntegrationDirectoryItem) {
   return "is-pending";
 }
 
-export function IntegrationCenter({ initialDirectory, initialAppmaxSummary }: Props) {
+export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, initialAsaasSummary }: Props) {
   const [directory, setDirectory] = useState(initialDirectory);
   const [appmaxSummary, setAppmaxSummary] = useState(initialAppmaxSummary);
+  const [asaasSummary, setAsaasSummary] = useState(initialAsaasSummary);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedProvider, setSelectedProvider] = useState<IntegrationProviderKey | null>(null);
@@ -48,7 +52,10 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary }: Pr
     const response = await fetch("/api/admin/integrations", { headers: { Accept: "application/json" }, cache: "no-store" });
     const nextDirectory = await response.json();
     if (!response.ok) throw new Error(typeof nextDirectory.error === "string" ? nextDirectory.error : "Não foi possível atualizar os provedores.");
-    setDirectory(nextDirectory as IntegrationDirectory);
+    const normalizedDirectory = nextDirectory as IntegrationDirectory;
+    setDirectory(normalizedDirectory);
+    setAppmaxSummary((current) => current.integration ? { ...current, active: normalizedDirectory.activeProvider === "APPMAX" } : current);
+    setAsaasSummary((current) => current.integration ? { ...current, active: normalizedDirectory.activeProvider === "ASAAS" } : current);
   };
 
   const activate = async (provider: IntegrationProviderKey) => {
@@ -64,6 +71,7 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary }: Pr
       if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Não foi possível ativar o provedor.");
       setDirectory(body as IntegrationDirectory);
       setAppmaxSummary((current) => current.integration ? { ...current, active: provider === "APPMAX" } : current);
+      setAsaasSummary((current) => current.integration ? { ...current, active: provider === "ASAAS" } : current);
       setFeedback("Provedor ativo atualizado. O checkout usará esta conexão.");
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Não foi possível ativar o provedor.");
@@ -73,6 +81,7 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary }: Pr
   };
 
   const appmax = directory.items.find((item) => item.provider === "APPMAX");
+  const asaas = directory.items.find((item) => item.provider === "ASAAS");
 
   return (
     <div className="integrations-page">
@@ -105,7 +114,7 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary }: Pr
           {feedback ? <p className="integration-center-feedback" role="status">{feedback}</p> : null}
           <div className="integration-app-grid">
             {items.map((item) => <article className={`integration-app-card ${item.active ? "active" : ""}`} key={item.provider}>
-              <div className="integration-app-card-top"><div className={`integration-app-icon ${item.provider === "APPMAX" ? "appmax" : "placeholder"}`}>{item.abbreviation}</div><span className={`integration-card-status ${statusClass(item)}`}><i />{statusLabel(item)}</span></div>
+              <div className="integration-app-card-top"><div className={`integration-app-icon ${item.available ? "appmax" : "placeholder"}`}>{item.abbreviation}</div><span className={`integration-card-status ${statusClass(item)}`}><i />{statusLabel(item)}</span></div>
               <div className="integration-app-card-copy"><h3>{item.name}</h3><p className="integration-app-category">{item.category}</p><p>{item.description}</p></div>
               <div className="integration-app-card-actions">{item.available ? <button className="integration-manage-link" type="button" onClick={() => setSelectedProvider(item.provider)}>{item.configured ? "Gerenciar" : "Configurar"} <span aria-hidden="true">→</span></button> : <span className="integration-coming-link">Disponível em breve</span>}{item.configured && !item.active ? <button className="integration-activate-link" type="button" onClick={() => activate(item.provider)} disabled={pendingProvider !== null}>{pendingProvider === item.provider ? "Ativando..." : "Ativar"}</button> : null}</div>
             </article>)}
@@ -114,6 +123,11 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary }: Pr
           {selectedProvider === "APPMAX" && appmax ? <section className="integration-config-panel" aria-labelledby="integration-config-title">
             <div className="integration-config-panel-heading"><div><button className="integration-back-link" type="button" onClick={() => setSelectedProvider(null)}>← Voltar ao diretório</button><p className="eyebrow">Configuração do provedor</p><h2 id="integration-config-title">Appmax</h2><p>Atualize credenciais e preferências sem sair da central.</p></div><span className={`integration-card-status ${statusClass(appmax)}`}><i />{statusLabel(appmax)}</span></div>
             <AppmaxIntegrationForm embedded initialSummary={appmaxSummary} onSummaryChange={(nextSummary) => { setAppmaxSummary(nextSummary); void refreshDirectory(); }} />
+          </section> : null}
+
+          {selectedProvider === "ASAAS" && asaas ? <section className="integration-config-panel" aria-labelledby="integration-config-title">
+            <div className="integration-config-panel-heading"><div><button className="integration-back-link" type="button" onClick={() => setSelectedProvider(null)}>← Voltar ao diretório</button><p className="eyebrow">Configuração do provedor</p><h2 id="integration-config-title">Asaas</h2><p>Configure a chave da API e a autenticação do webhook.</p></div><span className={`integration-card-status ${statusClass(asaas)}`}><i />{statusLabel(asaas)}</span></div>
+            <AsaasIntegrationForm embedded initialSummary={asaasSummary} onSummaryChange={(nextSummary) => { setAsaasSummary(nextSummary); void refreshDirectory(); }} />
           </section> : null}
         </main>
       </div>

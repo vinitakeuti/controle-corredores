@@ -75,11 +75,13 @@ function urls(environment: "sandbox" | "production") {
     : { auth: SANDBOX_AUTH_URL, api: SANDBOX_API_URL };
 }
 
-async function integration() {
+async function integration(requireActive = true) {
   try {
     const stored = await getStoredAppmaxIntegration();
     if (!stored) throw new AppmaxError("Credenciais da Appmax não configuradas.", 503);
-    if (!stored.isActive) throw new AppmaxError("A Appmax não está selecionada como gateway ativo.", 503);
+    if (requireActive && !stored.isActive) {
+      throw new AppmaxError("A Appmax não está selecionada como gateway ativo.", 503);
+    }
     return stored;
   } catch (error) {
     if (error instanceof AppmaxError) throw error;
@@ -174,8 +176,13 @@ async function getAccessToken(force = false, configuredIntegration?: Awaited<Ret
   return accessToken;
 }
 
-async function appmaxRequest(path: string, init: RequestInit = {}, retryUnauthorized = true) {
-  const currentIntegration = await integration();
+async function appmaxRequest(
+  path: string,
+  init: RequestInit = {},
+  retryUnauthorized = true,
+  requireActive = true,
+) {
+  const currentIntegration = await integration(requireActive);
   const accessToken = await getAccessToken(false, currentIntegration);
   let response: Response;
   try {
@@ -197,7 +204,7 @@ async function appmaxRequest(path: string, init: RequestInit = {}, retryUnauthor
   if (response.status === 401 && retryUnauthorized) {
     clearAppmaxTokenCache();
     await getAccessToken(true, currentIntegration);
-    return appmaxRequest(path, init, false);
+    return appmaxRequest(path, init, false, requireActive);
   }
 
   const payload = await readResponse(response);
@@ -392,7 +399,7 @@ export type AppmaxOrderSnapshot = {
 };
 
 export async function getAppmaxOrder(orderId: string): Promise<AppmaxOrderSnapshot> {
-  const payload = await appmaxRequest(`/v1/orders/${encodeURIComponent(orderId)}`);
+  const payload = await appmaxRequest(`/v1/orders/${encodeURIComponent(orderId)}`, {}, true, false);
   const id = firstString(payload, [["data", "order", "id"]]);
   if (!id) throw new AppmaxError("A Appmax não retornou o pedido consultado.", 502);
   return {

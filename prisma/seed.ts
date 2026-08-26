@@ -1,6 +1,14 @@
 import { PrismaClient, PaymentMethod, PaymentStatus, SubscriptionStatus, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+if (!process.env.DATABASE_URL) {
+  try {
+    process.loadEnvFile(".env");
+  } catch (error) {
+    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+  }
+}
+
 const prisma = new PrismaClient();
 
 async function main() {

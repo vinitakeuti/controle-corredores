@@ -53,6 +53,9 @@ export async function handlePaymentRequest(context: PaymentRouteContext) {
     const method = typeof body.method === "string" ? body.method.toUpperCase() as AppmaxPaymentMethod : null;
     const requestKey = typeof body.requestKey === "string" ? body.requestKey.trim() : "";
     const customerIp = typeof body.customerIp === "string" ? body.customerIp.trim() : "";
+    const expectedProvider = body.expectedProvider === "APPMAX" || body.expectedProvider === "ASAAS"
+      ? body.expectedProvider
+      : undefined;
     if (!method || !METHODS.has(method)) {
       return NextResponse.json({ error: "Método de pagamento inválido" }, { status: 400, headers: noStoreHeaders() });
     }
@@ -62,6 +65,7 @@ export async function handlePaymentRequest(context: PaymentRouteContext) {
       paymentLinkId: context.paymentLinkId,
       amountCents: context.amountCents,
       method,
+      expectedProvider,
       requestKey,
       customerIp,
       cardToken: typeof body.cardToken === "string" ? body.cardToken.trim() : undefined,
