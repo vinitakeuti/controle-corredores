@@ -7,7 +7,7 @@ type BrandProps = {
 
 function BrandContent() {
   return (
-    <img className="brand-logo-image" src="/assets/images/iconName.svg" alt="Pace Lab" />
+    <img className="brand-logo-image" src="/assets/images/pace-lab.svg" alt="Pace Lab" />
   );
 }
 

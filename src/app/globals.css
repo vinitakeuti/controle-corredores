@@ -660,3 +660,224 @@ input[type="date"] { color-scheme: dark; }
   .mobile-nav > .brand-mark { top: 17px; left: 20px; width: 150px; height: 50px; }
   .mobile-nav > .brand-mark .brand-logo-image { width: 150px; height: 50px; transform: translateX(-20px); }
 }
+
+/* Pace Lab visual system -------------------------------------------------- */
+:root {
+  --bg: #edf0ec;
+  --sidebar: #151a1a;
+  --surface: #ffffff;
+  --surface-raised: #f6f7f3;
+  --surface-hover: #e9ede7;
+  --line: #d5dbd4;
+  --line-soft: #e4e8e2;
+  --text: #17201d;
+  --muted: #69746f;
+  --muted-strong: #394641;
+  --accent: #e15d37;
+  --accent-bright: #c74727;
+  --accent-soft: rgba(225, 93, 55, 0.13);
+  --shadow: 0 18px 38px rgba(23, 32, 29, 0.08);
+}
+
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(112deg, transparent 0 32%, rgba(255, 255, 255, 0.54) 32.1% 36%, transparent 36.1% 58%, rgba(201, 208, 199, 0.18) 58.1% 62%, transparent 62.1%),
+    radial-gradient(ellipse at 84% 8%, rgba(255, 255, 255, 0.92), transparent 31%);
+  color: var(--text);
+}
+
+body::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(112deg, transparent 0 54px, rgba(38, 48, 43, 0.028) 55px 56px, transparent 57px 124px);
+}
+
+.brand-mark { width: 72px; height: 72px; overflow: visible; }
+.brand-logo-image { width: 72px; height: 72px; object-fit: contain; }
+.sidebar .brand-mark, .mobile-nav .brand-mark { filter: invert(1); }
+.login-card > .brand-mark { width: 106px; height: 106px; }
+.login-card > .brand-mark .brand-logo-image { width: 106px; height: 106px; }
+
+.login-page, .checkout-page {
+  background:
+    linear-gradient(126deg, transparent 0 44%, rgba(28, 37, 34, 0.06) 44.1% 49%, transparent 49.1%),
+    var(--bg);
+}
+.login-card { padding: 46px; background: rgba(255, 255, 255, 0.72); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 2px; box-shadow: var(--shadow); }
+.login-card h1, .page-heading h1, .checkout-intro h1, .checkout-success h1, .checkout-message h1 {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  text-transform: uppercase;
+}
+
+.field input, .filter-input, .student-search input, .integration-search {
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 2px;
+}
+input[type="date"] { color-scheme: light; }
+.button { border-radius: 2px; }
+.button-primary { background: var(--accent); border-color: var(--accent); }
+.button-primary:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
+.button-dark { color: #fff; background: #1b2420; border-color: #1b2420; }
+.button-dark:hover { color: #fff; background: #2b3731; border-color: #2b3731; }
+
+.app-shell { background: transparent; }
+.sidebar {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(143deg, rgba(255, 255, 255, 0.08), transparent 22%),
+    linear-gradient(118deg, transparent 0 38%, rgba(255, 255, 255, 0.06) 38.1% 41%, transparent 41.1% 64%, rgba(255, 255, 255, 0.035) 64.1% 68%, transparent 68.1%),
+    var(--sidebar);
+  border-right-color: rgba(255, 255, 255, 0.11);
+}
+.sidebar::after {
+  position: absolute;
+  right: -46px;
+  bottom: 80px;
+  width: 180px;
+  height: 1px;
+  content: "";
+  background: rgba(255, 255, 255, 0.42);
+  transform: rotate(-36deg);
+}
+.sidebar .brand-mark { margin-bottom: 46px; }
+.nav-link { position: relative; border-radius: 0; }
+.nav-link.active, .nav-link:hover { background: rgba(255, 255, 255, 0.09); border-color: transparent; }
+.nav-link.active::before { position: absolute; top: 50%; left: -13px; width: 4px; height: 22px; content: ""; background: var(--accent); transform: translateY(-50%); }
+.sidebar-footer { position: relative; z-index: 1; border-top-color: rgba(255, 255, 255, 0.12); }
+
+.main-content { overflow-x: clip; }
+.content-wrap { position: relative; }
+.eyebrow { color: var(--accent-bright); }
+.page-heading { margin-bottom: 38px; }
+.page-heading h1 { font-size: clamp(32px, 4vw, 50px); line-height: 0.92; }
+.directory-action { color: var(--text); background: rgba(255, 255, 255, 0.58); border-color: var(--line); border-radius: 2px; }
+.directory-action:hover { background: #fff; border-color: var(--text); }
+
+.metric-card {
+  min-height: 154px;
+  padding: 22px 20px 19px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 0;
+  border-top: 3px solid var(--text);
+  border-radius: 0;
+  box-shadow: none;
+}
+.metric-card:nth-child(even) { border-top-color: var(--accent); }
+.metric-card::after { position: absolute; right: -13px; bottom: -27px; width: 86px; height: 86px; content: ""; border: 1px solid rgba(23, 32, 29, 0.09); border-radius: 50%; }
+.metric-card strong { font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; font-weight: 500; letter-spacing: 0.02em; }
+
+/* Sections are deliberately flat: dividers organize content without nested cards. */
+.panel {
+  padding: 26px 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+.section-grid > .panel:last-child { border-bottom: 1px solid var(--line); }
+.panel-heading { margin-bottom: 22px; }
+.notice, .card-placeholder, .pix-result {
+  border-color: var(--line);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.58);
+}
+.notice { border-left: 3px solid var(--accent); }
+.pill { background: rgba(255, 255, 255, 0.58); border-radius: 999px; }
+.pill-coral { border-color: rgba(225, 93, 55, 0.45); }
+.students-table-shell { background: rgba(255, 255, 255, 0.36); }
+.students-table th { background: #e8ece6; }
+.students-table tbody tr:hover td { background: rgba(255, 255, 255, 0.65); }
+.pagination-link { background: rgba(255, 255, 255, 0.64); border-radius: 2px; }
+
+.subscription-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(116deg, transparent 0 35%, rgba(255, 255, 255, 0.12) 35.2% 39%, transparent 39.2% 62%, rgba(255, 255, 255, 0.06) 62.2% 66%, transparent 66.2%),
+    linear-gradient(135deg, #1d2824, #111715);
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--shadow);
+}
+.subscription-card::after { position: absolute; top: -36px; right: 10%; width: 160px; height: 160px; content: ""; border: 1px solid rgba(255, 255, 255, 0.17); border-radius: 50%; }
+.subscription-card > * { position: relative; z-index: 1; }
+.action-card { padding: 23px 0; border-top: 1px solid var(--line); }
+
+.students-directory, .analysis-panel { border-top: 1px solid var(--line); }
+.directory-heading, .analysis-toolbar { padding-top: 24px; }
+.analysis-tabs { padding-top: 18px; }
+.analysis-tab.active { border-bottom-color: var(--accent); }
+
+.profile-payments, .student-payment-panel, .security-panel { border-top: 1px solid var(--line); }
+.billing-fields { grid-template-columns: minmax(170px, 0.45fr) minmax(260px, 0.55fr); }
+.method-options { background: rgba(255, 255, 255, 0.58); border-radius: 0; }
+.method-options label { padding: 4px 0; }
+
+.checkout-frame { padding: 34px; background: rgba(255, 255, 255, 0.82); border: 1px solid rgba(255, 255, 255, 0.9); border-top: 4px solid var(--accent); border-radius: 0; box-shadow: var(--shadow); }
+.checkout-methods { gap: 0; }
+.checkout-methods button { border-radius: 0; }
+.checkout-methods button.active { background: #e9ede7; border-color: var(--line); box-shadow: inset 0 -2px 0 var(--accent); }
+.payment-code code { background: #f2f4f0; border-radius: 0; }
+
+.integration-catalog-sidebar, .integration-app-card, .integration-config-panel { background: rgba(255, 255, 255, 0.6); border-color: var(--line); border-radius: 0; }
+.integration-app-card.active { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.integration-workspace { border-color: var(--line); }
+.integration-environment-toggle button, .integration-search, .integration-app-icon, .integration-provider-mark { border-radius: 0; }
+
+@media (max-width: 920px) {
+  .mobile-nav {
+    min-height: 88px;
+    background:
+      linear-gradient(120deg, transparent 0 60%, rgba(255, 255, 255, 0.07) 60.1% 66%, transparent 66.1%),
+      var(--sidebar);
+    border-bottom-color: rgba(255, 255, 255, 0.11);
+  }
+  .mobile-nav > .brand-mark { top: 8px; left: 16px; width: 66px; height: 66px; }
+  .mobile-nav .brand-logo-image { width: 66px; height: 66px; transform: none; }
+  .menu-trigger { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); border-radius: 0; }
+  .mobile-drawer { background: var(--sidebar); }
+  .main-content { padding: 32px 20px 48px; }
+}
+
+@media (max-width: 640px) {
+  .main-content { padding: 26px 16px 40px; }
+  .page-heading { margin-bottom: 28px; }
+  .page-heading h1 { font-size: 36px; }
+  .metric-grid { gap: 10px; margin-bottom: 28px; }
+  .metric-card { min-height: 122px; padding: 17px 14px; }
+  .metric-card strong { font-size: 31px; }
+  .section-grid { gap: 0; }
+  .panel { padding: 22px 0; }
+  .panel-heading { display: block; }
+  .panel-heading > :last-child:not(:first-child) { margin-top: 12px; }
+  .student-search { align-items: stretch; flex-direction: column; }
+  .student-search .button { width: 100%; }
+  .billing-fields { grid-template-columns: 1fr; align-items: stretch; gap: 14px; }
+  .method-options { width: 100%; }
+  .method-options label { display: flex; margin-right: 0; }
+  .checkout-frame { padding: 24px 18px; }
+  .checkout-methods, .checkout-methods.two-methods { grid-template-columns: 1fr; gap: 6px; padding-bottom: 16px; }
+  .checkout-methods button { min-height: 58px; padding: 11px 12px; border: 1px solid var(--line); text-align: left; }
+  .checkout-methods button span { min-height: 0; }
+  .checkout-form-grid { grid-template-columns: 1fr; }
+  .card-expiration-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .integration-app-card, .integration-catalog-sidebar, .integration-config-panel { border-right: 0; border-left: 0; }
+}
+
+@media (max-width: 380px) {
+  .mobile-nav > .brand-mark { top: 11px; left: 14px; width: 58px; height: 58px; }
+  .mobile-nav > .brand-mark .brand-logo-image { width: 58px; height: 58px; transform: none; }
+  .metric-grid { grid-template-columns: 1fr; }
+  .metric-card { min-height: 108px; }
+  .pagination { justify-content: space-between; gap: 5px; }
+  .pagination-link { padding: 0 8px; }
+}
