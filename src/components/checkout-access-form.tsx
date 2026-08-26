@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatCpfInput, formatPhoneInput } from "@/lib/format";
 
 type CheckoutAccessFormProps = { token: string; mode: "login" | "register"; initialEmail?: string };
 
@@ -41,7 +42,7 @@ export function CheckoutAccessForm({ token, mode, initialEmail = "" }: CheckoutA
     <form className="checkout-form" onSubmit={handleSubmit}>
       {mode === "register" ? <>
         <div className="field"><label htmlFor="checkout-name">Nome completo</label><input id="checkout-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" required /></div>
-        <div className="checkout-form-grid"><div className="field"><label htmlFor="checkout-phone">Telefone</label><input id="checkout-phone" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" inputMode="tel" required /></div><div className="field"><label htmlFor="checkout-cpf">CPF</label><input id="checkout-cpf" value={cpf} onChange={(event) => setCpf(event.target.value)} inputMode="numeric" required /></div></div>
+        <div className="checkout-form-grid"><div className="field"><label htmlFor="checkout-phone">Telefone</label><input id="checkout-phone" value={phone} onChange={(event) => setPhone(formatPhoneInput(event.target.value))} autoComplete="tel" inputMode="tel" maxLength={15} required /></div><div className="field"><label htmlFor="checkout-cpf">CPF</label><input id="checkout-cpf" value={cpf} onChange={(event) => setCpf(formatCpfInput(event.target.value))} inputMode="numeric" maxLength={14} required /></div></div>
         <div className="field"><label htmlFor="checkout-birth-date">Data de nascimento <span className="optional-label">opcional</span></label><input id="checkout-birth-date" type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} /></div>
       </> : null}
       <div className="field"><label htmlFor="checkout-email">E-mail</label><input id="checkout-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></div>

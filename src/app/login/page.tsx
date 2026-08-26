@@ -9,12 +9,24 @@ export default async function LoginPage() {
 
   return (
     <main className="login-page">
-      <section className="login-card">
-        <Brand />
-        <h1>Controle simples para treinar melhor.</h1>
-        <p>Acesse sua conta para acompanhar assinaturas, pagamentos e vencimentos.</p>
-        <LoginForm />
-      </section>
+      <div className="login-layout">
+        <section className="login-identity">
+          <Brand />
+          <div>
+            <p className="eyebrow">Gestão de assinaturas</p>
+            <h1>Ritmo para a sua operação.</h1>
+            <p>Controle alunos, pagamentos e vencimentos com a precisão da Pace Lab.</p>
+          </div>
+          <div className="login-route" aria-hidden="true"><i /><span /><b /></div>
+          <small>PACE LAB · CONTROLE DE ALUNOS</small>
+        </section>
+        <section className="login-card">
+          <p className="eyebrow">Acesso à plataforma</p>
+          <h1>Bem-vindo de volta.</h1>
+          <p>Entre para acompanhar a sua operação.</p>
+          <LoginForm />
+        </section>
+      </div>
     </main>
   );
 }

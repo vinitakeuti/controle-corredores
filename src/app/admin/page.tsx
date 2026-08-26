@@ -63,12 +63,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </section>
 
         <aside>
-          <section className="panel">
+          <section className="panel movement-panel">
             <div className="panel-heading"><div><h2>Movimentação</h2><p>Alunos que entraram ou saíram.</p></div></div>
-            <form className="filter-form" method="get">
-              <div className="field"><label htmlFor="from">De</label><input className="filter-input" id="from" name="from" type="date" defaultValue={fromValue} /></div>
-              <div className="field"><label htmlFor="to">Até</label><input className="filter-input" id="to" name="to" type="date" defaultValue={toValue} /></div>
-              <button className="button button-secondary" type="submit">Filtrar</button>
+            <form className="movement-filter" method="get">
+              <p>Período de análise</p>
+              <div className="movement-date-fields">
+                <label htmlFor="from"><span>De</span><input id="from" name="from" type="date" defaultValue={fromValue} /></label>
+                <label htmlFor="to"><span>Até</span><input id="to" name="to" type="date" defaultValue={toValue} /></label>
+              </div>
+              <button className="button button-secondary" type="submit">Aplicar período</button>
             </form>
             <div className="summary-list">
               <div className="summary-item"><span>Alunos novos</span><strong>{newStudents}</strong></div>
