@@ -18,6 +18,7 @@ import {
 } from "@/lib/appmax";
 import {
   AsaasError,
+  createAsaasAutomaticPixAuthorization,
   createAsaasPayment,
   ensureAsaasCustomer,
   findAsaasPaymentByExternalReference,
@@ -119,11 +120,15 @@ function publicPayment(payment: Payment) {
 function userFacingProviderError(error: unknown, method: AppmaxPaymentMethod) {
   if (error instanceof PaymentServiceError) return error;
   if (error instanceof AsaasError) {
+    const detail = error.providerMessage?.replace(/\s+/g, " ").trim().slice(0, 180);
     if (error.status === 401 || error.status === 403 || error.status === 503) {
+      if (method === "PIX" && error.status === 403) {
+        return new PaymentServiceError("O Pix Automático não está habilitado para esta conta ou chave do Asaas.", 503);
+      }
       return new PaymentServiceError("O gateway de pagamento ainda não está configurado corretamente.", 503);
     }
     if (error.status === 400 || error.status === 422) {
-      return new PaymentServiceError("O Asaas recusou os dados da cobrança. Confira o cadastro e tente novamente.", 422);
+      return new PaymentServiceError(`O Asaas recusou os dados da cobrança.${detail ? ` ${detail}` : " Confira o cadastro e tente novamente."}`, 422);
     }
     return new PaymentServiceError("O Asaas não conseguiu processar este pagamento agora.", 502);
   }
@@ -188,6 +193,9 @@ export async function createPayment(input: CreatePaymentInput) {
   });
   if (!account || account.role !== UserRole.STUDENT || !account.active || !account.subscription) {
     throw new PaymentServiceError("A assinatura deste aluno não está disponível.", 404);
+  }
+  if (!account.subscription.allowedMethods.includes(prismaMethod)) {
+    throw new PaymentServiceError("Este método de pagamento não está disponível para esta assinatura.", 403);
   }
   if (!account.phone || !account.cpf) {
     throw new PaymentServiceError("Complete o telefone e o CPF antes de gerar o pagamento.", 422);
@@ -265,7 +273,9 @@ export async function createPayment(input: CreatePaymentInput) {
     throw new PaymentServiceError("O Asaas está configurado apenas para Pix e cartão.");
   }
 
-  const recurringRequested = Boolean(checkoutConfig?.recurrenceEnabled && input.method !== "BOLETO");
+  const recurringRequested = activeProvider === "ASAAS"
+    ? input.method === "PIX"
+    : Boolean(checkoutConfig?.recurrenceEnabled && input.method !== "BOLETO");
   const payment = previous ?? reusablePayment ?? await prisma.payment.create({
     data: {
       userId: account.id,
@@ -303,7 +313,49 @@ export async function createPayment(input: CreatePaymentInput) {
         customerId = mapped?.asaasCustomerId ?? customer.id;
       }
 
-      const billingType = input.method === "CARD" ? "CREDIT_CARD" : "PIX";
+      if (input.method === "PIX") {
+        if (account.subscription.asaasPixAuthorizationId && account.subscription.recurringEnabled) {
+          throw new PaymentServiceError("O Pix Automático já está ativo para esta assinatura. As próximas mensalidades serão debitadas na data programada.", 409);
+        }
+
+        if (payment.providerOrderId?.startsWith("pix-automatic:")) {
+          return publicPayment(payment);
+        }
+
+        const authorization = await createAsaasAutomaticPixAuthorization({
+          customerId,
+          contractId: payment.id,
+          amountCents,
+          description: account.subscription.planName,
+          startDate: account.subscription.nextBillingAt && account.subscription.nextBillingAt > new Date()
+            ? account.subscription.nextBillingAt
+            : new Date(),
+        });
+        const updated = await prisma.$transaction(async (transaction) => {
+          await transaction.subscription.update({
+            where: { id: account.subscription!.id },
+            data: {
+              asaasPixAuthorizationId: authorization.id,
+              asaasPixAuthorizationStatus: authorization.status,
+              recurringEnabled: false,
+              recurringMethod: PaymentMethod.PIX,
+            },
+          });
+          return transaction.payment.update({
+            where: { id: payment.id },
+            data: {
+              providerOrderId: `pix-automatic:${authorization.id}`,
+              providerStatus: authorization.status,
+              pixCopyPaste: authorization.copyPaste,
+              pixQrCode: authorization.encodedImage ? normalizeQrCode(authorization.encodedImage) : null,
+              expiresAt: parseProviderExpiration(authorization.expirationDate, 24 * 60 * 60 * 1000),
+            },
+          });
+        });
+        return publicPayment(updated);
+      }
+
+      const billingType = "CREDIT_CARD";
       let charge: Awaited<ReturnType<typeof createAsaasPayment>> | null = null;
       if (payment.providerOrderId) {
         const snapshot = await getAsaasPayment(payment.providerOrderId);
@@ -632,8 +684,8 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
         data: {
           status: SubscriptionStatus.ACTIVE,
           nextBillingAt: addMonths(paidAt),
-          recurringEnabled: false,
-          recurringMethod: null,
+          recurringEnabled: current.recurringRequested,
+          recurringMethod: current.recurringRequested ? current.method : null,
         },
       });
       if (current.paymentLinkId) {

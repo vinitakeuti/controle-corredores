@@ -63,6 +63,8 @@ Abra `Administração > Integrações > Asaas` e informe a API key do ambiente e
 
 No painel do Asaas, cadastre o webhook `https://SEU_DOMINIO/api/webhooks/asaas` com o mesmo token no campo de autenticação. O endpoint valida o header `asaas-access-token`, deduplica pelo ID do evento e confirma a cobrança na API antes de liberar a assinatura.
 
-O checkout gera o QR Code Pix dentro do sistema. Para cartão, o aluno é direcionado à fatura hospedada pelo Asaas; assim, número do cartão e CVV não passam pelo servidor da aplicação. A integração Asaas é avulsa e não habilita recorrência automática.
+Com o Asaas ativo, o Pix usa o fluxo de **Pix Automático**: o primeiro QR Code recebe o pagamento e o consentimento do aluno; as mensalidades seguintes são debitadas automaticamente na data configurada da assinatura. Configure também os eventos `PIX_AUTOMATIC_RECURRING_AUTHORIZATION_*` e `PIX_AUTOMATIC_RECURRING_PAYMENT_INSTRUCTION_*`, além dos eventos comuns de cobrança. A conta e a API key precisam ter acesso ao recurso Pix Automático do Asaas.
+
+O checkout gera o QR Code Pix dentro do sistema. Para cartão, o aluno é direcionado à fatura hospedada pelo Asaas; assim, número do cartão e CVV não passam pelo servidor da aplicação.
 
 Comece em `sandbox`, valide Pix, cartão e webhook, e só então troque para `production`. Nunca coloque API keys em arquivos versionados.

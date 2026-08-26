@@ -44,6 +44,7 @@ export default async function StudentPage() {
           activeProvider={gateway.activeProvider}
           appmaxExternalId={gateway.appmaxExternalId}
           recurrenceEnabled={gateway.recurrenceEnabled}
+          allowedMethods={subscription.allowedMethods}
           embedded
         />
       </section>

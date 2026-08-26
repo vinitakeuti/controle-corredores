@@ -29,7 +29,7 @@ export async function getPaymentCheckoutConfig(): Promise<PaymentCheckoutConfig>
       enabled: Boolean(asaas?.isActive),
       activeProvider: "ASAAS",
       appmaxExternalId: null,
-      recurrenceEnabled: false,
+      recurrenceEnabled: true,
     };
   }
 

@@ -160,14 +160,76 @@ export async function ensureAsaasCustomer(input: {
 export type AsaasBillingType = "PIX" | "CREDIT_CARD";
 
 function todayInMaceio() {
+  return dateInMaceio(new Date());
+}
+
+function dateInMaceio(date: Date) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Maceio",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(date);
   const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
   return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+export type AsaasAutomaticPixAuthorization = {
+  id: string;
+  status: string;
+  copyPaste: string;
+  encodedImage: string | null;
+  expirationDate: string | null;
+  conciliationIdentifier: string | null;
+};
+
+export async function createAsaasAutomaticPixAuthorization(input: {
+  customerId: string;
+  contractId: string;
+  amountCents: number;
+  description: string;
+  startDate: Date;
+}) : Promise<AsaasAutomaticPixAuthorization> {
+  const payload = await asaasRequest("/pix/automatic/authorizations", {
+    method: "POST",
+    body: JSON.stringify({
+      customerId: input.customerId,
+      contractId: input.contractId.slice(0, 35),
+      frequency: "MONTHLY",
+      startDate: dateInMaceio(input.startDate),
+      value: input.amountCents / 100,
+      description: input.description.slice(0, 35),
+      immediateQrCode: {},
+      paymentCreationMode: "SUBSCRIPTION",
+      retryPolicy: "ALLOW_THREE_IN_SEVEN_DAYS",
+    }),
+  });
+  if (!isObject(payload)) throw new AsaasError("O Asaas não retornou a autorização de Pix Automático.", 502);
+  const id = stringValue(payload.id);
+  const immediateQrCode = isObject(payload.immediateQrCode) ? payload.immediateQrCode : null;
+  const copyPaste = immediateQrCode ? stringValue(immediateQrCode.payload) : null;
+  if (!id || !immediateQrCode || !copyPaste) {
+    throw new AsaasError("O Asaas não retornou o QR Code do Pix Automático.", 502);
+  }
+  return {
+    id,
+    status: stringValue(payload.status) ?? "CREATED",
+    copyPaste,
+    encodedImage: stringValue(immediateQrCode.encodedImage),
+    expirationDate: stringValue(immediateQrCode.expirationDate),
+    conciliationIdentifier: stringValue(immediateQrCode.conciliationIdentifier),
+  };
+}
+
+export async function cancelAsaasAutomaticPixAuthorization(authorizationId: string) {
+  try {
+    await asaasRequest(`/pix/automatic/authorizations/${encodeURIComponent(authorizationId)}`, {
+      method: "DELETE",
+    });
+  } catch (error) {
+    if (error instanceof AsaasError && error.status === 404) return;
+    throw error;
+  }
 }
 
 export async function createAsaasPayment(input: {
@@ -246,6 +308,7 @@ export type AsaasPaymentSnapshot = {
   valueCents: number | null;
   billingType: string | null;
   invoiceUrl: string | null;
+  dueDate: string | null;
   paymentDate: string | null;
   confirmedDate: string | null;
   clientPaymentDate: string | null;
@@ -264,6 +327,7 @@ export async function getAsaasPayment(paymentId: string): Promise<AsaasPaymentSn
     valueCents: value === null ? null : Math.round(value * 100),
     billingType: stringValue(payload.billingType),
     invoiceUrl: stringValue(payload.invoiceUrl),
+    dueDate: stringValue(payload.dueDate),
     paymentDate: stringValue(payload.paymentDate),
     confirmedDate: stringValue(payload.confirmedDate),
     clientPaymentDate: stringValue(payload.clientPaymentDate),

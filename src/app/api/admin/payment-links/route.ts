@@ -4,14 +4,30 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders, publicUrl } from "@/lib/security";
 import { createOpaqueToken, hashOpaqueToken } from "@/lib/tokens";
+import { getBillingSettings, parseAllowedMethods, parseAmountCents } from "@/lib/billing";
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
   const admin = await getCurrentUser();
   if (!admin || admin.role !== UserRole.ADMIN) return NextResponse.json({ error: "Apenas administradores podem gerar links" }, { status: 403, headers: noStoreHeaders() });
 
+  let body: Record<string, unknown> = {};
+  const rawBody = await request.text();
+  if (rawBody.trim()) {
+    try {
+      const parsed = JSON.parse(rawBody) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) body = parsed as Record<string, unknown>;
+    } catch {
+      return NextResponse.json({ error: "Dados inválidos" }, { status: 400, headers: noStoreHeaders() });
+    }
+  }
+  const billing = await getBillingSettings();
+  const amountCents = body.amountCents === undefined ? billing.basePriceCents : parseAmountCents(body.amountCents);
+  const allowedMethods = body.allowedMethods === undefined ? billing.defaultAllowedMethods : parseAllowedMethods(body.allowedMethods);
+  if (!amountCents) return NextResponse.json({ error: "Informe um valor entre R$ 1,00 e R$ 100.000,00" }, { status: 400, headers: noStoreHeaders() });
+  if (!allowedMethods) return NextResponse.json({ error: "Selecione ao menos um método de pagamento" }, { status: 400, headers: noStoreHeaders() });
   const rawToken = createOpaqueToken();
-  await prisma.paymentLink.create({ data: { tokenHash: hashOpaqueToken(rawToken), createdById: admin.id } });
+  await prisma.paymentLink.create({ data: { tokenHash: hashOpaqueToken(rawToken), createdById: admin.id, amountCents, allowedMethods } });
   const paymentUrl = publicUrl(request, `/pagamento/${rawToken}`);
   return NextResponse.json({ paymentUrl }, { headers: noStoreHeaders() });
 }

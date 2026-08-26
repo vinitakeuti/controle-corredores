@@ -81,27 +81,59 @@ export async function POST(request: Request) {
   } catch {
     return response({ error: "JSON inválido" }, 400);
   }
-  if (!isObject(payload) || !isObject(payload.payment)) {
+  if (!isObject(payload)) {
     return response({ error: "Evento inválido" }, 400);
   }
 
   const eventId = stringValue(payload.id);
   const eventName = stringValue(payload.event);
-  const providerOrderId = stringValue(payload.payment.id);
-  const providerCustomerId = stringValue(payload.payment.customer);
+  const payment = isObject(payload.payment) ? payload.payment : null;
+  const authorization = isObject(payload.authorization) ? payload.authorization : null;
+  const paymentInstruction = isObject(payload.paymentInstruction) ? payload.paymentInstruction : null;
+  let eventType: "payment" | "pix_automatic_authorization" | "pix_automatic_instruction" | "pix_automatic_eligibility";
+  let providerOrderId: string | null = null;
+  let providerSubscriptionId: string | null = null;
+  let providerCustomerId: string | null = null;
+  let amountCents: number | null = null;
+
+  if (payment) {
+    eventType = "payment";
+    providerOrderId = stringValue(payment.id);
+    providerCustomerId = stringValue(payment.customer);
+    const value = numberValue(payment.value);
+    amountCents = value === null ? null : Math.round(value * 100);
+  } else if (authorization && eventName?.startsWith("PIX_AUTOMATIC_RECURRING_AUTHORIZATION_")) {
+    eventType = "pix_automatic_authorization";
+    providerSubscriptionId = stringValue(authorization.id);
+    providerCustomerId = stringValue(authorization.customerId);
+    const value = numberValue(authorization.value);
+    amountCents = value === null ? null : Math.round(value * 100);
+  } else if (paymentInstruction && eventName?.startsWith("PIX_AUTOMATIC_RECURRING_PAYMENT_INSTRUCTION_")) {
+    eventType = "pix_automatic_instruction";
+    providerOrderId = stringValue(paymentInstruction.paymentId) ?? stringValue(paymentInstruction.payment);
+    const instructionAuthorization = isObject(paymentInstruction.authorization) ? paymentInstruction.authorization : null;
+    providerSubscriptionId = instructionAuthorization ? stringValue(instructionAuthorization.id) : null;
+  } else if (eventName === "PIX_AUTOMATIC_RECURRING_ELIGIBILITY_UPDATED") {
+    eventType = "pix_automatic_eligibility";
+  } else {
+    return response({ error: "Evento inválido" }, 400);
+  }
+
   if (
     !eventId
     || eventId.length > 200
     || !eventName
     || eventName.length > 100
-    || !providerOrderId
-    || providerOrderId.length > 200
+    || (providerOrderId?.length ?? 0) > 200
+    || (providerSubscriptionId?.length ?? 0) > 200
     || (providerCustomerId?.length ?? 0) > 200
+    || (eventType === "payment" && !providerOrderId)
+    || (eventType === "pix_automatic_authorization" && !providerSubscriptionId)
+    || (eventType === "pix_automatic_instruction" && (!providerOrderId || !providerSubscriptionId))
   ) {
     return response({ error: "Evento inválido" }, 400);
   }
 
-  const value = numberValue(payload.payment.value);
   const event = await prisma.gatewayEvent.upsert({
     where: { eventKey: `asaas:${eventId}` },
     update: {},
@@ -109,10 +141,11 @@ export async function POST(request: Request) {
       provider: "ASAAS",
       eventKey: `asaas:${eventId}`,
       eventName,
-      eventType: "payment",
+      eventType,
       providerOrderId,
+      providerSubscriptionId,
       providerCustomerId,
-      amountCents: value === null ? null : Math.round(value * 100),
+      amountCents,
       occurredAt: dateValue(payload.dateCreated),
     },
   });

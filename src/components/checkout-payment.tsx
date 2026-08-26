@@ -44,6 +44,7 @@ type CheckoutPaymentProps = {
   activeProvider: "APPMAX" | "ASAAS" | null;
   appmaxExternalId: string | null;
   recurrenceEnabled: boolean;
+  allowedMethods: Method[];
   embedded?: boolean;
 };
 
@@ -62,6 +63,7 @@ export function CheckoutPayment({
   activeProvider,
   appmaxExternalId,
   recurrenceEnabled,
+  allowedMethods,
   embedded = false,
 }: CheckoutPaymentProps) {
   const router = useRouter();
@@ -77,6 +79,7 @@ export function CheckoutPayment({
   const [copied, setCopied] = useState("");
   const [holderName, setHolderName] = useState(name);
   const [holderDocument, setHolderDocument] = useState(cpf);
+  const availableMethods = allowedMethods.filter((allowedMethod) => activeProvider === "APPMAX" || allowedMethod !== "BOLETO");
   const requestKeyRef = useRef(newRequestKey());
   const initializedRef = useRef(false);
   const cardSubmissionRef = useRef(false);
@@ -158,6 +161,10 @@ export function CheckoutPayment({
   });
 
   useEffect(() => {
+    if (!availableMethods.includes(method)) setMethod(availableMethods[0] ?? "PIX");
+  }, [availableMethods, method]);
+
+  useEffect(() => {
     if (!result || result.status !== "PENDING") return;
     let checks = 0;
     const interval = window.setInterval(async () => {
@@ -215,14 +222,16 @@ export function CheckoutPayment({
 
       {!gatewayEnabled ? <div className="payment-configuration-notice"><strong>Gateway aguardando ativação</strong><p>Um administrador precisa configurar e ativar um provedor de pagamentos para liberar o checkout.</p></div> : null}
 
-      <div className={`checkout-methods ${activeProvider === "ASAAS" ? "two-methods" : ""}`} role="tablist" aria-label="Método de pagamento">
-        <button className={method === "PIX" ? "active" : ""} type="button" role="tab" aria-selected={method === "PIX"} onClick={() => selectMethod("PIX")}>Pix<span>{recurrenceEnabled ? "automático mensal" : "pagamento único"}</span></button>
-        {activeProvider === "APPMAX" ? <button className={method === "BOLETO" ? "active" : ""} type="button" role="tab" aria-selected={method === "BOLETO"} onClick={() => selectMethod("BOLETO")}>Boleto<span>pagamento único</span></button> : null}
-        <button className={method === "CARD" ? "active" : ""} type="button" role="tab" aria-selected={method === "CARD"} onClick={() => selectMethod("CARD")}>Cartão<span>{recurrenceEnabled ? "cobrança mensal" : "pagamento único"}</span></button>
+      <div className={`checkout-methods ${activeProvider === "ASAAS" || availableMethods.length === 2 ? "two-methods" : ""}`} role="tablist" aria-label="Método de pagamento">
+        {availableMethods.includes("PIX") ? <button className={method === "PIX" ? "active" : ""} type="button" role="tab" aria-selected={method === "PIX"} onClick={() => selectMethod("PIX")}>Pix<span>{activeProvider === "ASAAS" || recurrenceEnabled ? "automático mensal" : "pagamento único"}</span></button> : null}
+        {availableMethods.includes("BOLETO") ? <button className={method === "BOLETO" ? "active" : ""} type="button" role="tab" aria-selected={method === "BOLETO"} onClick={() => selectMethod("BOLETO")}>Boleto<span>pagamento único</span></button> : null}
+        {availableMethods.includes("CARD") ? <button className={method === "CARD" ? "active" : ""} type="button" role="tab" aria-selected={method === "CARD"} onClick={() => selectMethod("CARD")}>Cartão<span>{activeProvider === "APPMAX" && recurrenceEnabled ? "cobrança mensal" : "pagamento único"}</span></button> : null}
       </div>
 
-      {method === "PIX" ? <div className="checkout-method-body">
-        <p>{recurrenceEnabled ? "Pague o primeiro Pix para ativar a cobrança mensal automática." : "Gere o QR Code e conclua o pagamento no aplicativo do seu banco."}</p>
+      {availableMethods.length === 0 ? <div className="payment-configuration-notice"><strong>Nenhum método disponível</strong><p>Os métodos liberados para este aluno não são atendidos pelo gateway ativo. Fale com a assessoria.</p></div> : null}
+
+      {method === "PIX" && availableMethods.includes("PIX") ? <div className="checkout-method-body">
+        <p>{activeProvider === "ASAAS" || recurrenceEnabled ? "Pague o primeiro Pix para ativar a cobrança mensal automática." : "Gere o QR Code e conclua o pagamento no aplicativo do seu banco."}</p>
         <button className="button button-dark" type="button" onClick={() => submitPayment("PIX")} disabled={!paymentReady || loading}>{loading ? "Gerando..." : result?.pix ? "Gerar novamente" : "Gerar Pix"}</button>
         {result?.pix ? <div className="gateway-payment-result">
           {result.pix.qrCode ? <img className="pix-qr-code" src={result.pix.qrCode} alt="QR Code do Pix" /> : null}
@@ -232,7 +241,7 @@ export function CheckoutPayment({
         </div> : null}
       </div> : null}
 
-      {method === "BOLETO" && activeProvider === "APPMAX" ? <div className="checkout-method-body">
+      {method === "BOLETO" && availableMethods.includes("BOLETO") && activeProvider === "APPMAX" ? <div className="checkout-method-body">
         <p>Gere o boleto e pague pelo aplicativo do banco ou em um ponto autorizado. Boleto não possui recorrência automática.</p>
         <button className="button button-dark" type="button" onClick={() => submitPayment("BOLETO")} disabled={!paymentReady || loading}>{loading ? "Gerando..." : result?.boleto ? "Gerar novamente" : "Gerar boleto"}</button>
         {result?.boleto ? <div className="gateway-payment-result">
@@ -245,13 +254,13 @@ export function CheckoutPayment({
         </div> : null}
       </div> : null}
 
-      {method === "CARD" && activeProvider === "ASAAS" ? <div className="checkout-method-body">
+      {method === "CARD" && availableMethods.includes("CARD") && activeProvider === "ASAAS" ? <div className="checkout-method-body">
         <p>Você será direcionado à Fatura Asaas para informar os dados do cartão em um ambiente seguro.</p>
         <button className="button button-dark" type="button" onClick={() => submitPayment("CARD")} disabled={!paymentReady || loading}>{loading ? "Preparando..." : "Continuar para o Asaas"}</button>
         {result?.checkoutUrl ? <p className="checkout-note">Se o redirecionamento não ocorrer, <a href={result.checkoutUrl}>abra a Fatura Asaas</a>.</p> : null}
       </div> : null}
 
-      {method === "CARD" && activeProvider === "APPMAX" ? <form className="checkout-method-body" method="POST" data-appmax-checkout onSubmit={() => {
+      {method === "CARD" && availableMethods.includes("CARD") && activeProvider === "APPMAX" ? <form className="checkout-method-body" method="POST" data-appmax-checkout onSubmit={() => {
         cardSubmissionRef.current = true;
         setError("");
         setResult(null);

@@ -4,7 +4,7 @@ import type { SessionUser } from "@/lib/auth";
 import { Brand } from "@/components/brand";
 import { MobileNav } from "@/components/mobile-nav";
 
-export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: "admin" | "students" | "analysis" | "integrations" | "student" }) {
+export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: "admin" | "students" | "analysis" | "billing" | "integrations" | "student" }) {
   return (
     <div className="app-shell">
       <MobileNav user={user} current={current} />
@@ -14,6 +14,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "admin" ? "active" : ""}`} href="/admin">Visão geral</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "students" ? "active" : ""}`} href="/admin/alunos">Alunos</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "analysis" ? "active" : ""}`} href="/admin/analisar">Analisar dados</Link> : null}
+          {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "billing" ? "active" : ""}`} href="/admin/cobrancas">Cobranças</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes">Integrações</Link> : null}
           {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno">Minha assinatura</Link> : null}
         </nav>

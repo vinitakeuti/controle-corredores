@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { SubscriptionStatus, UserRole } from "@prisma/client";
+import { getBillingSettings, parseAllowedMethods, parseAmountCents } from "@/lib/billing";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isValidCpf, isValidPhone, normalizeCpf, normalizePhone, parseBirthDate } from "@/lib/student-input";
@@ -23,12 +24,17 @@ export async function POST(request: Request) {
     const phone = typeof body.phone === "string" ? normalizePhone(body.phone) : null;
     const cpf = typeof body.cpf === "string" ? normalizeCpf(body.cpf) : null;
     const birthDate = typeof body.birthDate === "string" ? parseBirthDate(body.birthDate) : null;
+    const billing = await getBillingSettings();
+    const amountCents = body.amountCents === undefined ? billing.basePriceCents : parseAmountCents(body.amountCents);
+    const allowedMethods = body.allowedMethods === undefined ? billing.defaultAllowedMethods : parseAllowedMethods(body.allowedMethods);
 
     if (name.length < 2 || name.length > 120) return NextResponse.json({ error: "Informe um nome válido" }, { status: 400, headers: noStoreHeaders() });
     if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) return NextResponse.json({ error: "Informe um e-mail válido" }, { status: 400, headers: noStoreHeaders() });
     if (!phone || !isValidPhone(phone)) return NextResponse.json({ error: "Informe um telefone válido" }, { status: 400, headers: noStoreHeaders() });
     if (!cpf || !isValidCpf(cpf)) return NextResponse.json({ error: "Informe um CPF válido" }, { status: 400, headers: noStoreHeaders() });
     if (body.birthDate && !birthDate) return NextResponse.json({ error: "Informe uma data de nascimento válida" }, { status: 400, headers: noStoreHeaders() });
+    if (!amountCents) return NextResponse.json({ error: "Informe um valor entre R$ 1,00 e R$ 100.000,00" }, { status: 400, headers: noStoreHeaders() });
+    if (!allowedMethods) return NextResponse.json({ error: "Selecione ao menos um método de pagamento" }, { status: 400, headers: noStoreHeaders() });
 
     const [existingEmail, existingCpf] = await Promise.all([
       prisma.user.findUnique({ where: { email }, select: { id: true } }),
@@ -44,9 +50,9 @@ export async function POST(request: Request) {
       const created = await transaction.user.create({
         data: { name, email, phone, cpf, birthDate, passwordHash, passwordIsTemporary: true, role: UserRole.STUDENT },
       });
-      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE } });
+      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, priceCents: amountCents, allowedMethods } });
       const paymentLink = await transaction.paymentLink.create({
-        data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id, planName: subscription.planName, amountCents: subscription.priceCents },
+        data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id, planName: subscription.planName, amountCents: subscription.priceCents, allowedMethods },
       });
       return { id: created.id, name: created.name, email: created.email, subscription, paymentLink };
     });
