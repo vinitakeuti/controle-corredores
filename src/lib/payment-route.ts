@@ -73,6 +73,7 @@ export async function handlePaymentRequest(context: PaymentRouteContext) {
       holderDocumentNumber: typeof body.holderDocumentNumber === "string"
         ? body.holderDocumentNumber.replace(/\D/g, "")
         : undefined,
+      automaticPix: body.automaticPix === true,
     });
     return NextResponse.json(result, { headers: noStoreHeaders() });
   } catch (error) {

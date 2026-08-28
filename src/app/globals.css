@@ -447,6 +447,7 @@ input[type="date"] { color-scheme: dark; }
 .checkout-payment-heading > strong small { color: var(--muted); font-size: 10px; font-weight: 500; }
 .checkout-methods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 25px 0 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .checkout-methods.two-methods { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.checkout-methods.four-methods { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .checkout-methods button { padding: 12px; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 4px; font-size: 12px; font-weight: 750; text-align: left; }
 .checkout-methods button span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; font-weight: 500; }
 .checkout-methods button.active { color: var(--text); background: var(--surface-raised); border-color: var(--line); }
@@ -768,6 +769,13 @@ input[type="date"] { width: 100%; min-width: 0; max-width: 100%; min-height: 46p
 .directory-action { color: var(--text); background: rgba(255, 255, 255, 0.58); border-color: var(--line); border-radius: 2px; }
 .directory-action:hover { background: #fff; border-color: var(--text); }
 
+/* O menu não participa do fluxo das páginas longas: somente o conteúdo rola. */
+@media (min-width: 921px) {
+  .app-shell { display: block; min-height: 100dvh; padding-left: 252px; }
+  .sidebar { position: fixed; inset: 0 auto 0 0; width: 252px; height: 100dvh; }
+  .main-content { min-height: 100dvh; }
+}
+
 .metric-card {
   min-height: 154px;
   padding: 22px 20px 19px;
@@ -910,6 +918,7 @@ input[type="date"] { width: 100%; min-width: 0; max-width: 100%; min-height: 46p
   .movement-date-fields input { min-height: 40px; font-size: 13px; }
   .checkout-frame { padding: 24px 18px; }
   .checkout-methods, .checkout-methods.two-methods { grid-template-columns: 1fr; gap: 6px; padding-bottom: 16px; }
+  .checkout-methods.four-methods { grid-template-columns: 1fr; }
   .checkout-methods button { min-height: 58px; padding: 11px 12px; border: 1px solid var(--line); text-align: left; }
   .checkout-methods button span { min-height: 0; }
   .checkout-form-grid { grid-template-columns: 1fr; }

@@ -41,6 +41,7 @@ export type CreatePaymentInput = {
   cardToken?: string;
   holderName?: string;
   holderDocumentNumber?: string;
+  automaticPix?: boolean;
 };
 
 export class PaymentServiceError extends Error {
@@ -117,12 +118,12 @@ function publicPayment(payment: Payment) {
   };
 }
 
-function userFacingProviderError(error: unknown, method: AppmaxPaymentMethod) {
+function userFacingProviderError(error: unknown, method: AppmaxPaymentMethod, automaticPix = false) {
   if (error instanceof PaymentServiceError) return error;
   if (error instanceof AsaasError) {
     const detail = error.providerMessage?.replace(/\s+/g, " ").trim().slice(0, 180);
     if (error.status === 401 || error.status === 403 || error.status === 503) {
-      if (method === "PIX" && error.status === 403) {
+      if (method === "PIX" && automaticPix && error.status === 403) {
         return new PaymentServiceError("O Pix Automático não está habilitado para esta conta ou chave do Asaas.", 503);
       }
       return new PaymentServiceError("O gateway de pagamento ainda não está configurado corretamente.", 503);
@@ -160,6 +161,9 @@ export async function createPayment(input: CreatePaymentInput) {
   }
   if (input.expectedProvider && input.expectedProvider !== activeProvider) {
     throw new PaymentServiceError("O provedor de pagamento mudou. Recarregue a página e tente novamente.", 409);
+  }
+  if (input.automaticPix && (activeProvider !== "ASAAS" || input.method !== "PIX")) {
+    throw new PaymentServiceError("Pix Automático está disponível apenas para pagamentos Pix pelo Asaas.");
   }
 
   const prismaMethod = paymentMethod(input.method);
@@ -233,6 +237,9 @@ export async function createPayment(input: CreatePaymentInput) {
         method: prismaMethod,
         amountCents,
         status: PaymentStatus.PENDING,
+        ...(activeProvider === "ASAAS" && input.method === "PIX"
+          ? input.automaticPix ? { providerOrderId: { startsWith: "pix-automatic:" } } : { NOT: { providerOrderId: { startsWith: "pix-automatic:" } } }
+          : {}),
         ...(activeProvider === "APPMAX" ? { expiresAt: { gt: new Date() } } : {}),
         paymentLinkId: input.paymentLinkId ?? null,
       },
@@ -269,12 +276,10 @@ export async function createPayment(input: CreatePaymentInput) {
         throw new PaymentServiceError("Informe o documento do titular do cartão.");
       }
     }
-  } else if (input.method === "BOLETO") {
-    throw new PaymentServiceError("O Asaas está configurado apenas para Pix e cartão.");
   }
 
   const recurringRequested = activeProvider === "ASAAS"
-    ? input.method === "PIX"
+    ? Boolean(input.automaticPix)
     : Boolean(checkoutConfig?.recurrenceEnabled && input.method !== "BOLETO");
   const payment = previous ?? reusablePayment ?? await prisma.payment.create({
     data: {
@@ -313,7 +318,7 @@ export async function createPayment(input: CreatePaymentInput) {
         customerId = mapped?.asaasCustomerId ?? customer.id;
       }
 
-      if (input.method === "PIX") {
+      if (input.method === "PIX" && input.automaticPix) {
         if (account.subscription.asaasPixAuthorizationId && account.subscription.recurringEnabled) {
           throw new PaymentServiceError("O Pix Automático já está ativo para esta assinatura. As próximas mensalidades serão debitadas na data programada.", 409);
         }
@@ -355,11 +360,11 @@ export async function createPayment(input: CreatePaymentInput) {
         return publicPayment(updated);
       }
 
-      const billingType = "CREDIT_CARD";
+      const billingType = input.method === "PIX" ? "PIX" : input.method === "BOLETO" ? "BOLETO" : "CREDIT_CARD";
       let charge: Awaited<ReturnType<typeof createAsaasPayment>> | null = null;
       if (payment.providerOrderId) {
         const snapshot = await getAsaasPayment(payment.providerOrderId);
-        charge = { id: snapshot.id, status: snapshot.status, invoiceUrl: snapshot.invoiceUrl };
+        charge = { id: snapshot.id, status: snapshot.status, invoiceUrl: snapshot.invoiceUrl, dueDate: snapshot.dueDate };
       } else {
         if (previous || reusablePayment) {
           charge = await findAsaasPaymentByExternalReference({
@@ -407,6 +412,19 @@ export async function createPayment(input: CreatePaymentInput) {
         const updated = await prisma.payment.update({
           where: { id: payment.id },
           data: { ...baseData, expiresAt: null },
+        });
+        return publicPayment(updated);
+      }
+
+      if (input.method === "BOLETO") {
+        if (!charge.invoiceUrl) throw new AsaasError("O Asaas não retornou o boleto.", 502);
+        const updated = await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            ...baseData,
+            boletoUrl: charge.invoiceUrl,
+            expiresAt: parseProviderExpiration(charge.dueDate, 3 * 24 * 60 * 60 * 1000),
+          },
         });
         return publicPayment(updated);
       }
@@ -525,7 +543,7 @@ export async function createPayment(input: CreatePaymentInput) {
     const synchronized = await synchronizeAppmaxOrder(order.id);
     return publicPayment(synchronized ?? await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } }));
   } catch (error) {
-    const mapped = userFacingProviderError(error, input.method);
+    const mapped = userFacingProviderError(error, input.method, input.automaticPix);
     const latest = activeProvider === "ASAAS"
       ? await prisma.payment.findUnique({ where: { id: payment.id }, select: { providerOrderId: true } }).catch(() => null)
       : null;

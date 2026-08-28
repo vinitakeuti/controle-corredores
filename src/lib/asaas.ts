@@ -157,7 +157,7 @@ export async function ensureAsaasCustomer(input: {
   return { id };
 }
 
-export type AsaasBillingType = "PIX" | "CREDIT_CARD";
+export type AsaasBillingType = "PIX" | "CREDIT_CARD" | "BOLETO";
 
 function todayInMaceio() {
   return dateInMaceio(new Date());
@@ -257,6 +257,7 @@ export async function createAsaasPayment(input: {
     id,
     status: stringValue(payload.status) ?? "PENDING",
     invoiceUrl: stringValue(payload.invoiceUrl),
+    dueDate: stringValue(payload.dueDate),
   };
 }
 
@@ -287,6 +288,7 @@ export async function findAsaasPaymentByExternalReference(input: {
     id,
     status: stringValue(payment?.status) ?? "PENDING",
     invoiceUrl: stringValue(payment?.invoiceUrl),
+    dueDate: stringValue(payment?.dueDate),
   };
 }
 
