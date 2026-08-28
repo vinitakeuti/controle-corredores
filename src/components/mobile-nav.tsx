@@ -15,6 +15,10 @@ export function MobileNav({ user, current }: { user: SessionUser; current: "admi
   }, [open]);
 
   const close = () => setOpen(false);
+  const openTutorial = () => {
+    close();
+    window.dispatchEvent(new Event("pace-lab:open-tutorial"));
+  };
 
   return (
     <>
@@ -35,6 +39,7 @@ export function MobileNav({ user, current }: { user: SessionUser; current: "admi
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "billing" ? "active" : ""}`} href="/admin/cobrancas" onClick={close}>Cobranças</Link> : null}
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes" onClick={close}>Integrações</Link> : null}
             {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" onClick={close}>Minha assinatura</Link> : null}
+            <button className="nav-link tutorial-launcher" type="button" onClick={openTutorial}>Tutorial</button>
           </nav>
           <div className="sidebar-footer"><strong>{user.name}</strong><span>{user.role === UserRole.ADMIN ? "Administrador" : "Aluno"}</span><form action="/api/auth/logout" method="post"><button className="logout-button" type="submit">Sair da conta</button></form></div>
         </aside>

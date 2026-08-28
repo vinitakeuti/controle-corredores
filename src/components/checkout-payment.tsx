@@ -231,7 +231,7 @@ export function CheckoutPayment({
 
       {!gatewayEnabled ? <div className="payment-configuration-notice"><strong>Gateway aguardando ativação</strong><p>Um administrador precisa configurar e ativar um provedor de pagamentos para liberar o checkout.</p></div> : null}
 
-      <div className={`checkout-methods ${availableChoices.length === 2 ? "two-methods" : ""} ${availableChoices.length === 4 ? "four-methods" : ""}`} role="tablist" aria-label="Método de pagamento">
+      <div className={`checkout-methods ${availableChoices.length === 2 ? "two-methods" : ""} ${availableChoices.length === 4 ? "four-methods" : ""}`} role="tablist" aria-label="Método de pagamento" data-tutorial-anchor="payment-methods">
         {availableMethods.includes("PIX") ? <button className={method === "PIX" ? "active" : ""} type="button" role="tab" aria-selected={method === "PIX"} onClick={() => selectMethod("PIX")}>Pix<span>pagamento único</span></button> : null}
         {automaticPixAvailable ? <button className={method === "PIX_AUTOMATIC" ? "active" : ""} type="button" role="tab" aria-selected={method === "PIX_AUTOMATIC"} onClick={() => selectMethod("PIX_AUTOMATIC")}>Pix Automático<span>autorização mensal</span></button> : null}
         {availableMethods.includes("BOLETO") ? <button className={method === "BOLETO" ? "active" : ""} type="button" role="tab" aria-selected={method === "BOLETO"} onClick={() => selectMethod("BOLETO")}>Boleto<span>pagamento único</span></button> : null}
@@ -275,9 +275,9 @@ export function CheckoutPayment({
         </div> : null}
       </div> : null}
 
-      {method === "CARD" && availableMethods.includes("CARD") && activeProvider === "ASAAS" ? <div className="checkout-method-body">
-        <p>Você será direcionado à Fatura Asaas para informar os dados do cartão em um ambiente seguro.</p>
-        <button className="button button-dark" type="button" onClick={() => submitPayment("CARD")} disabled={!paymentReady || loading}>{loading ? "Preparando..." : "Continuar para o Asaas"}</button>
+      {method === "CARD" && availableMethods.includes("CARD") && activeProvider !== "APPMAX" ? <div className="checkout-method-body">
+        <p>{activeProvider === "ASAAS" ? "Você será direcionado à Fatura Asaas para informar os dados do cartão em um ambiente seguro." : "O cartão será liberado assim que o gateway de pagamentos estiver ativo."}</p>
+        <button className="button button-dark" type="button" onClick={() => submitPayment("CARD")} disabled={!paymentReady || loading}>{loading ? "Preparando..." : activeProvider === "ASAAS" ? "Continuar para o Asaas" : "Gateway indisponível"}</button>
         {result?.checkoutUrl ? <p className="checkout-note">Se o redirecionamento não ocorrer, <a href={result.checkoutUrl}>abra a Fatura Asaas</a>.</p> : null}
       </div> : null}
 
