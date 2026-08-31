@@ -42,6 +42,7 @@ export function PlansManager({ initialServices }: { initialServices: Service[] }
       const response = await fetch("/api/admin/plans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serviceId, serviceName: serviceId ? undefined : serviceName, period, priceCents }) });
       const data = await response.json();
       if (!response.ok) { setError(data.error ?? "Não foi possível adicionar o plano."); return; }
+      setPriceDrafts((current) => ({ ...current, [data.plan.id]: (data.plan.priceCents / 100).toFixed(2) }));
       setMessage(serviceId ? "Plano adicionado à categoria." : "Categoria e primeiro plano criados.");
       setNewServiceOpen(false); setServiceName(""); resetPlanForm(); router.refresh();
     } catch { setError("Não foi possível conectar ao servidor."); } finally { setPending(false); }
