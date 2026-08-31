@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSession, verifyCredentials } from "@/lib/auth";
+import { createSession, defaultPathForRole, verifyCredentials } from "@/lib/auth";
 import { checkLoginRateLimit, clearLoginFailures, loginRateLimitKeys, registerLoginFailure } from "@/lib/rate-limit";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     clearLoginFailures(keys);
     await createSession(user.id, request);
-    return NextResponse.json({ redirectTo: user.role === "ADMIN" ? "/admin" : "/aluno" }, { headers: noStoreHeaders() });
+    return NextResponse.json({ redirectTo: defaultPathForRole(user.role) }, { headers: noStoreHeaders() });
   } catch {
     return NextResponse.json({ error: "Não foi possível entrar" }, { status: 400, headers: noStoreHeaders() });
   }

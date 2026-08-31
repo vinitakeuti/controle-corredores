@@ -1,7 +1,7 @@
 import { Prisma, SubscriptionStatus, UserRole } from "@prisma/client";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { requireRole } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { formatDate, subscriptionLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -22,7 +22,7 @@ function buildHref(status: ListStatus, page: number, query: string) {
 }
 
 export default async function AnalyzePage({ searchParams }: { searchParams: Promise<AnalyzeSearchParams> }) {
-  const user = await requireRole(UserRole.ADMIN);
+  const user = await requireStaff();
   const params = await searchParams;
   const now = new Date();
   const status = getListStatus(params.status);

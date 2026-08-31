@@ -19,6 +19,16 @@ export type SessionUser = {
   tutorialSeenAt: Date | null;
 };
 
+export function isStaffRole(role: UserRole) {
+  return role === UserRole.ADMIN || role === UserRole.OPERATOR;
+}
+
+export function defaultPathForRole(role: UserRole) {
+  if (role === UserRole.ADMIN) return "/admin";
+  if (role === UserRole.OPERATOR) return "/admin/alunos";
+  return "/aluno";
+}
+
 function isSecureRequest(request?: Request) {
   if (!request) return process.env.NODE_ENV === "production";
   const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
@@ -96,6 +106,12 @@ export async function requireUser() {
 
 export async function requireRole(role: UserRole) {
   const user = await requireUser();
-  if (user.role !== role) redirect(user.role === UserRole.ADMIN ? "/admin" : "/aluno");
+  if (user.role !== role) redirect(defaultPathForRole(user.role));
+  return user;
+}
+
+export async function requireStaff() {
+  const user = await requireUser();
+  if (!isStaffRole(user.role)) redirect(defaultPathForRole(user.role));
   return user;
 }

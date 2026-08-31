@@ -84,7 +84,8 @@ export function StudentSubscriptionFlow({
       </div> : null}
 
       {stage === "payment" && selectedPlan && method ? <div className="subscription-flow-stage">
-        <div className="subscription-flow-payment-heading"><div><p className="eyebrow">Etapa 3 de 3</p><h2>Conclua seu pagamento</h2><p>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]} · {formatCurrency(selectedPlan.priceCents)} por mês</p></div><button className="button button-quiet" type="button" onClick={() => setStage("method")}>Trocar método</button></div>
+        <div className="subscription-flow-payment-heading"><div><p className="eyebrow">Etapa 3 de 3</p><h2>Conclua seu pagamento</h2><p>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]} · {formatCurrency(selectedPlan.priceCents)} por mês</p></div></div>
+        <button className="subscription-flow-change-method" type="button" onClick={() => setStage("method")}>← Trocar método de pagamento</button>
         <CheckoutPayment token={token} name={name} cpf={cpf} amountCents={selectedPlan.priceCents} gatewayEnabled={gatewayEnabled} activeProvider={activeProvider} appmaxExternalId={appmaxExternalId} recurrenceEnabled={recurrenceEnabled} allowedMethods={allowedMethods} embedded hideHeading hideMethodSelector initialMethod={method} />
       </div> : null}
     </section>

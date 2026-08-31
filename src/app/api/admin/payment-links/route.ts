@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isStaffRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders, publicUrl } from "@/lib/security";
 import { createOpaqueToken, hashOpaqueToken } from "@/lib/tokens";
@@ -10,7 +10,7 @@ import { planDisplayName } from "@/lib/plans";
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
   const admin = await getCurrentUser();
-  if (!admin || admin.role !== UserRole.ADMIN) return NextResponse.json({ error: "Apenas administradores podem gerar links" }, { status: 403, headers: noStoreHeaders() });
+  if (!admin || !isStaffRole(admin.role)) return NextResponse.json({ error: "Apenas administradores e operadores podem gerar links" }, { status: 403, headers: noStoreHeaders() });
 
   let body: Record<string, unknown> = {};
   const rawBody = await request.text();

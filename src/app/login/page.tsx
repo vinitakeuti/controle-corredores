@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 import { Brand } from "@/components/brand";
 import { LoginForm } from "@/components/login-form";
-import { getCurrentUser } from "@/lib/auth";
+import { defaultPathForRole, getCurrentUser } from "@/lib/auth";
 
 export default async function LoginPage() {
   const user = await getCurrentUser();
-  if (user) redirect(user.role === "ADMIN" ? "/admin" : "/aluno");
+  if (user) redirect(defaultPathForRole(user.role));
 
   return (
     <main className="login-page">

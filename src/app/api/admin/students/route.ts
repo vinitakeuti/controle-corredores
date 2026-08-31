@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { SubscriptionStatus, UserRole } from "@prisma/client";
 import { DEFAULT_ALLOWED_METHODS, DEFAULT_BILLING_PRICE_CENTS, parseAllowedMethods } from "@/lib/billing";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isStaffRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isValidCpf, isValidPhone, normalizeCpf, normalizePhone, parseBirthDate } from "@/lib/student-input";
 import { createOpaqueToken, generateTemporaryPassword, hashOpaqueToken } from "@/lib/tokens";
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   try {
     if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
     const admin = await getCurrentUser();
-    if (!admin || admin.role !== UserRole.ADMIN) return NextResponse.json({ error: "Apenas administradores podem cadastrar alunos" }, { status: 403, headers: noStoreHeaders() });
+    if (!admin || !isStaffRole(admin.role)) return NextResponse.json({ error: "Apenas administradores e operadores podem cadastrar alunos" }, { status: 403, headers: noStoreHeaders() });
     if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") return NextResponse.json({ error: "Formato inválido" }, { status: 415, headers: noStoreHeaders() });
     if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_LENGTH) return NextResponse.json({ error: "Requisição muito grande" }, { status: 413, headers: noStoreHeaders() });
 

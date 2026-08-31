@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Role = "ADMIN" | "STUDENT";
+type Role = "ADMIN" | "OPERATOR" | "STUDENT";
 type FocusRect = { top: number; left: number; width: number; height: number };
 type TutorialStep = { label: string; title: string; text: string; anchors?: string[] };
 
@@ -21,6 +21,13 @@ const studentSteps: TutorialStep[] = [
   { label: "Segurança", title: "Sua conta é só sua.", text: "Use uma senha que só você conhece e altere-a nesta área sempre que precisar.", anchors: ["[data-tutorial-anchor='security']", "[data-tutorial-anchor='nav-student']"] },
 ];
 
+const operatorSteps: TutorialStep[] = [
+  { label: "Bem-vindo", title: "É bom ter você no time.", text: "Você tem acesso às rotinas de alunos e pagamentos da Pace Lab." },
+  { label: "Alunos", title: "Cadastros no ritmo certo.", text: "Crie novos alunos ou gere links de pagamento a partir desta área.", anchors: ["[data-tutorial-anchor='nav-students']"] },
+  { label: "Analisar dados", title: "Acompanhe as assinaturas.", text: "Use a análise para localizar alunos em dia, em atraso ou aguardando pagamento." },
+  { label: "Segurança", title: "Seu acesso é pessoal.", text: "Mantenha sua senha protegida e encerre a sessão ao terminar o atendimento.", anchors: ["[data-tutorial-anchor='account-menu']"] },
+];
+
 function findFocus(anchors?: string[]) {
   if (!anchors) return null;
   for (const anchor of anchors) {
@@ -35,7 +42,7 @@ function findFocus(anchors?: string[]) {
 }
 
 export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: Role; name: string; userId: string; initiallySeen: boolean }) {
-  const steps = role === "ADMIN" ? adminSteps : studentSteps;
+  const steps = role === "ADMIN" ? adminSteps : role === "OPERATOR" ? operatorSteps : studentSteps;
   const storageKey = `pace-lab:tutorial-seen:v1:${role}:${userId}`;
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);

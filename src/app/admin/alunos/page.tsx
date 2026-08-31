@@ -1,7 +1,7 @@
 import { Prisma, SubscriptionStatus, UserRole } from "@prisma/client";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { requireRole } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { formatDate, subscriptionLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -23,7 +23,7 @@ function getStudentStatus(active: boolean, leftAt: Date | null, subscriptionStat
 }
 
 export default async function StudentsPage({ searchParams }: { searchParams: Promise<StudentsSearchParams> }) {
-  const user = await requireRole(UserRole.ADMIN);
+  const user = await requireStaff();
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim().slice(0, 80) : "";
   const requestedPage = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
