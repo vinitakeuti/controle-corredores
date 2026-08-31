@@ -120,6 +120,27 @@
 .plan-row-price small { color: var(--muted); font-size: 10px; }
 .plan-row-actions { display: flex; gap: 7px; }
 .plan-row-actions .button { min-width: 0; }
+.plans-catalog { display: grid; gap: 16px; }
+.plans-catalog-heading, .service-catalog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.plans-catalog-heading h2 { margin: 0; color: var(--text); font-size: 20px; letter-spacing: -0.04em; }
+.plans-catalog-heading p { max-width: 590px; margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.new-service-card, .service-catalog-card { padding: 20px; background: rgba(255,255,255,0.5); border: 1px solid var(--line); }
+.new-service-card { display: grid; grid-template-columns: minmax(210px, 0.35fr) minmax(0, 0.65fr); gap: 18px; align-items: end; }
+.service-catalog-list { display: grid; gap: 14px; }
+.service-catalog-header { margin-bottom: 16px; }
+.service-catalog-header .eyebrow { margin-bottom: 7px; }
+.service-catalog-header h3 { margin: 0; color: var(--text); font-size: 20px; letter-spacing: -0.04em; }
+.service-catalog-header span { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+.service-catalog-actions, .plan-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.inline-plan-form { display: grid; grid-template-columns: minmax(150px, 0.35fr) minmax(150px, 0.35fr) auto; gap: 12px; align-items: end; margin: 0 0 16px; padding: 15px; background: rgba(18, 27, 23, 0.05); border: 1px solid var(--line-soft); }
+.inline-plan-actions { display: flex; gap: 8px; }
+.inline-plan-actions .button { min-height: 40px; white-space: nowrap; }
+.service-no-plans { margin: 0; padding: 17px 0 3px; color: var(--muted); font-size: 12px; }
+.plan-delete-confirm { display: grid; gap: 8px; padding: 18px; color: #ffffff; background: var(--text); border-left: 3px solid var(--accent); }
+.plan-delete-confirm strong { font-size: 14px; }
+.plan-delete-confirm p { margin: 0; color: #d6ded9; font-size: 12px; line-height: 1.5; }
+.plan-delete-confirm > div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.plan-delete-confirm .button-quiet { color: #ffffff; border-color: rgba(255,255,255,0.45); }
 .plan-billing-fields { grid-template-columns: minmax(200px, 0.45fr) minmax(160px, 0.3fr) minmax(220px, 0.45fr); }
 .billing-plans-empty { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .billing-method-options { max-width: 430px; margin-top: 20px; }
@@ -149,6 +170,15 @@
   .plan-row-price { justify-items: start; }
   .plan-row-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .plan-row-actions .button { width: 100%; }
+  .plans-catalog-heading, .service-catalog-header { display: grid; }
+  .plans-catalog-heading > .button, .service-catalog-actions { width: 100%; }
+  .service-catalog-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .service-catalog-actions .button { width: 100%; }
+  .new-service-card, .inline-plan-form { grid-template-columns: 1fr; }
+  .inline-plan-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inline-plan-actions .button { width: 100%; }
+  .plan-delete-confirm > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .plan-delete-confirm .button { width: 100%; }
 }
 
 .integration-page-heading { margin-bottom: 42px; }

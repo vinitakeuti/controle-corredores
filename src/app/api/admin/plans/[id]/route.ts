@@ -38,3 +38,19 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ error: message }, { status: 400, headers: noStoreHeaders() });
   }
 }
+
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
+    const user = await getCurrentUser();
+    if (!user || user.role !== UserRole.ADMIN) return NextResponse.json({ error: "Apenas administradores podem excluir planos" }, { status: 403, headers: noStoreHeaders() });
+    const { id } = await context.params;
+    const plan = await prisma.plan.findUnique({ where: { id }, select: { id: true, subscriptions: { where: { status: { in: ["ACTIVE", "PAST_DUE", "INCOMPLETE"] } }, select: { id: true }, take: 1 }, paymentLinks: { where: { status: "OPEN" }, select: { id: true }, take: 1 } } });
+    if (!plan) return NextResponse.json({ error: "Plano não encontrado." }, { status: 404, headers: noStoreHeaders() });
+    if (plan.subscriptions.length || plan.paymentLinks.length) return NextResponse.json({ error: "Este plano está vinculado a alunos ou links abertos. Pause-o para impedir novas escolhas e mantenha as cobranças atuais seguras." }, { status: 409, headers: noStoreHeaders() });
+    await prisma.plan.delete({ where: { id } });
+    return NextResponse.json({ deleted: true }, { headers: noStoreHeaders() });
+  } catch {
+    return NextResponse.json({ error: "Não foi possível excluir o plano." }, { status: 400, headers: noStoreHeaders() });
+  }
+}
