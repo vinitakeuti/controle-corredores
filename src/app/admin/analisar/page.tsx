@@ -31,7 +31,7 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
   const searchFilter: Prisma.UserWhereInput = query ? { OR: [{ name: { contains: query, mode: "insensitive" } }, { email: { contains: query, mode: "insensitive" } }] } : {};
   const onTimeWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, subscription: { is: { status: SubscriptionStatus.ACTIVE, OR: [{ nextBillingAt: null }, { nextBillingAt: { gte: now } }] } } };
   const overdueWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, subscription: { is: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } };
-  const awaitingPaymentWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, payments: { none: { status: "PAID" } } };
+  const awaitingPaymentWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, subscription: { is: { status: SubscriptionStatus.INCOMPLETE } }, payments: { none: { status: "PAID" } } };
 
   const [onTimeTotal, overdueTotal, awaitingPaymentTotal] = await Promise.all([prisma.user.count({ where: onTimeWhere }), prisma.user.count({ where: overdueWhere }), prisma.user.count({ where: awaitingPaymentWhere })]);
   const selectedTotal = status === "overdue" ? overdueTotal : status === "awaiting-payment" ? awaitingPaymentTotal : onTimeTotal;

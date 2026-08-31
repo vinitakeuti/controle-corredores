@@ -19,8 +19,12 @@ export default async function StudentPage() {
   const gateway = await getPaymentCheckoutConfig();
   const plans = await getActivePlans();
 
-  if (!subscription || subscription.status !== "ACTIVE") {
-    return <AppShell user={user} current="student"><header className="page-heading"><div><p className="eyebrow">Acesso pendente</p><h1>Finalize seu pagamento.</h1><p>A área do aluno será liberada depois que o pagamento for confirmado.</p></div></header><section className="panel checkout-message"><h2>Seu cadastro está reservado.</h2><p>Use o link de pagamento enviado pela assessoria para concluir sua inscrição.</p></section><section className="panel security-panel" data-tutorial-anchor="security"><div className="panel-heading"><div><h2>Segurança</h2><p>A senha temporária não expira. Altere-a quando quiser.</p></div></div><PasswordChangeForm /></section></AppShell>;
+  if (!subscription || !subscription.planId) {
+    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>Escolha seu plano para iniciar sua assinatura na Pace Lab.</p></div></header>{plans.length ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={null} /></section> : <section className="panel empty-state"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></section>}</AppShell>;
+  }
+
+  if (subscription.status !== "ACTIVE") {
+    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Seu plano está separado.</h1><p>Escolha como concluir o primeiro pagamento.</p></div></header><section className="subscription-card"><div><p className="eyebrow">Plano escolhido</p><h2>{subscription.planName}</h2></div><div className="subscription-meta"><div><small>Status</small><strong>{subscriptionLabel(subscription.status)}</strong></div><div><small>Valor mensal</small><strong>{formatCurrency(subscription.priceCents)}</strong></div></div></section>{plans.length ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}<section className="panel student-payment-panel" data-tutorial-anchor="student-payment"><CheckoutPayment name={account?.name ?? user.name} cpf={account?.cpf ?? ""} amountCents={subscription.priceCents} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} embedded /></section></AppShell>;
   }
 
   return (

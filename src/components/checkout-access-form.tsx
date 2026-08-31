@@ -30,7 +30,7 @@ export function CheckoutAccessForm({ token, mode, initialEmail = "" }: CheckoutA
         setError(data.error ?? "Não foi possível continuar.");
         return;
       }
-      router.refresh();
+      router.replace("/aluno");
     } catch {
       setError("Não foi possível conectar ao servidor.");
     } finally {
