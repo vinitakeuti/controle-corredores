@@ -26,7 +26,7 @@ export async function POST(request: Request, context: { params: Promise<{ token:
     if (body.birthDate && !birthDate) return NextResponse.json({ error: "Informe uma data de nascimento válida" }, { status: 400, headers: noStoreHeaders() });
     if (password.length < 8 || password.length > 128) return NextResponse.json({ error: "A senha deve ter pelo menos 8 caracteres" }, { status: 400, headers: noStoreHeaders() });
 
-    const link = await prisma.paymentLink.findUnique({ where: { tokenHash: hashOpaqueToken(token) }, select: { id: true, status: true, userId: true, planName: true, amountCents: true, allowedMethods: true } });
+    const link = await prisma.paymentLink.findUnique({ where: { tokenHash: hashOpaqueToken(token) }, select: { id: true, status: true, userId: true, planId: true, planName: true, amountCents: true, allowedMethods: true } });
     if (!link || link.status !== PaymentLinkStatus.OPEN) return NextResponse.json({ error: "Link de pagamento inválido ou indisponível" }, { status: 404, headers: noStoreHeaders() });
     if (link.userId) return NextResponse.json({ error: "Este link já está vinculado a um aluno" }, { status: 409, headers: noStoreHeaders() });
     if (await prisma.user.findUnique({ where: { email }, select: { id: true } })) return NextResponse.json({ error: "Já existe uma conta com este e-mail" }, { status: 409, headers: noStoreHeaders() });
@@ -35,7 +35,7 @@ export async function POST(request: Request, context: { params: Promise<{ token:
     const passwordHash = await bcrypt.hash(password, 12);
     const student = await prisma.$transaction(async (transaction) => {
       const created = await transaction.user.create({ data: { name, email, phone, cpf, birthDate, passwordHash, role: UserRole.STUDENT, passwordIsTemporary: false } });
-      await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planName: link.planName, priceCents: link.amountCents, allowedMethods: link.allowedMethods } });
+      await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planId: link.planId, planName: link.planName, priceCents: link.amountCents, allowedMethods: link.allowedMethods } });
       const attached = await transaction.paymentLink.updateMany({ where: { id: link.id, status: PaymentLinkStatus.OPEN, userId: null }, data: { userId: created.id } });
       if (attached.count !== 1) throw new Error("payment link already claimed");
       return created;

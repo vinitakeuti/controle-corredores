@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { isValidCpf, isValidPhone, normalizeCpf, normalizePhone, parseBirthDate } from "@/lib/student-input";
 import { createOpaqueToken, generateTemporaryPassword, hashOpaqueToken } from "@/lib/tokens";
 import { isSameOrigin, noStoreHeaders, publicUrl } from "@/lib/security";
+import { planDisplayName } from "@/lib/plans";
 
 const MAX_BODY_LENGTH = 16_384;
 
@@ -27,12 +28,15 @@ export async function POST(request: Request) {
     const billing = await getBillingSettings();
     const amountCents = body.amountCents === undefined ? billing.basePriceCents : parseAmountCents(body.amountCents);
     const allowedMethods = body.allowedMethods === undefined ? billing.defaultAllowedMethods : parseAllowedMethods(body.allowedMethods);
+    const requestedPlanId = typeof body.planId === "string" ? body.planId : "";
+    const plan = requestedPlanId ? await prisma.plan.findFirst({ where: { id: requestedPlanId, active: true, service: { active: true } }, include: { service: true } }) : null;
 
     if (name.length < 2 || name.length > 120) return NextResponse.json({ error: "Informe um nome válido" }, { status: 400, headers: noStoreHeaders() });
     if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) return NextResponse.json({ error: "Informe um e-mail válido" }, { status: 400, headers: noStoreHeaders() });
     if (!phone || !isValidPhone(phone)) return NextResponse.json({ error: "Informe um telefone válido" }, { status: 400, headers: noStoreHeaders() });
     if (!cpf || !isValidCpf(cpf)) return NextResponse.json({ error: "Informe um CPF válido" }, { status: 400, headers: noStoreHeaders() });
     if (body.birthDate && !birthDate) return NextResponse.json({ error: "Informe uma data de nascimento válida" }, { status: 400, headers: noStoreHeaders() });
+    if (requestedPlanId && !plan) return NextResponse.json({ error: "O plano escolhido não está disponível" }, { status: 400, headers: noStoreHeaders() });
     if (!amountCents) return NextResponse.json({ error: "Informe um valor entre R$ 1,00 e R$ 100.000,00" }, { status: 400, headers: noStoreHeaders() });
     if (!allowedMethods) return NextResponse.json({ error: "Selecione ao menos um método de pagamento" }, { status: 400, headers: noStoreHeaders() });
 
@@ -50,9 +54,9 @@ export async function POST(request: Request) {
       const created = await transaction.user.create({
         data: { name, email, phone, cpf, birthDate, passwordHash, passwordIsTemporary: true, role: UserRole.STUDENT },
       });
-      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, priceCents: amountCents, allowedMethods } });
+      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, priceCents: plan?.priceCents ?? amountCents, allowedMethods } });
       const paymentLink = await transaction.paymentLink.create({
-        data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id, planName: subscription.planName, amountCents: subscription.priceCents, allowedMethods },
+        data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id, planId: subscription.planId, planName: subscription.planName, amountCents: subscription.priceCents, allowedMethods },
       });
       return { id: created.id, name: created.name, email: created.email, subscription, paymentLink };
     });

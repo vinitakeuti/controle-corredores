@@ -34,7 +34,7 @@ function findFocus(anchors?: string[]) {
   return null;
 }
 
-export function PlatformTutorial({ role, name, userId }: { role: Role; name: string; userId: string }) {
+export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: Role; name: string; userId: string; initiallySeen: boolean }) {
   const steps = role === "ADMIN" ? adminSteps : studentSteps;
   const storageKey = `pace-lab:tutorial-seen:v1:${role}:${userId}`;
   const [open, setOpen] = useState(false);
@@ -63,9 +63,10 @@ export function PlatformTutorial({ role, name, userId }: { role: Role; name: str
   useEffect(() => {
     setIphone(/iPhone/i.test(window.navigator.userAgent));
     let autoStartTimer: number | undefined;
-    if (!window.localStorage.getItem(storageKey)) {
+    if (!initiallySeen && !window.localStorage.getItem(storageKey)) {
       autoStartTimer = window.setTimeout(() => {
         window.localStorage.setItem(storageKey, "true");
+        void fetch("/api/tutorial/seen", { method: "POST" });
         start();
       }, 350);
     }
@@ -80,7 +81,7 @@ export function PlatformTutorial({ role, name, userId }: { role: Role; name: str
       window.removeEventListener("pace-lab:open-tutorial", handleOpen);
       document.removeEventListener("click", handleTutorialClick);
     };
-  }, [storageKey]);
+  }, [initiallySeen, storageKey]);
 
   useEffect(() => {
     if (!open || iphoneOffer || iphoneGuideOpen) {

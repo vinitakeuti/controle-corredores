@@ -98,6 +98,48 @@
   .integration-config-panel-heading > .integration-card-status { display: inline-flex; margin-top: 16px; }
 }
 
+/* Planos */
+.plans-layout { display: grid; grid-template-columns: minmax(300px, 0.42fr) minmax(0, 0.58fr); gap: 18px; align-items: start; }
+.plans-form, .plans-list { margin: 0; }
+.plan-service-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 18px; border: 1px solid var(--line); }
+.plan-service-switch button { min-height: 42px; color: var(--muted); background: transparent; border: 0; border-right: 1px solid var(--line); font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
+.plan-service-switch button:last-child { border-right: 0; }
+.plan-service-switch button.active { color: #ffffff; background: var(--text); }
+.plan-form-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.plan-service-group + .plan-service-group { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--line-soft); }
+.plan-service-group h3 { margin: 0 0 10px; color: var(--text); font-size: 15px; }
+.plan-table { border-top: 1px solid var(--line); }
+.plan-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 18px; min-height: 64px; border-bottom: 1px solid var(--line); }
+.plan-row span, .plan-row b { display: grid; gap: 3px; }
+.plan-row strong, .plan-row b { color: var(--text); font-size: 13px; }
+.plan-row small { color: var(--muted); font-size: 11px; font-weight: 500; }
+.plan-row b { text-align: right; }
+.plan-row .button { min-width: 80px; }
+.plan-billing-fields { grid-template-columns: minmax(200px, 0.45fr) minmax(160px, 0.3fr) minmax(220px, 0.45fr); }
+.student-plan-panel { margin-top: 18px; }
+.plan-picker { max-width: 760px; }
+.plan-picker-compact .panel-heading { margin-bottom: 16px; }
+.student-plan-options { display: grid; gap: 14px; }
+.student-plan-service { display: grid; gap: 8px; }
+.student-plan-service h3 { margin: 0; color: var(--text); font-size: 13px; letter-spacing: 0.02em; }
+.student-plan-service > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+.student-plan-service label { display: block; min-height: 68px; padding: 13px; background: rgba(255,255,255,0.38); border: 1px solid var(--line); cursor: pointer; }
+.student-plan-service label.selected { border-color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
+.student-plan-service input { position: absolute; opacity: 0; pointer-events: none; }
+.student-plan-service span { display: grid; gap: 6px; }
+.student-plan-service strong { color: var(--text); font-size: 13px; }
+.student-plan-service small { color: var(--muted); font-size: 12px; }
+
+@media (max-width: 900px) {
+  .plans-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .plan-form-fields, .plan-billing-fields { grid-template-columns: 1fr; }
+  .plan-row { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 11px 0; }
+  .plan-row .button { grid-column: 1 / -1; width: 100%; }
+}
+
 .integration-page-heading { margin-bottom: 42px; }
 .integration-access-note { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; white-space: nowrap; }
 .integration-status-dot { width: 6px; height: 6px; display: inline-block; background: var(--muted); border-radius: 50%; }
@@ -1010,7 +1052,9 @@ input[type="date"] { width: 100%; min-width: 0; max-width: 100%; min-height: 46p
 
 /* Tutorial Pace Lab */
 body.tutorial-open { overflow: hidden; }
-.tutorial-launcher { width: 100%; appearance: none; font: inherit; text-align: left; cursor: pointer; }
+.tutorial-launcher { width: 100%; appearance: none; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.sidebar .tutorial-launcher, .mobile-drawer .tutorial-launcher { color: #c9d1cd; background: transparent; }
+.sidebar .tutorial-launcher:hover, .mobile-drawer .tutorial-launcher:hover { color: #ffffff; background: rgba(255, 255, 255, 0.09); }
 .tutorial-layer { position: fixed; z-index: 1000; inset: 0; pointer-events: none; }
 .tutorial-backdrop { position: fixed; z-index: 1001; inset: 0; background: rgba(6, 9, 8, 0.86); pointer-events: auto; }
 .tutorial-focus { position: fixed; z-index: 1001; border: 1px solid #ffffff; box-shadow: 0 0 0 9999px rgba(6, 9, 8, 0.86), inset 0 0 0 1px rgba(6, 9, 8, 0.24); pointer-events: auto; transition: top 180ms ease, left 180ms ease, width 180ms ease, height 180ms ease; }

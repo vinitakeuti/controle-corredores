@@ -16,6 +16,7 @@ export type SessionUser = {
   name: string;
   email: string;
   role: UserRole;
+  tutorialSeenAt: Date | null;
 };
 
 function isSecureRequest(request?: Request) {
@@ -83,6 +84,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     name: session.user.name,
     email: session.user.email,
     role: session.user.role,
+    tutorialSeenAt: session.user.tutorialSeenAt,
   };
 }
 

@@ -2,9 +2,11 @@ import { UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { CheckoutPayment } from "@/components/checkout-payment";
 import { PasswordChangeForm } from "@/components/password-change-form";
+import { StudentPlanPicker } from "@/components/student-plan-picker";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDate, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
 import { getPaymentCheckoutConfig } from "@/lib/payment-gateway";
+import { getActivePlans } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 
 export default async function StudentPage() {
@@ -15,6 +17,7 @@ export default async function StudentPage() {
   });
   const subscription = account?.subscription;
   const gateway = await getPaymentCheckoutConfig();
+  const plans = await getActivePlans();
 
   if (!subscription || subscription.status !== "ACTIVE") {
     return <AppShell user={user} current="student"><header className="page-heading"><div><p className="eyebrow">Acesso pendente</p><h1>Finalize seu pagamento.</h1><p>A área do aluno será liberada depois que o pagamento for confirmado.</p></div></header><section className="panel checkout-message"><h2>Seu cadastro está reservado.</h2><p>Use o link de pagamento enviado pela assessoria para concluir sua inscrição.</p></section><section className="panel security-panel" data-tutorial-anchor="security"><div className="panel-heading"><div><h2>Segurança</h2><p>A senha temporária não expira. Altere-a quando quiser.</p></div></div><PasswordChangeForm /></section></AppShell>;
@@ -34,6 +37,8 @@ export default async function StudentPage() {
           <div><small>Valor mensal</small><strong>{subscription ? formatCurrency(subscription.priceCents) : "—"}</strong></div>
         </div>
       </section>
+
+      {plans.length ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}
 
       <section className="panel student-payment-panel" data-tutorial-anchor="student-payment">
         <CheckoutPayment
