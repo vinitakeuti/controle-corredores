@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 type Method = "PIX" | "BOLETO" | "CARD";
-type PaymentChoice = Method | "PIX_AUTOMATIC";
+export type CheckoutPaymentChoice = Method | "PIX_AUTOMATIC";
 type PaymentResult = {
   paymentId: string;
   provider: "APPMAX" | "ASAAS";
@@ -47,6 +47,9 @@ type CheckoutPaymentProps = {
   recurrenceEnabled: boolean;
   allowedMethods: Method[];
   embedded?: boolean;
+  initialMethod?: CheckoutPaymentChoice;
+  hideMethodSelector?: boolean;
+  hideHeading?: boolean;
 };
 
 function newRequestKey() {
@@ -66,12 +69,15 @@ export function CheckoutPayment({
   recurrenceEnabled,
   allowedMethods,
   embedded = false,
+  initialMethod,
+  hideMethodSelector = false,
+  hideHeading = false,
 }: CheckoutPaymentProps) {
   const router = useRouter();
   const endpoint = token
     ? `/api/checkout/${encodeURIComponent(token)}/payment`
     : "/api/payments";
-  const [method, setMethod] = useState<PaymentChoice>("PIX");
+  const [method, setMethod] = useState<CheckoutPaymentChoice>(initialMethod ?? "PIX");
   const [customerIp, setCustomerIp] = useState("");
   const [appmaxReady, setAppmaxReady] = useState(false);
   const [result, setResult] = useState<PaymentResult | null>(null);
@@ -82,7 +88,7 @@ export function CheckoutPayment({
   const [holderDocument, setHolderDocument] = useState(cpf);
   const availableMethods = allowedMethods;
   const automaticPixAvailable = activeProvider === "ASAAS" && availableMethods.includes("PIX");
-  const availableChoices: PaymentChoice[] = [
+  const availableChoices: CheckoutPaymentChoice[] = [
     ...(availableMethods.includes("PIX") ? ["PIX" as const] : []),
     ...(automaticPixAvailable ? ["PIX_AUTOMATIC" as const] : []),
     ...(availableMethods.includes("CARD") ? ["CARD" as const] : []),
@@ -174,6 +180,13 @@ export function CheckoutPayment({
   }, [availableChoices, method]);
 
   useEffect(() => {
+    if (!initialMethod) return;
+    setMethod(initialMethod);
+    setResult(null);
+    setError("");
+  }, [initialMethod]);
+
+  useEffect(() => {
     if (!result || result.status !== "PENDING") return;
     let checks = 0;
     const interval = window.setInterval(async () => {
@@ -211,7 +224,7 @@ export function CheckoutPayment({
     }
   }
 
-  function selectMethod(nextMethod: PaymentChoice) {
+  function selectMethod(nextMethod: CheckoutPaymentChoice) {
     setMethod(nextMethod);
     setResult(null);
     setError("");
@@ -226,17 +239,17 @@ export function CheckoutPayment({
       {gatewayEnabled && activeProvider === "APPMAX" ? (
         <Script src="https://scripts.appmax.com.br/appmax.min.js" strategy="afterInteractive" onLoad={initializeAppmax} />
       ) : null}
-      {!embedded ? <div className="checkout-payment-heading"><div><p className="eyebrow">Pagamento</p><h2>Olá, {name.split(" ")[0]}.</h2><p>Escolha uma forma de pagamento para iniciar sua assinatura.</p></div><strong>{formatCurrency(amountCents)}<small>/mês</small></strong></div> : null}
-      {embedded ? <div className="panel-heading payment-panel-heading"><div><h2>Realizar pagamento</h2><p>Escolha o método para sua próxima mensalidade.</p></div><strong>{formatCurrency(amountCents)}</strong></div> : null}
+      {!hideHeading && !embedded ? <div className="checkout-payment-heading"><div><p className="eyebrow">Pagamento</p><h2>Olá, {name.split(" ")[0]}.</h2><p>Escolha uma forma de pagamento para iniciar sua assinatura.</p></div><strong>{formatCurrency(amountCents)}<small>/mês</small></strong></div> : null}
+      {!hideHeading && embedded ? <div className="panel-heading payment-panel-heading"><div><h2>Realizar pagamento</h2><p>Escolha o método para sua próxima mensalidade.</p></div><strong>{formatCurrency(amountCents)}</strong></div> : null}
 
       {!gatewayEnabled ? <div className="payment-configuration-notice"><strong>Gateway aguardando ativação</strong><p>Um administrador precisa configurar e ativar um provedor de pagamentos para liberar o checkout.</p></div> : null}
 
-      <div className={`checkout-methods ${availableChoices.length === 2 ? "two-methods" : ""} ${availableChoices.length === 4 ? "four-methods" : ""}`} role="tablist" aria-label="Método de pagamento" data-tutorial-anchor="payment-methods">
+      {!hideMethodSelector ? <div className={`checkout-methods ${availableChoices.length === 2 ? "two-methods" : ""} ${availableChoices.length === 4 ? "four-methods" : ""}`} role="tablist" aria-label="Método de pagamento" data-tutorial-anchor="payment-methods">
         {availableMethods.includes("PIX") ? <button className={method === "PIX" ? "active" : ""} type="button" role="tab" aria-selected={method === "PIX"} onClick={() => selectMethod("PIX")}>Pix<span>pagamento único</span></button> : null}
         {automaticPixAvailable ? <button className={method === "PIX_AUTOMATIC" ? "active" : ""} type="button" role="tab" aria-selected={method === "PIX_AUTOMATIC"} onClick={() => selectMethod("PIX_AUTOMATIC")}>Pix Automático<span>autorização mensal</span></button> : null}
         {availableMethods.includes("BOLETO") ? <button className={method === "BOLETO" ? "active" : ""} type="button" role="tab" aria-selected={method === "BOLETO"} onClick={() => selectMethod("BOLETO")}>Boleto<span>pagamento único</span></button> : null}
         {availableMethods.includes("CARD") ? <button className={method === "CARD" ? "active" : ""} type="button" role="tab" aria-selected={method === "CARD"} onClick={() => selectMethod("CARD")}>Cartão<span>{activeProvider === "APPMAX" && recurrenceEnabled ? "cobrança mensal" : "pagamento único"}</span></button> : null}
-      </div>
+      </div> : null}
 
       {availableChoices.length === 0 ? <div className="payment-configuration-notice"><strong>Nenhum método disponível</strong><p>Os métodos liberados para este aluno não são atendidos pelo gateway ativo. Fale com a assessoria.</p></div> : null}
 

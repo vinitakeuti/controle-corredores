@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { CheckoutPayment } from "@/components/checkout-payment";
 import { PasswordChangeForm } from "@/components/password-change-form";
 import { StudentPlanPicker } from "@/components/student-plan-picker";
+import { StudentSubscriptionFlow } from "@/components/student-subscription-flow";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDate, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
 import { getPaymentCheckoutConfig } from "@/lib/payment-gateway";
@@ -19,12 +20,8 @@ export default async function StudentPage() {
   const gateway = await getPaymentCheckoutConfig();
   const plans = await getActivePlans();
 
-  if (!subscription || !subscription.planId) {
-    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>Escolha seu plano para iniciar sua assinatura na Pace Lab.</p></div></header>{plans.length ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={null} /></section> : <section className="panel empty-state"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></section>}</AppShell>;
-  }
-
-  if (subscription.status !== "ACTIVE") {
-    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Seu plano está separado.</h1><p>Escolha como concluir o primeiro pagamento.</p></div></header><section className="subscription-card"><div><p className="eyebrow">Plano escolhido</p><h2>{subscription.planName}</h2></div><div className="subscription-meta"><div><small>Status</small><strong>{subscriptionLabel(subscription.status)}</strong></div><div><small>{subscription.hasCustomPrice ? "Valor exclusivo" : "Valor mensal"}</small><strong>{formatCurrency(subscription.priceCents)}</strong></div></div></section>{subscription.hasCustomPrice ? <p className="student-exclusive-price">Sua assinatura possui um valor exclusivo definido pela Pace Lab.</p> : null}{plans.length ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}<section className="panel student-payment-panel" data-tutorial-anchor="student-payment"><CheckoutPayment name={account?.name ?? user.name} cpf={account?.cpf ?? ""} amountCents={subscription.priceCents} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} embedded /></section></AppShell>;
+  if (!subscription || !subscription.planId || subscription.status !== "ACTIVE") {
+    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>Escolha seu plano e conclua seu primeiro pagamento.</p></div></header>{plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} /> : <section className="panel empty-state"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></section>}</AppShell>;
   }
 
   return (
