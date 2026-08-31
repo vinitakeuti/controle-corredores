@@ -24,7 +24,7 @@ export default async function StudentPage() {
   }
 
   if (subscription.status !== "ACTIVE") {
-    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Seu plano está separado.</h1><p>Escolha como concluir o primeiro pagamento.</p></div></header><section className="subscription-card"><div><p className="eyebrow">Plano escolhido</p><h2>{subscription.planName}</h2></div><div className="subscription-meta"><div><small>Status</small><strong>{subscriptionLabel(subscription.status)}</strong></div><div><small>Valor mensal</small><strong>{formatCurrency(subscription.priceCents)}</strong></div></div></section>{plans.length ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}<section className="panel student-payment-panel" data-tutorial-anchor="student-payment"><CheckoutPayment name={account?.name ?? user.name} cpf={account?.cpf ?? ""} amountCents={subscription.priceCents} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} embedded /></section></AppShell>;
+    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Seu plano está separado.</h1><p>Escolha como concluir o primeiro pagamento.</p></div></header><section className="subscription-card"><div><p className="eyebrow">Plano escolhido</p><h2>{subscription.planName}</h2></div><div className="subscription-meta"><div><small>Status</small><strong>{subscriptionLabel(subscription.status)}</strong></div><div><small>{subscription.hasCustomPrice ? "Valor exclusivo" : "Valor mensal"}</small><strong>{formatCurrency(subscription.priceCents)}</strong></div></div></section>{subscription.hasCustomPrice ? <p className="student-exclusive-price">Sua assinatura possui um valor exclusivo definido pela Pace Lab.</p> : null}{plans.length ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}<section className="panel student-payment-panel" data-tutorial-anchor="student-payment"><CheckoutPayment name={account?.name ?? user.name} cpf={account?.cpf ?? ""} amountCents={subscription.priceCents} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} embedded /></section></AppShell>;
   }
 
   return (
@@ -38,9 +38,11 @@ export default async function StudentPage() {
         <div className="subscription-meta">
           <div><small>Status</small><strong>{subscriptionLabel(subscription?.status ?? "INCOMPLETE")}</strong></div>
           <div><small>Próxima cobrança</small><strong>{formatDate(subscription?.nextBillingAt)}</strong></div>
-          <div><small>Valor mensal</small><strong>{subscription ? formatCurrency(subscription.priceCents) : "—"}</strong></div>
+          <div><small>{subscription.hasCustomPrice ? "Valor exclusivo" : "Valor mensal"}</small><strong>{subscription ? formatCurrency(subscription.priceCents) : "—"}</strong></div>
         </div>
       </section>
+
+      {subscription.hasCustomPrice ? <p className="student-exclusive-price">Sua assinatura possui um valor exclusivo definido pela Pace Lab.</p> : null}
 
       {plans.length ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}
 

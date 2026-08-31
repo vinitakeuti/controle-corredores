@@ -198,6 +198,9 @@ export async function createPayment(input: CreatePaymentInput) {
   if (!account || account.role !== UserRole.STUDENT || !account.active || !account.subscription) {
     throw new PaymentServiceError("A assinatura deste aluno não está disponível.", 404);
   }
+  if (!account.subscription.planId) {
+    throw new PaymentServiceError("Escolha um plano antes de gerar o pagamento.", 409);
+  }
   if (!account.subscription.allowedMethods.includes(prismaMethod)) {
     throw new PaymentServiceError("Este método de pagamento não está disponível para esta assinatura.", 403);
   }

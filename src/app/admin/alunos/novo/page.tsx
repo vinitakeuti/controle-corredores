@@ -11,5 +11,5 @@ export default async function NewStudentPage() {
   const billing = await getBillingSettings();
   const plans = await getActivePlans();
 
-  return <AppShell user={user} current="students"><div className="page-back"><Link href="/admin/alunos">← Alunos</Link></div><header className="page-heading"><div><p className="eyebrow">Gestão de acessos</p><h1>Adicionar aluno.</h1><p>Escolha como o próximo aluno vai entrar na assessoria.</p></div></header><StudentCreateForm initialBasePriceCents={billing.basePriceCents} initialAllowedMethods={billing.defaultAllowedMethods} plans={plans} /></AppShell>;
+  return <AppShell user={user} current="students"><div className="page-back"><Link href="/admin/alunos">← Alunos</Link></div><header className="page-heading"><div><p className="eyebrow">Gestão de acessos</p><h1>Adicionar aluno.</h1><p>Escolha como o próximo aluno vai entrar na assessoria.</p></div></header><StudentCreateForm initialAllowedMethods={billing.defaultAllowedMethods} plans={plans} /></AppShell>;
 }

@@ -115,8 +115,16 @@
 .plan-row small { color: var(--muted); font-size: 11px; font-weight: 500; }
 .plan-row b { text-align: right; }
 .plan-row .button { min-width: 80px; }
+.plan-row-price { display: grid; justify-items: end; gap: 3px; }
+.plan-row-price input { width: 94px; min-height: 34px; padding: 0 8px; color: var(--text); background: rgba(255,255,255,0.55); border: 1px solid var(--line); font: inherit; font-size: 12px; text-align: right; }
+.plan-row-price small { color: var(--muted); font-size: 10px; }
+.plan-row-actions { display: flex; gap: 7px; }
+.plan-row-actions .button { min-width: 0; }
 .plan-billing-fields { grid-template-columns: minmax(200px, 0.45fr) minmax(160px, 0.3fr) minmax(220px, 0.45fr); }
+.billing-plans-empty { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.billing-method-options { max-width: 430px; margin-top: 20px; }
 .student-plan-panel { margin-top: 18px; }
+.student-exclusive-price { margin: -3px 0 18px; color: var(--accent); font-size: 12px; font-weight: 750; }
 .plan-picker { max-width: 760px; }
 .plan-picker-compact .panel-heading { margin-bottom: 16px; }
 .student-plan-options { display: grid; gap: 14px; }
@@ -138,6 +146,9 @@
   .plan-form-fields, .plan-billing-fields { grid-template-columns: 1fr; }
   .plan-row { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 11px 0; }
   .plan-row .button { grid-column: 1 / -1; width: 100%; }
+  .plan-row-price { justify-items: start; }
+  .plan-row-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .plan-row-actions .button { width: 100%; }
 }
 
 .integration-page-heading { margin-bottom: 42px; }

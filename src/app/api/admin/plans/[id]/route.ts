@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
+import { cancelAsaasAutomaticPixAuthorization } from "@/lib/asaas";
 import { getCurrentUser } from "@/lib/auth";
 import { parseAmountCents } from "@/lib/billing";
 import { parsePlanPeriod } from "@/lib/plans";
@@ -19,8 +20,19 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const period = body.period === undefined ? current.period : parsePlanPeriod(body.period);
     const active = body.active === undefined ? current.active : body.active === true;
     if (!priceCents || !period) return NextResponse.json({ error: "Informe período e valor válidos." }, { status: 400, headers: noStoreHeaders() });
-    const plan = await prisma.plan.update({ where: { id }, data: { priceCents, period, active }, include: { service: true } });
-    return NextResponse.json({ plan }, { headers: noStoreHeaders() });
+    const priceChanged = priceCents !== current.priceCents;
+    const subscriptions = priceChanged ? await prisma.subscription.findMany({ where: { planId: id, hasCustomPrice: false }, select: { id: true, userId: true, asaasPixAuthorizationId: true, recurringEnabled: true } }) : [];
+    const authorizations = subscriptions.flatMap((subscription) => subscription.recurringEnabled && subscription.asaasPixAuthorizationId ? [subscription.asaasPixAuthorizationId] : []);
+    await Promise.all(authorizations.map((authorizationId) => cancelAsaasAutomaticPixAuthorization(authorizationId)));
+    const plan = await prisma.$transaction(async (transaction) => {
+      const updated = await transaction.plan.update({ where: { id }, data: { priceCents, period, active }, include: { service: true } });
+      if (subscriptions.length) {
+        await transaction.subscription.updateMany({ where: { id: { in: subscriptions.map((subscription) => subscription.id) } }, data: { priceCents, ...(authorizations.length ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
+        await transaction.paymentLink.updateMany({ where: { userId: { in: subscriptions.map((subscription) => subscription.userId) }, planId: id, status: "OPEN" }, data: { amountCents: priceCents } });
+      }
+      return updated;
+    });
+    return NextResponse.json({ plan, updatedStudents: subscriptions.length, reauthorizationRequired: authorizations.length }, { headers: noStoreHeaders() });
   } catch (error) {
     const message = error instanceof Error && /Unique constraint/.test(error.message) ? "Esse serviço já possui um plano para esse período." : "Não foi possível atualizar o plano.";
     return NextResponse.json({ error: message }, { status: 400, headers: noStoreHeaders() });

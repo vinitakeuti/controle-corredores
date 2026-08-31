@@ -106,6 +106,7 @@ model Subscription {
   planName               String             @default("Treinamento mensal")
   planId                 String?
   priceCents             Int                @default(15000)
+  hasCustomPrice         Boolean            @default(false)
   nextBillingAt          DateTime?
   providerCustomerId     String?
   providerSubscriptionId String?

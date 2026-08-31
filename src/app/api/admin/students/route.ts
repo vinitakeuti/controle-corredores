@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { SubscriptionStatus, UserRole } from "@prisma/client";
-import { getBillingSettings, parseAllowedMethods, parseAmountCents } from "@/lib/billing";
+import { getBillingSettings, parseAllowedMethods } from "@/lib/billing";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isValidCpf, isValidPhone, normalizeCpf, normalizePhone, parseBirthDate } from "@/lib/student-input";
@@ -26,7 +26,6 @@ export async function POST(request: Request) {
     const cpf = typeof body.cpf === "string" ? normalizeCpf(body.cpf) : null;
     const birthDate = typeof body.birthDate === "string" ? parseBirthDate(body.birthDate) : null;
     const billing = await getBillingSettings();
-    const amountCents = body.amountCents === undefined ? billing.basePriceCents : parseAmountCents(body.amountCents);
     const allowedMethods = body.allowedMethods === undefined ? billing.defaultAllowedMethods : parseAllowedMethods(body.allowedMethods);
     const requestedPlanId = typeof body.planId === "string" ? body.planId : "";
     const plan = requestedPlanId ? await prisma.plan.findFirst({ where: { id: requestedPlanId, active: true, service: { active: true } }, include: { service: true } }) : null;
@@ -37,7 +36,6 @@ export async function POST(request: Request) {
     if (!cpf || !isValidCpf(cpf)) return NextResponse.json({ error: "Informe um CPF válido" }, { status: 400, headers: noStoreHeaders() });
     if (body.birthDate && !birthDate) return NextResponse.json({ error: "Informe uma data de nascimento válida" }, { status: 400, headers: noStoreHeaders() });
     if (requestedPlanId && !plan) return NextResponse.json({ error: "O plano escolhido não está disponível" }, { status: 400, headers: noStoreHeaders() });
-    if (!amountCents) return NextResponse.json({ error: "Informe um valor entre R$ 1,00 e R$ 100.000,00" }, { status: 400, headers: noStoreHeaders() });
     if (!allowedMethods) return NextResponse.json({ error: "Selecione ao menos um método de pagamento" }, { status: 400, headers: noStoreHeaders() });
 
     const [existingEmail, existingCpf] = await Promise.all([
@@ -54,7 +52,7 @@ export async function POST(request: Request) {
       const created = await transaction.user.create({
         data: { name, email, phone, cpf, birthDate, passwordHash, passwordIsTemporary: true, role: UserRole.STUDENT },
       });
-      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, priceCents: plan?.priceCents ?? amountCents, allowedMethods } });
+      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, priceCents: plan?.priceCents ?? billing.basePriceCents, allowedMethods } });
       const paymentLink = await transaction.paymentLink.create({
         data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id, planId: subscription.planId, planName: subscription.planName, amountCents: subscription.priceCents, allowedMethods },
       });

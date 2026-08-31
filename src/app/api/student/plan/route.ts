@@ -23,7 +23,7 @@ export async function PATCH(request: Request) {
     if (shouldCancelPix && subscription.asaasPixAuthorizationId) await cancelAsaasAutomaticPixAuthorization(subscription.asaasPixAuthorizationId);
     const planName = planDisplayName(plan);
     await prisma.$transaction(async (transaction) => {
-      await transaction.subscription.update({ where: { id: subscription.id }, data: { planId: plan.id, planName, priceCents: plan.priceCents, ...(shouldCancelPix ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
+      await transaction.subscription.update({ where: { id: subscription.id }, data: { planId: plan.id, planName, priceCents: plan.priceCents, hasCustomPrice: false, ...(shouldCancelPix ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
       await transaction.paymentLink.updateMany({ where: { userId: user.id, status: PaymentLinkStatus.OPEN }, data: { planId: plan.id, planName, amountCents: plan.priceCents } });
     });
     return NextResponse.json({ ok: true, planName, reauthorizationRequired: shouldCancelPix }, { headers: noStoreHeaders() });

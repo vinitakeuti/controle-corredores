@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders, publicUrl } from "@/lib/security";
 import { createOpaqueToken, hashOpaqueToken } from "@/lib/tokens";
-import { getBillingSettings, parseAllowedMethods, parseAmountCents } from "@/lib/billing";
+import { getBillingSettings, parseAllowedMethods } from "@/lib/billing";
 import { planDisplayName } from "@/lib/plans";
 
 export async function POST(request: Request) {
@@ -23,15 +23,13 @@ export async function POST(request: Request) {
     }
   }
   const billing = await getBillingSettings();
-  const amountCents = body.amountCents === undefined ? billing.basePriceCents : parseAmountCents(body.amountCents);
   const allowedMethods = body.allowedMethods === undefined ? billing.defaultAllowedMethods : parseAllowedMethods(body.allowedMethods);
   const requestedPlanId = typeof body.planId === "string" ? body.planId : "";
   const plan = requestedPlanId ? await prisma.plan.findFirst({ where: { id: requestedPlanId, active: true, service: { active: true } }, include: { service: true } }) : null;
   if (requestedPlanId && !plan) return NextResponse.json({ error: "O plano escolhido não está disponível" }, { status: 400, headers: noStoreHeaders() });
-  if (!amountCents) return NextResponse.json({ error: "Informe um valor entre R$ 1,00 e R$ 100.000,00" }, { status: 400, headers: noStoreHeaders() });
   if (!allowedMethods) return NextResponse.json({ error: "Selecione ao menos um método de pagamento" }, { status: 400, headers: noStoreHeaders() });
   const rawToken = createOpaqueToken();
-  await prisma.paymentLink.create({ data: { tokenHash: hashOpaqueToken(rawToken), createdById: admin.id, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, amountCents: plan?.priceCents ?? amountCents, allowedMethods } });
+  await prisma.paymentLink.create({ data: { tokenHash: hashOpaqueToken(rawToken), createdById: admin.id, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, amountCents: plan?.priceCents ?? billing.basePriceCents, allowedMethods } });
   const paymentUrl = publicUrl(request, `/pagamento/${rawToken}`);
   return NextResponse.json({ paymentUrl }, { headers: noStoreHeaders() });
 }

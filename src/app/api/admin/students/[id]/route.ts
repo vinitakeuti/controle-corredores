@@ -19,7 +19,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") return NextResponse.json({ error: "Formato inválido" }, { status: 415, headers: noStoreHeaders() });
     const { id } = await context.params;
     const body = await request.json() as Record<string, unknown>;
-    const student = await prisma.user.findUnique({ where: { id }, include: { subscription: true } });
+    const student = await prisma.user.findUnique({ where: { id }, include: { subscription: { include: { plan: true } } } });
     if (!student || student.role !== UserRole.STUDENT || !student.subscription) return NextResponse.json({ error: "Aluno não encontrado" }, { status: 404, headers: noStoreHeaders() });
 
     const priceCents = body.priceCents === undefined ? student.subscription.priceCents : parseAmountCents(body.priceCents);
@@ -30,6 +30,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const methodsChanged = allowedMethods.length !== student.subscription.allowedMethods.length
       || allowedMethods.some((method) => !student.subscription!.allowedMethods.includes(method));
     const priceChanged = priceCents !== student.subscription.priceCents;
+    const hasCustomPrice = student.subscription.plan ? priceCents !== student.subscription.plan.priceCents : body.priceCents === undefined ? student.subscription.hasCustomPrice : true;
     const cancelAutomaticPix = Boolean(
       student.subscription.asaasPixAuthorizationId
       && student.subscription.recurringEnabled
@@ -43,6 +44,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       where: { id: student.subscription.id },
       data: {
         priceCents,
+        hasCustomPrice,
         allowedMethods,
         ...(cancelAutomaticPix ? {
           asaasPixAuthorizationStatus: "CANCELLED",
