@@ -39,7 +39,6 @@ export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: 
   const storageKey = `pace-lab:tutorial-seen:v1:${role}:${userId}`;
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
-  const [iphone, setIphone] = useState(false);
   const [iphoneOffer, setIphoneOffer] = useState(false);
   const [iphoneGuideOpen, setIphoneGuideOpen] = useState(false);
   const [iphoneStep, setIphoneStep] = useState(0);
@@ -61,7 +60,6 @@ export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: 
   }
 
   useEffect(() => {
-    setIphone(/iPhone/i.test(window.navigator.userAgent));
     let autoStartTimer: number | undefined;
     if (!initiallySeen && !window.localStorage.getItem(storageKey)) {
       autoStartTimer = window.setTimeout(() => {
@@ -117,7 +115,7 @@ export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: 
       setStepIndex((current) => current + 1);
       return;
     }
-    if (iphone) setIphoneOffer(true);
+    if (role === "STUDENT") setIphoneOffer(true);
     else close();
   }
 
@@ -127,7 +125,7 @@ export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: 
       {iphoneOffer ? <section className="tutorial-card tutorial-card-centered">
         <p className="tutorial-kicker">Pace Lab no iPhone</p>
         <h2>Leve o Pace Lab para a tela de início.</h2>
-        <p>Quer ver o passo a passo rápido para abrir a plataforma como um app no seu iPhone?</p>
+        <p>Se você usa iPhone, veja o passo a passo rápido para abrir a plataforma como um app.</p>
         <div className="tutorial-actions"><button className="tutorial-button tutorial-button-quiet" type="button" onClick={close}>Agora não</button><button className="tutorial-button" type="button" onClick={() => { setIphoneOffer(false); setIphoneGuideOpen(true); }}>Ver como instalar</button></div>
       </section> : null}
       {iphoneGuideOpen ? <section className="tutorial-card tutorial-card-centered">
@@ -141,8 +139,8 @@ export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: 
         <h2>{stepIndex === 0 ? step.title.replace("você", name.split(" ")[0]) : step.title}</h2>
         <p>{step.text}</p>
         <div className="tutorial-progress" aria-hidden="true"><i style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} /></div>
-        <div className="tutorial-actions"><button className="tutorial-button tutorial-button-quiet" type="button" onClick={close}>Pular</button>{stepIndex > 0 ? <button className="tutorial-button tutorial-button-quiet" type="button" onClick={() => setStepIndex((current) => current - 1)}>Voltar</button> : null}<button className="tutorial-button" type="button" onClick={next}>{isLastStep ? (iphone ? "Finalizar" : "Concluir") : "Avançar"}</button></div>
-        {iphone ? <button className="tutorial-install-link" type="button" onClick={() => setIphoneGuideOpen(true)}>Como baixar app Pace Lab</button> : null}
+        <div className="tutorial-actions"><button className="tutorial-button tutorial-button-quiet" type="button" onClick={close}>Pular</button>{stepIndex > 0 ? <button className="tutorial-button tutorial-button-quiet" type="button" onClick={() => setStepIndex((current) => current - 1)}>Voltar</button> : null}<button className="tutorial-button" type="button" onClick={next}>{isLastStep ? "Finalizar" : "Avançar"}</button></div>
+        {role === "STUDENT" ? <button className="tutorial-install-link" type="button" onClick={() => setIphoneGuideOpen(true)}>Como baixar app Pace Lab no iPhone</button> : null}
       </section> : null}
     </div>
   );

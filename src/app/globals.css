@@ -127,8 +127,8 @@
 .student-exclusive-price { margin: -3px 0 18px; color: var(--accent); font-size: 12px; font-weight: 750; }
 .plan-picker { max-width: 760px; }
 .plan-picker-compact .panel-heading { margin-bottom: 16px; }
-.student-plan-options { display: grid; gap: 14px; }
-.student-plan-service { display: grid; gap: 8px; }
+.student-plan-options { display: grid; gap: 12px; }
+.student-plan-service { display: grid; gap: 11px; padding: 15px; background: rgba(255,255,255,0.38); border: 1px solid var(--line); }
 .student-plan-service h3 { margin: 0; color: var(--text); font-size: 13px; letter-spacing: 0.02em; }
 .student-plan-service > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
 .student-plan-service label { display: block; min-height: 68px; padding: 13px; background: rgba(255,255,255,0.38); border: 1px solid var(--line); cursor: pointer; }
