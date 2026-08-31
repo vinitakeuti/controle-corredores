@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { collaboratorWelcomeMessage, sendMessage } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 import { generateTemporaryPassword } from "@/lib/tokens";
@@ -30,7 +31,14 @@ export async function POST(request: Request) {
     if (await prisma.user.findUnique({ where: { email }, select: { id: true } })) return NextResponse.json({ error: "Já existe uma conta com este e-mail." }, { status: 409, headers: noStoreHeaders() });
     const temporaryPassword = generateTemporaryPassword();
     const collaborator = await prisma.user.create({ data: { name, email, role, passwordHash: await bcrypt.hash(temporaryPassword, 12), passwordIsTemporary: true }, select: { id: true, name: true, email: true, role: true, active: true, joinedAt: true } });
-    return NextResponse.json({ collaborator, temporaryPassword }, { headers: noStoreHeaders() });
+    let emailSent = false;
+    try {
+      await sendMessage(collaborator.email, collaboratorWelcomeMessage({ name: collaborator.name, email: collaborator.email, temporaryPassword, role }));
+      emailSent = true;
+    } catch (error) {
+      console.error("Failed to send collaborator welcome email", { collaboratorId: collaborator.id, error });
+    }
+    return NextResponse.json({ collaborator, temporaryPassword, emailSent }, { headers: noStoreHeaders() });
   } catch {
     return NextResponse.json({ error: "Não foi possível cadastrar o colaborador." }, { status: 400, headers: noStoreHeaders() });
   }

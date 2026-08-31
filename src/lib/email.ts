@@ -58,6 +58,38 @@ export function passwordResetMessage(name: string, resetUrl: string): Message {
   return { subject: "Redefina sua senha · Pace Lab", html: emailLayout({ eyebrow: "Segurança da conta", title: `Olá, ${greeting}.`, intro: "Recebemos um pedido para redefinir a senha da sua conta Pace Lab.", action: { label: "Redefinir minha senha", href: resetUrl }, note: "Este link é válido por uma hora. Se você não solicitou a alteração, pode ignorar esta mensagem." }), text: `Olá, ${greeting}.\n\nRedefina sua senha da Pace Lab: ${resetUrl}\n\nO link é válido por uma hora.` };
 }
 
+export function collaboratorWelcomeMessage({ name, email, temporaryPassword, role }: { name: string; email: string; temporaryPassword: string; role: "ADMIN" | "OPERATOR" }): Message {
+  const appUrl = (process.env.APP_URL ?? "https://gestao.pacelabcoaching.com").replace(/\/$/, "");
+  const loginUrl = `${appUrl}/login`;
+  const roleLabel = role === "ADMIN" ? "Administrador" : "Operador";
+  const greeting = firstName(name);
+  return {
+    subject: "Seu acesso à Pace Lab está pronto",
+    html: emailLayout({
+      eyebrow: "Boas-vindas à equipe",
+      title: `Bem-vindo, ${greeting}.`,
+      intro: "É um prazer ter você no time. Seu acesso à plataforma Pace Lab já está pronto.",
+      details: [
+        { label: "Acesso", value: loginUrl },
+        { label: "E-mail", value: email },
+        { label: "Senha temporária", value: temporaryPassword },
+        { label: "Papel", value: roleLabel },
+      ],
+      action: { label: "Acessar plataforma", href: loginUrl },
+      note: "Por segurança, altere sua senha após o primeiro acesso.",
+    }),
+    text: [
+      `Bem-vindo à Pace Lab, ${greeting}.`,
+      "É um prazer ter você no time. Seu acesso à plataforma já está pronto.",
+      `Acesse: ${loginUrl}`,
+      `E-mail: ${email}`,
+      `Senha temporária: ${temporaryPassword}`,
+      `Papel: ${roleLabel}`,
+      "Por segurança, altere sua senha após o primeiro acesso.",
+    ].join("\n"),
+  };
+}
+
 function paymentPaidMessage(name: string, amountCents: number, planName: string, paidAt?: Date | null): Message {
   const greeting = firstName(name);
   const details = [{ label: "Plano", value: planName }, { label: "Pagamento confirmado", value: textDate(paidAt) }, { label: "Valor recebido", value: formatCurrency(amountCents) }];
