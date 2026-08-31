@@ -6,11 +6,14 @@ import type { AppmaxIntegrationSummary } from "@/lib/appmax-integration";
 import type { IntegrationDirectory, IntegrationDirectoryItem, IntegrationProviderKey } from "@/lib/integration-directory";
 import { AsaasIntegrationForm } from "@/components/asaas-integration-form";
 import { AppmaxIntegrationForm } from "@/components/appmax-integration-form";
+import { EmailTestingPanel } from "@/components/email-testing-panel";
 
 type Props = {
   initialDirectory: IntegrationDirectory;
   initialAppmaxSummary: AppmaxIntegrationSummary;
   initialAsaasSummary: AsaasIntegrationSummary;
+  emailConfiguration: { configured: boolean; host: string | null };
+  adminEmail: string;
 };
 
 type Filter = "all" | "payments";
@@ -29,7 +32,7 @@ function statusClass(item: IntegrationDirectoryItem) {
   return "is-pending";
 }
 
-export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, initialAsaasSummary }: Props) {
+export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, initialAsaasSummary, emailConfiguration, adminEmail }: Props) {
   const [directory, setDirectory] = useState(initialDirectory);
   const [appmaxSummary, setAppmaxSummary] = useState(initialAppmaxSummary);
   const [asaasSummary, setAsaasSummary] = useState(initialAsaasSummary);
@@ -131,6 +134,7 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, init
           </section> : null}
         </main>
       </div>
+      <EmailTestingPanel initialRecipient={adminEmail} configured={emailConfiguration.configured} host={emailConfiguration.host} />
     </div>
   );
 }

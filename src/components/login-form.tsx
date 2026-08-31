@@ -42,6 +42,7 @@ export function LoginForm() {
         <label htmlFor="password">Senha</label>
         <input id="password" name="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
       </div>
+      <p className="login-helper"><a href="/recuperar-senha">Esqueci minha senha</a></p>
       {error ? <p className="error-message">{error}</p> : null}
       <button className="button button-primary" type="submit" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
     </form>

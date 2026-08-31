@@ -26,6 +26,7 @@ import {
   getAsaasPixQrCode,
 } from "@/lib/asaas";
 import { getActivePaymentProvider } from "@/lib/integration-directory";
+import { sendPaymentNotification } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 
 export type AppmaxPaymentMethod = "PIX" | "BOLETO" | "CARD";
@@ -551,13 +552,14 @@ export async function createPayment(input: CreatePaymentInput) {
       ? await prisma.payment.findUnique({ where: { id: payment.id }, select: { providerOrderId: true } }).catch(() => null)
       : null;
     const keepPending = activeProvider === "ASAAS" && (Boolean(latest?.providerOrderId) || mapped.status >= 500);
-    await prisma.payment.update({
+    const failedPayment = await prisma.payment.update({
       where: { id: payment.id },
       data: {
         status: keepPending ? PaymentStatus.PENDING : PaymentStatus.FAILED,
         lastError: mapped.message.slice(0, 240),
       },
     }).catch(() => undefined);
+    if (failedPayment && !keepPending) await sendPaymentNotification(failedPayment.id, "failed").catch(() => undefined);
     throw mapped;
   }
 }
@@ -587,7 +589,8 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
   }
 
   const paidAt = safeDate(snapshot.paidAt) ?? new Date();
-  return prisma.$transaction(async (transaction) => {
+  let notification: "paid" | "failed" | null = null;
+  const updated = await prisma.$transaction(async (transaction) => {
     const current = await transaction.payment.findUniqueOrThrow({ where: { id: payment.id } });
     let nextStatus = current.status;
     if (current.status === PaymentStatus.REFUNDED) nextStatus = PaymentStatus.REFUNDED;
@@ -610,6 +613,8 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
     });
 
     const becamePaid = current.status !== PaymentStatus.PAID && nextStatus === PaymentStatus.PAID;
+    if (becamePaid) notification = "paid";
+    else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
       await transaction.subscription.update({
         where: { id: current.subscriptionId },
@@ -640,6 +645,8 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
     }
     return updated;
   });
+  if (notification) await sendPaymentNotification(updated.id, notification).catch(() => undefined);
+  return updated;
 }
 
 export async function synchronizeAsaasPayment(paymentId: string, eventName?: string) {
@@ -675,7 +682,8 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
     ?? safeDate(snapshot.paymentDate)
     ?? safeDate(snapshot.confirmedDate)
     ?? new Date();
-  return prisma.$transaction(async (transaction) => {
+  let notification: "paid" | "failed" | null = null;
+  const updated = await prisma.$transaction(async (transaction) => {
     const current = await transaction.payment.findUniqueOrThrow({ where: { id: payment.id } });
     let nextStatus = current.status;
     if (refunded) nextStatus = PaymentStatus.REFUNDED;
@@ -699,6 +707,8 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
     });
 
     const becamePaid = current.status !== PaymentStatus.PAID && nextStatus === PaymentStatus.PAID;
+    if (becamePaid) notification = "paid";
+    else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
       await transaction.subscription.update({
         where: { id: current.subscriptionId },
@@ -728,6 +738,8 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
     }
     return updated;
   });
+  if (notification) await sendPaymentNotification(updated.id, notification).catch(() => undefined);
+  return updated;
 }
 
 export function paymentErrorResponse(error: unknown) {

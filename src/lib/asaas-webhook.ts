@@ -1,6 +1,7 @@
 import { GatewayEventStatus, PaymentMethod, PaymentStatus, SubscriptionStatus } from "@prisma/client";
 import { getAsaasPayment } from "@/lib/asaas";
 import { synchronizeAsaasPayment } from "@/lib/payment-service";
+import { sendPaymentNotification } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 
 function addMonths(date: Date, count = 1) {
@@ -34,6 +35,7 @@ async function processAutomaticPixAuthorization(event: {
   const status = event.eventName.replace("PIX_AUTOMATIC_RECURRING_AUTHORIZATION_", "");
   const activated = status === "ACTIVATED";
   const inactive = status === "CANCELLED" || status === "EXPIRED" || status === "REFUSED";
+  const notification: { current: { paymentId: string; type: "paid" | "failed" } | null } = { current: null };
   await prisma.$transaction(async (transaction) => {
     if (activated) {
       const paidAt = event.occurredAt ?? new Date();
@@ -69,6 +71,7 @@ async function processAutomaticPixAuthorization(event: {
             data: { status: "COMPLETED", completedAt: paidAt },
           });
         }
+        notification.current = { paymentId: initialPayment.id, type: "paid" };
       }
       return;
     }
@@ -82,21 +85,20 @@ async function processAutomaticPixAuthorization(event: {
       },
     });
     if (inactive) {
-      await transaction.payment.updateMany({
+      const failedPayments = await transaction.payment.findMany({
         where: {
           subscriptionId: subscription.id,
           provider: "ASAAS",
           providerOrderId: `pix-automatic:${event.providerSubscriptionId}`,
           status: PaymentStatus.PENDING,
         },
-        data: {
-          status: PaymentStatus.FAILED,
-          providerStatus: `PIX_AUTOMATIC_${status}`,
-          lastError: "A autorização do Pix Automático não foi concluída.",
-        },
+        select: { id: true },
       });
+      if (failedPayments[0]) notification.current = { paymentId: failedPayments[0].id, type: "failed" };
+      await transaction.payment.updateMany({ where: { id: { in: failedPayments.map((payment) => payment.id) } }, data: { status: PaymentStatus.FAILED, providerStatus: `PIX_AUTOMATIC_${status}`, lastError: "A autorização do Pix Automático não foi concluída." } });
     }
   });
+  if (notification.current) await sendPaymentNotification(notification.current.paymentId, notification.current.type).catch(() => undefined);
   return true;
 }
 
@@ -143,6 +145,7 @@ async function processAutomaticPixInstruction(event: {
         lastError: "O débito automático Pix não foi concluído.",
       },
     });
+    await sendPaymentNotification(payment.id, "failed").catch(() => undefined);
     return true;
   }
   await synchronizeAsaasPayment(snapshot.id, event.eventName);

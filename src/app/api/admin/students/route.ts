@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { SubscriptionStatus, UserRole } from "@prisma/client";
-import { getBillingSettings, parseAllowedMethods } from "@/lib/billing";
+import { DEFAULT_ALLOWED_METHODS, DEFAULT_BILLING_PRICE_CENTS, parseAllowedMethods } from "@/lib/billing";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isValidCpf, isValidPhone, normalizeCpf, normalizePhone, parseBirthDate } from "@/lib/student-input";
@@ -25,8 +25,7 @@ export async function POST(request: Request) {
     const phone = typeof body.phone === "string" ? normalizePhone(body.phone) : null;
     const cpf = typeof body.cpf === "string" ? normalizeCpf(body.cpf) : null;
     const birthDate = typeof body.birthDate === "string" ? parseBirthDate(body.birthDate) : null;
-    const billing = await getBillingSettings();
-    const allowedMethods = body.allowedMethods === undefined ? billing.defaultAllowedMethods : parseAllowedMethods(body.allowedMethods);
+    const allowedMethods = body.allowedMethods === undefined ? [...DEFAULT_ALLOWED_METHODS] : parseAllowedMethods(body.allowedMethods);
     const requestedPlanId = typeof body.planId === "string" ? body.planId : "";
     const plan = requestedPlanId ? await prisma.plan.findFirst({ where: { id: requestedPlanId, active: true, service: { active: true } }, include: { service: true } }) : null;
 
@@ -52,7 +51,7 @@ export async function POST(request: Request) {
       const created = await transaction.user.create({
         data: { name, email, phone, cpf, birthDate, passwordHash, passwordIsTemporary: true, role: UserRole.STUDENT },
       });
-      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, priceCents: plan?.priceCents ?? billing.basePriceCents, allowedMethods } });
+      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, priceCents: plan?.priceCents ?? DEFAULT_BILLING_PRICE_CENTS, allowedMethods } });
       const paymentLink = await transaction.paymentLink.create({
         data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id, planId: subscription.planId, planName: subscription.planName, amountCents: subscription.priceCents, allowedMethods },
       });

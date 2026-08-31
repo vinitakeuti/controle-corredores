@@ -4,6 +4,7 @@ import { IntegrationCenter } from "@/components/integration-center";
 import { getAsaasIntegrationSummary } from "@/lib/asaas-integration";
 import { requireRole } from "@/lib/auth";
 import { getAppmaxIntegrationSummary } from "@/lib/appmax-integration";
+import { getEmailConfiguration } from "@/lib/email";
 import { getIntegrationDirectory } from "@/lib/integration-directory";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function IntegrationsPage() {
 
   return (
     <AppShell user={user} current="integrations">
-      <IntegrationCenter initialDirectory={directory} initialAppmaxSummary={appmax} initialAsaasSummary={asaas} />
+      <IntegrationCenter initialDirectory={directory} initialAppmaxSummary={appmax} initialAsaasSummary={asaas} emailConfiguration={getEmailConfiguration()} adminEmail={user.email} />
     </AppShell>
   );
 }

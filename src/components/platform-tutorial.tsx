@@ -8,7 +8,7 @@ type TutorialStep = { label: string; title: string; text: string; anchors?: stri
 
 const adminSteps: TutorialStep[] = [
   { label: "Bem-vindo", title: "É bom ter você no time.", text: "A Pace Lab organiza a rotina financeira para você manter o foco no que acontece fora da tela." },
-  { label: "Cobranças", title: "Cobranças sem perder as exceções.", text: "Defina o valor padrão, agrupe alunos por mensalidade e escolha quem entra em cada reajuste.", anchors: ["[data-tutorial-anchor='nav-billing']"] },
+  { label: "Planos", title: "Planos e valores.", text: "Crie os serviços, períodos e preços que os alunos poderão escolher. Valores especiais são definidos no perfil individual.", anchors: ["[data-tutorial-anchor='nav-plans']"] },
   { label: "Alunos", title: "Cada aluno, no ritmo certo.", text: "No cadastro você define os métodos aceitos. Pix, Pix Automático, cartão e boleto ficam disponíveis conforme essa escolha.", anchors: ["[data-tutorial-anchor='nav-students']"] },
   { label: "Segurança", title: "Seu acesso é pessoal.", text: "Mantenha sua senha protegida e encerre a sessão neste menu sempre que usar um computador compartilhado.", anchors: ["[data-tutorial-anchor='account-menu']"] },
 ];

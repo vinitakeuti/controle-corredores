@@ -79,6 +79,8 @@ model User {
   subscription        Subscription?
   payments            Payment[]
   renewalReminders    RenewalReminder[]
+  passwordResetTokens PasswordResetToken[]
+  emailDeliveries     EmailDelivery[]
   paymentLinks        PaymentLink[]     @relation("PaymentLinkStudent")
   createdPaymentLinks PaymentLink[]     @relation("PaymentLinkCreator")
 
@@ -194,6 +196,34 @@ model RenewalReminder {
 
   @@unique([userId, type, scheduledFor])
   @@index([scheduledFor, sentAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model EmailDelivery {
+  id        String   @id @default(cuid())
+  type      String
+  dedupeKey String   @unique
+  recipient String
+  userId    String?
+  sentAt    DateTime?
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, type])
+  @@index([sentAt])
 }
 
 model PaymentLink {

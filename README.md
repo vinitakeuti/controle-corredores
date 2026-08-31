@@ -28,7 +28,30 @@ Se o serviço aparecer como `not reachable`, confira primeiro se o domínio est�
 
 Em produção, publique o serviço atrás de HTTPS. Quando a requisição chegar com HTTPS, a sessão usa automaticamente um cookie `__Host-`; em desenvolvimento/local HTTP, usa um cookie compatível com `localhost`.
 
-O provedor de e-mail ainda está representado por um ponto de integração.
+## E-mail SMTP
+
+O envio usa o servidor SMTP da hospedagem. No EasyPanel, configure:
+
+```text
+SMTP_HOST=mail.vixpi.host
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=contato@pacelabcoaching.com
+SMTP_PASSWORD=senha-da-caixa-de-email
+EMAIL_FROM=Pace Lab <contato@pacelabcoaching.com>
+APP_URL=https://gestao.pacelabcoaching.com
+EMAIL_CRON_SECRET=chave-aleatoria-longa
+```
+
+Depois de reiniciar o serviço, abra `Administração > Integrações > E-mails da Pace Lab` para enviar testes dos quatro modelos: redefinição de senha, pagamento falho, pagamento confirmado e lembrete de vencimento.
+
+Para os lembretes de vencimento funcionarem automaticamente, crie uma tarefa diária às 09:00 (horário de Maceió) no agendador do EasyPanel que faça uma requisição GET para:
+
+```text
+https://gestao.pacelabcoaching.com/api/cron/email-reminders
+```
+
+com o header `Authorization: Bearer SEU_EMAIL_CRON_SECRET`. A rota é protegida pelo segredo e evita duplicar o aviso para o mesmo aluno e vencimento.
 
 As proteções iniciais incluem rate limit de login em memória, comparação de senha contra hash dummy para reduzir enumeração por tempo, tokens de sessão armazenados apenas como HMAC no banco, validação de origem em POSTs, headers de segurança, respostas sem cache em autenticação/pagamentos e container sem root. Para múltiplas réplicas, substitua o rate limit em memória por Redis ou outro armazenamento compartilhado.
 

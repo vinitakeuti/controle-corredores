@@ -5,7 +5,7 @@ import { Brand } from "@/components/brand";
 import { MobileNav } from "@/components/mobile-nav";
 import { PlatformTutorial } from "@/components/platform-tutorial";
 
-export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: "admin" | "students" | "analysis" | "billing" | "plans" | "integrations" | "student" }) {
+export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: "admin" | "students" | "analysis" | "plans" | "integrations" | "student" }) {
   return (
     <div className="app-shell">
       <MobileNav user={user} current={current} />
@@ -15,8 +15,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "admin" ? "active" : ""}`} href="/admin">Visão geral</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "students" ? "active" : ""}`} href="/admin/alunos" data-tutorial-anchor="nav-students">Alunos</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "analysis" ? "active" : ""}`} href="/admin/analisar">Analisar dados</Link> : null}
-          {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "billing" ? "active" : ""}`} href="/admin/cobrancas" data-tutorial-anchor="nav-billing">Cobranças</Link> : null}
-          {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos">Planos</Link> : null}
+          {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos" data-tutorial-anchor="nav-plans">Planos</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes">Integrações</Link> : null}
           {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" data-tutorial-anchor="nav-student">Minha assinatura</Link> : null}
           <button className="nav-link tutorial-launcher" type="button" data-open-tutorial>Tutorial</button>
