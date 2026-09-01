@@ -17,7 +17,6 @@ export default async function LoginPage() {
             <h1>A academia do corredor.</h1>
             <p>Um espaço para acompanhar sua jornada e manter o foco no próximo treino.</p>
           </div>
-          <div className="login-route" aria-hidden="true"><i /><span /><b /></div>
           <small>PACE LAB · ACADEMIA DO CORREDOR</small>
         </section>
         <section className="login-card">

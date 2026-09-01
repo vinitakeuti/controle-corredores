@@ -1134,12 +1134,6 @@ input[type="date"] { width: 100%; min-width: 0; max-width: 100%; min-height: 46p
 .login-identity .eyebrow { color: #f48b68; }
 .login-identity h1 { max-width: 440px; margin: 8px 0 14px; color: #ffffff; font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; font-size: clamp(42px, 5.2vw, 68px); font-weight: 500; line-height: 0.88; letter-spacing: 0.02em; text-transform: uppercase; }
 .login-identity p:not(.eyebrow) { max-width: 360px; margin: 0; color: #c8d1cc; font-size: 14px; line-height: 1.6; }
-.login-route { position: relative; width: min(100%, 360px); height: 118px; margin: 28px 0 0; }
-.login-route::before { position: absolute; top: 55px; right: 20px; left: 8px; height: 3px; content: ""; background: #ffffff; transform: rotate(-21deg); transform-origin: left center; }
-.login-route i, .login-route b { position: absolute; top: 50%; width: 13px; height: 13px; display: block; background: #ffffff; border-radius: 50%; transform: translateY(-50%); }
-.login-route i { left: 0; }
-.login-route b { right: 14px; }
-.login-route span { position: absolute; top: 6px; right: 12px; width: 56px; height: 56px; display: block; border: 1px solid rgba(255, 255, 255, 0.45); border-left: 0; border-bottom: 0; }
 .login-identity small { color: #aebbb4; font-size: 10px; font-weight: 800; letter-spacing: 0.13em; }
 .login-card { width: auto; display: flex; flex-direction: column; justify-content: center; margin: 0; padding: clamp(40px, 7vw, 76px); background: #ffffff; border: 0; border-radius: 0; box-shadow: none; }
 .login-card > .eyebrow { margin-bottom: 16px; }
@@ -1157,7 +1151,7 @@ input[type="date"] { width: 100%; min-width: 0; max-width: 100%; min-height: 46p
   .login-identity { min-height: 300px; padding: 30px 24px 26px; }
   .login-identity .brand-mark, .login-identity .brand-logo-image { width: 78px; height: 78px; }
   .login-identity h1 { max-width: 310px; margin-top: 30px; font-size: 43px; }
-  .login-identity p:not(.eyebrow), .login-route { display: none; }
+  .login-identity p:not(.eyebrow) { display: none; }
   .login-identity small { margin-top: auto; }
   .login-card { min-height: calc(100vh - 300px); padding: 38px 24px 44px; }
 }
