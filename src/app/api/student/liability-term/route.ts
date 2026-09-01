@@ -22,13 +22,13 @@ export async function POST(request: Request) {
     const student = await prisma.user.findUnique({
       where: { id: current.id },
       include: {
-        subscription: true,
+        subscriptions: true,
         payments: { where: { status: PaymentStatus.PAID }, select: { id: true }, take: 1 },
       },
     });
     if (!student || !student.liabilityTermRequiredAt) return NextResponse.json({ error: "Este termo não está pendente para este acesso." }, { status: 409, headers: noStoreHeaders() });
     if (student.liabilityTermAcceptedAt) return NextResponse.json({ accepted: true, alreadyAccepted: true }, { headers: noStoreHeaders() });
-    if (student.subscription?.status !== SubscriptionStatus.ACTIVE || student.payments.length === 0) return NextResponse.json({ error: "O termo estará disponível após a confirmação do pagamento." }, { status: 409, headers: noStoreHeaders() });
+    if (!student.subscriptions.some((subscription) => subscription.status === SubscriptionStatus.ACTIVE) || student.payments.length === 0) return NextResponse.json({ error: "O termo estará disponível após a confirmação do pagamento." }, { status: 409, headers: noStoreHeaders() });
     if (comparableName(signature) !== comparableName(student.name)) return NextResponse.json({ error: "A assinatura deve corresponder ao seu nome completo cadastrado." }, { status: 400, headers: noStoreHeaders() });
 
     const acceptedAt = new Date();
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
           phone: student.phone,
           email: student.email,
           joinedAt: student.joinedAt,
-          planName: student.subscription.planName,
+          planName: student.subscriptions.filter((subscription) => subscription.status === SubscriptionStatus.ACTIVE).map((subscription) => subscription.planName).join(" + "),
         }),
       },
     });

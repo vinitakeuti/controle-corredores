@@ -45,6 +45,7 @@ export type CreatePaymentInput = {
   holderDocumentNumber?: string;
   automaticPix?: boolean;
   installmentCount?: number;
+  subscriptionIds?: string[];
 };
 
 export class PaymentServiceError extends Error {
@@ -196,22 +197,29 @@ export async function createPayment(input: CreatePaymentInput) {
 
   const account = await prisma.user.findUnique({
     where: { id: input.userId },
-    include: { subscription: true },
+    include: { subscriptions: true },
   });
-  if (!account || account.role !== UserRole.STUDENT || !account.active || !account.subscription) {
+  if (!account || account.role !== UserRole.STUDENT || !account.active) {
     throw new PaymentServiceError("A assinatura deste aluno não está disponível.", 404);
   }
-  if (!account.subscription.planId) {
+  const requestedIds = [...new Set(input.subscriptionIds ?? [])];
+  const subscriptions = (requestedIds.length
+    ? account.subscriptions.filter((subscription) => requestedIds.includes(subscription.id))
+    : account.subscriptions.filter((subscription) => subscription.status !== SubscriptionStatus.ACTIVE && subscription.planId))
+    .filter((subscription) => subscription.planId);
+  if (!subscriptions.length || subscriptions.length !== (requestedIds.length || subscriptions.length)) {
     throw new PaymentServiceError("Escolha um plano antes de gerar o pagamento.", 409);
   }
-  if (!account.subscription.allowedMethods.includes(prismaMethod) && !(input.automaticPix && account.subscription.automaticPixEnabled)) {
+  const subscription = subscriptions[0];
+  const commonMethods = subscriptions.reduce<PaymentMethod[]>((methods, item, index) => index === 0 ? item.allowedMethods : methods.filter((method) => item.allowedMethods.includes(method)), []);
+  if (!commonMethods.includes(prismaMethod) && !(input.automaticPix && subscriptions.length === 1 && subscription.automaticPixEnabled)) {
     throw new PaymentServiceError("Este método de pagamento não está disponível para esta assinatura.", 403);
   }
   if (!account.phone || !account.cpf) {
     throw new PaymentServiceError("Complete o telefone e o CPF antes de gerar o pagamento.", 422);
   }
 
-  const expectedAmountCents = planTotalCents(account.subscription.priceCents, account.subscription.billingPeriod);
+  const expectedAmountCents = subscriptions.reduce((total, item) => total + planTotalCents(item.priceCents, item.billingPeriod), 0);
   const amountCents = input.amountCents ?? expectedAmountCents;
   if (!Number.isInteger(amountCents) || amountCents < 100 || amountCents > 10_000_000) {
     throw new PaymentServiceError("O valor da cobrança é inválido.");
@@ -220,7 +228,7 @@ export async function createPayment(input: CreatePaymentInput) {
     throw new PaymentServiceError("O valor desta cobrança não corresponde ao plano selecionado.", 409);
   }
   const installmentCount = input.installmentCount ?? 1;
-  const maxInstallments = periodMonths[account.subscription.billingPeriod];
+  const maxInstallments = Math.max(...subscriptions.map((item) => periodMonths[item.billingPeriod]));
   if (!Number.isInteger(installmentCount) || installmentCount < 1 || installmentCount > maxInstallments) {
     throw new PaymentServiceError(`Escolha entre 1 e ${maxInstallments} parcela${maxInstallments === 1 ? "" : "s"}.`);
   }
@@ -230,13 +238,13 @@ export async function createPayment(input: CreatePaymentInput) {
   if (input.automaticPix && installmentCount !== 1) {
     throw new PaymentServiceError("Pix Automático não pode ser parcelado.");
   }
-  if (input.automaticPix && !account.subscription.automaticPixEnabled) {
+  if (input.automaticPix && (subscriptions.length !== 1 || !subscription.automaticPixEnabled)) {
     throw new PaymentServiceError("Pix Automático não está disponível para este plano.", 409);
   }
   if (previous && (
     previous.amountCents !== amountCents
     || previous.installmentCount !== installmentCount
-    || previous.subscriptionId !== account.subscription.id
+    || previous.subscriptionId !== subscription.id
     || previous.paymentLinkId !== (input.paymentLinkId ?? null)
   )) {
     throw new PaymentServiceError("Esta tentativa de pagamento não corresponde à cobrança solicitada.", 409);
@@ -257,7 +265,7 @@ export async function createPayment(input: CreatePaymentInput) {
     const reusable = await prisma.payment.findFirst({
       where: {
         userId: account.id,
-        subscriptionId: account.subscription.id,
+        subscriptionId: subscription.id,
         provider: activeProvider,
         method: prismaMethod,
         amountCents,
@@ -309,20 +317,21 @@ export async function createPayment(input: CreatePaymentInput) {
 
   const recurringRequested = activeProvider === "ASAAS"
     ? Boolean(input.automaticPix)
-    : Boolean(checkoutConfig?.recurrenceEnabled && input.method !== "BOLETO");
+    : Boolean(subscriptions.length === 1 && checkoutConfig?.recurrenceEnabled && input.method !== "BOLETO");
   const payment = previous ?? reusablePayment ?? await prisma.payment.create({
     data: {
       userId: account.id,
-      subscriptionId: account.subscription.id,
+      subscriptionId: subscription.id,
       paymentLinkId: input.paymentLinkId,
       requestKey: input.requestKey,
       amountCents,
       installmentCount,
       status: PaymentStatus.PENDING,
       method: prismaMethod,
-      dueAt: account.subscription.nextBillingAt ?? new Date(),
+      dueAt: subscription.nextBillingAt ?? new Date(),
       recurringRequested,
       provider: activeProvider,
+      subscriptionItems: { createMany: { data: subscriptions.map((item) => ({ subscriptionId: item.id })) } },
     },
   });
 
@@ -349,7 +358,7 @@ export async function createPayment(input: CreatePaymentInput) {
       }
 
       if (input.method === "PIX" && input.automaticPix) {
-        if (account.subscription.asaasPixAuthorizationId && account.subscription.recurringEnabled) {
+        if (subscription.asaasPixAuthorizationId && subscription.recurringEnabled) {
           throw new PaymentServiceError("O Pix Automático já está ativo para esta assinatura. As próximas mensalidades serão debitadas na data programada.", 409);
         }
 
@@ -361,15 +370,15 @@ export async function createPayment(input: CreatePaymentInput) {
           customerId,
           contractId: payment.id,
           amountCents,
-          description: account.subscription.planName,
-          startDate: account.subscription.nextBillingAt && account.subscription.nextBillingAt > new Date()
-            ? account.subscription.nextBillingAt
+          description: subscriptions.map((item) => item.planName).join(" + "),
+          startDate: subscription.nextBillingAt && subscription.nextBillingAt > new Date()
+            ? subscription.nextBillingAt
             : new Date(),
-          billingPeriod: account.subscription.billingPeriod,
+          billingPeriod: subscription.billingPeriod,
         });
         const updated = await prisma.$transaction(async (transaction) => {
           await transaction.subscription.update({
-            where: { id: account.subscription!.id },
+            where: { id: subscription.id },
             data: {
               asaasPixAuthorizationId: authorization.id,
               asaasPixAuthorizationStatus: authorization.status,
@@ -412,7 +421,7 @@ export async function createPayment(input: CreatePaymentInput) {
               customerId,
               billingType,
               amountCents,
-              description: account.subscription.planName,
+              description: subscriptions.map((item) => item.planName).join(" + "),
               externalReference: payment.id,
               installmentCount,
             });
@@ -478,7 +487,7 @@ export async function createPayment(input: CreatePaymentInput) {
 
     const product = {
       sku: "PACELAB-MENSAL",
-      name: account.subscription.planName,
+      name: subscriptions.map((item) => item.planName).join(" + "),
       unitValue: amountCents,
     };
     const { firstName, lastName } = splitName(account.name);
@@ -492,7 +501,7 @@ export async function createPayment(input: CreatePaymentInput) {
       product,
     });
     await prisma.subscription.update({
-      where: { id: account.subscription.id },
+      where: { id: subscription.id },
       data: { providerCustomerId: customer.id },
     });
 
@@ -522,7 +531,7 @@ export async function createPayment(input: CreatePaymentInput) {
       });
       if (pix.subscriptionId) {
         await prisma.subscription.update({
-          where: { id: account.subscription.id },
+          where: { id: subscription.id },
           data: {
             providerSubscriptionId: pix.subscriptionId,
             recurringEnabled: recurringRequested,
@@ -565,7 +574,7 @@ export async function createPayment(input: CreatePaymentInput) {
     });
     if (card.subscriptionId) {
       await prisma.subscription.update({
-        where: { id: account.subscription.id },
+        where: { id: subscription.id },
         data: {
           providerSubscriptionId: card.subscriptionId,
           recurringEnabled: recurringRequested,
@@ -645,34 +654,28 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
     const becamePaid = current.status !== PaymentStatus.PAID && nextStatus === PaymentStatus.PAID;
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
-    if (current.subscriptionId && becamePaid) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true } });
-      await transaction.subscription.update({
-        where: { id: current.subscriptionId },
+    const items = await transaction.paymentSubscription.findMany({ where: { paymentId: current.id }, select: { subscriptionId: true } });
+    const subscriptionIds = items.length ? items.map((item) => item.subscriptionId) : current.subscriptionId ? [current.subscriptionId] : [];
+    if (subscriptionIds.length && becamePaid) {
+      const subscriptions = await transaction.subscription.findMany({ where: { id: { in: subscriptionIds } }, select: { id: true, billingPeriod: true } });
+      await Promise.all(subscriptions.map((subscription) => transaction.subscription.update({
+        where: { id: subscription.id },
         data: {
           status: SubscriptionStatus.ACTIVE,
-          nextBillingAt: addMonths(paidAt, periodMonths[subscription?.billingPeriod ?? "MONTHLY"]),
+          nextBillingAt: addMonths(paidAt, periodMonths[subscription.billingPeriod]),
           providerCustomerId: snapshot.customerId ?? undefined,
-          recurringEnabled: current.recurringRequested,
-          recurringMethod: current.recurringRequested ? current.method : undefined,
+          recurringEnabled: current.recurringRequested && subscription.id === current.subscriptionId,
+          recurringMethod: current.recurringRequested && subscription.id === current.subscriptionId ? current.method : undefined,
         },
-      });
+      })));
       if (current.paymentLinkId) {
         await transaction.paymentLink.update({
           where: { id: current.paymentLinkId },
           data: { status: "COMPLETED", completedAt: paidAt },
         });
       }
-    } else if (current.subscriptionId && (refunded || failed || expired)) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId } });
-      const shouldMarkPastDue = subscription?.status === SubscriptionStatus.ACTIVE
-        && (refunded || Boolean(subscription.nextBillingAt && subscription.nextBillingAt <= new Date()));
-      if (shouldMarkPastDue) {
-        await transaction.subscription.update({
-          where: { id: current.subscriptionId },
-          data: { status: SubscriptionStatus.PAST_DUE },
-        });
-      }
+    } else if (subscriptionIds.length && (refunded || failed || expired)) {
+      await transaction.subscription.updateMany({ where: { id: { in: subscriptionIds }, status: SubscriptionStatus.ACTIVE, ...(refunded ? {} : { nextBillingAt: { lte: new Date() } }) }, data: { status: SubscriptionStatus.PAST_DUE } });
     }
     return updated;
   });
@@ -745,33 +748,27 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
     const becamePaid = current.status !== PaymentStatus.PAID && nextStatus === PaymentStatus.PAID;
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
-    if (current.subscriptionId && becamePaid) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true } });
-      await transaction.subscription.update({
-        where: { id: current.subscriptionId },
+    const items = await transaction.paymentSubscription.findMany({ where: { paymentId: current.id }, select: { subscriptionId: true } });
+    const subscriptionIds = items.length ? items.map((item) => item.subscriptionId) : current.subscriptionId ? [current.subscriptionId] : [];
+    if (subscriptionIds.length && becamePaid) {
+      const subscriptions = await transaction.subscription.findMany({ where: { id: { in: subscriptionIds } }, select: { id: true, billingPeriod: true } });
+      await Promise.all(subscriptions.map((subscription) => transaction.subscription.update({
+        where: { id: subscription.id },
         data: {
           status: SubscriptionStatus.ACTIVE,
-          nextBillingAt: addMonths(paidAt, periodMonths[subscription?.billingPeriod ?? "MONTHLY"]),
-          recurringEnabled: current.recurringRequested,
-          recurringMethod: current.recurringRequested ? current.method : null,
+          nextBillingAt: addMonths(paidAt, periodMonths[subscription.billingPeriod]),
+          recurringEnabled: current.recurringRequested && subscription.id === current.subscriptionId,
+          recurringMethod: current.recurringRequested && subscription.id === current.subscriptionId ? current.method : null,
         },
-      });
+      })));
       if (current.paymentLinkId) {
         await transaction.paymentLink.update({
           where: { id: current.paymentLinkId },
           data: { status: "COMPLETED", completedAt: paidAt },
         });
       }
-    } else if (current.subscriptionId && (refunded || failed || expired)) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId } });
-      const shouldMarkPastDue = subscription?.status === SubscriptionStatus.ACTIVE
-        && (refunded || Boolean(subscription.nextBillingAt && subscription.nextBillingAt <= new Date()));
-      if (shouldMarkPastDue) {
-        await transaction.subscription.update({
-          where: { id: current.subscriptionId },
-          data: { status: SubscriptionStatus.PAST_DUE },
-        });
-      }
+    } else if (subscriptionIds.length && (refunded || failed || expired)) {
+      await transaction.subscription.updateMany({ where: { id: { in: subscriptionIds }, status: SubscriptionStatus.ACTIVE, ...(refunded ? {} : { nextBillingAt: { lte: new Date() } }) }, data: { status: SubscriptionStatus.PAST_DUE } });
     }
     return updated;
   });

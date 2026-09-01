@@ -1195,6 +1195,18 @@ input[type="date"] { width: 100%; min-width: 0; max-width: 100%; min-height: 46p
 .subscription-card .eyebrow { color: #f48b68; }
 .subscription-card h2, .subscription-card .subscription-meta strong { color: #ffffff; }
 .subscription-card .subscription-meta small { color: #c8d1cc; }
+.plan-picker-selection { margin: 16px 0 0; color: var(--muted); font-size: 13px; font-weight: 700; }
+.student-product-list { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.student-product-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 0.65fr); gap: 24px; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.student-product-row strong { display: block; color: var(--ink); }
+.student-product-row p { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+.student-product-row > div:last-child > small { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.subscription-date-control { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.subscription-date-control input { min-width: 0; padding: 9px 10px; font-size: 13px; }
+.subscription-date-control .button { min-height: 38px; padding: 0 11px; white-space: nowrap; }
+.student-product-payment { padding: 20px 0; border-top: 1px solid var(--line); }
+.student-product-payment > div > p { margin: 6px 0 16px; color: var(--muted); font-size: 13px; }
+@media (max-width: 680px) { .student-product-row { grid-template-columns: 1fr; gap: 14px; } .subscription-date-control { flex-wrap: wrap; } }
 
 /* Tutorial Pace Lab */
 body.tutorial-open { overflow: hidden; }

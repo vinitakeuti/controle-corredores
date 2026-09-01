@@ -35,29 +35,23 @@ async function main() {
     create: { name: "Ana Corredora", email: "aluno@pabula.com", passwordHash: studentPassword, role: UserRole.STUDENT, joinedAt: lastMonth, phone: "82999990001", cpf: "12345678909", birthDate: new Date("1995-04-12") },
   });
 
-  const studentSubscription = await prisma.subscription.upsert({
-    where: { userId: student.id },
-    update: { status: SubscriptionStatus.ACTIVE, nextBillingAt: inFiveDays },
-    create: { userId: student.id, status: SubscriptionStatus.ACTIVE, nextBillingAt: inFiveDays, priceCents: 15000 },
-  });
+  await prisma.payment.deleteMany({ where: { userId: student.id } });
+  await prisma.subscription.deleteMany({ where: { userId: student.id } });
+  const studentSubscription = await prisma.subscription.create({ data: { userId: student.id, status: SubscriptionStatus.ACTIVE, nextBillingAt: inFiveDays, priceCents: 15000 } });
 
   const pastDueStudent = await prisma.user.upsert({
     where: { email: "carlos@pabula.com" },
     update: { passwordHash: studentPassword, role: UserRole.STUDENT, active: true, phone: "82999990002", cpf: "98765432100", birthDate: new Date("1990-09-27") },
     create: { name: "Carlos Velocista", email: "carlos@pabula.com", passwordHash: studentPassword, role: UserRole.STUDENT, joinedAt: lastMonth, phone: "82999990002", cpf: "98765432100", birthDate: new Date("1990-09-27") },
   });
-  const pastDueSubscription = await prisma.subscription.upsert({
-    where: { userId: pastDueStudent.id },
-    update: { status: SubscriptionStatus.PAST_DUE, nextBillingAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000) },
-    create: { userId: pastDueStudent.id, status: SubscriptionStatus.PAST_DUE, nextBillingAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000), priceCents: 15000 },
-  });
-
   await prisma.payment.deleteMany({ where: { userId: pastDueStudent.id } });
+  await prisma.subscription.deleteMany({ where: { userId: pastDueStudent.id } });
+  const pastDueSubscription = await prisma.subscription.create({ data: { userId: pastDueStudent.id, status: SubscriptionStatus.PAST_DUE, nextBillingAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000), priceCents: 15000 } });
+
   await prisma.payment.create({
     data: { userId: pastDueStudent.id, subscriptionId: pastDueSubscription.id, amountCents: 15000, method: PaymentMethod.PIX, status: PaymentStatus.PENDING, dueAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000) },
   });
 
-  await prisma.payment.deleteMany({ where: { userId: student.id } });
   await prisma.payment.create({
     data: { userId: student.id, subscriptionId: studentSubscription.id, amountCents: 15000, method: PaymentMethod.CARD, status: PaymentStatus.PAID, dueAt: lastMonth, paidAt: lastMonth },
   });

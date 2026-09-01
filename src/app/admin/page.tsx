@@ -25,19 +25,19 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   const [totalStudents, upToDate, overdue, newStudents, dropouts, paidToday, overdueToday, generatedToday, expiredToday] = await Promise.all([
     prisma.user.count({ where: { role: UserRole.STUDENT } }),
-    prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { status: SubscriptionStatus.ACTIVE, OR: [{ nextBillingAt: null }, { nextBillingAt: { gte: now } }] } } } }),
-    prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } } }),
+    prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscriptions: { some: { status: SubscriptionStatus.ACTIVE, OR: [{ nextBillingAt: null }, { nextBillingAt: { gte: now } }] } } } }),
+    prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscriptions: { some: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } } }),
     prisma.user.count({ where: { role: UserRole.STUDENT, joinedAt: { gte: from, lte: to } } }),
     prisma.user.count({ where: { role: UserRole.STUDENT, leftAt: { not: null, gte: from, lte: to } } }),
     prisma.payment.findMany({ where: { status: PaymentStatus.PAID, paidAt: { gte: dayStart, lte: now } }, include: { user: true }, orderBy: { paidAt: "desc" }, take: 12 }),
-    prisma.user.findMany({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { status: SubscriptionStatus.PAST_DUE, nextBillingAt: { gte: dayStart, lte: now } } } }, include: { subscription: true }, orderBy: { name: "asc" }, take: 12 }),
+    prisma.user.findMany({ where: { role: UserRole.STUDENT, active: true, subscriptions: { some: { status: SubscriptionStatus.PAST_DUE, nextBillingAt: { gte: dayStart, lte: now } } } }, include: { subscriptions: { orderBy: { nextBillingAt: "asc" }, take: 1 } }, orderBy: { name: "asc" }, take: 12 }),
     prisma.payment.findMany({ where: { createdAt: { gte: dayStart, lte: now } }, include: { user: true }, orderBy: { createdAt: "desc" }, take: 12 }),
     prisma.payment.findMany({ where: { OR: [{ status: PaymentStatus.EXPIRED, updatedAt: { gte: dayStart, lte: now } }, { status: PaymentStatus.PENDING, expiresAt: { gte: dayStart, lte: now } }] }, include: { user: true }, orderBy: { expiresAt: "desc" }, take: 12 }),
   ]);
 
   const notifications: Notification[] = [
     ...paidToday.map((payment) => ({ kind: "paid" as const, mark: "OK", title: "Pagamento recebido", description: `${payment.user.name} · ${formatCurrency(payment.amountCents)}`, eventAt: payment.paidAt ?? payment.createdAt })),
-    ...overdueToday.map((student) => ({ kind: "overdue" as const, mark: "ATR", title: "Pagamento em atraso", description: `${student.name} · vencimento ${formatDate(student.subscription?.nextBillingAt)}`, eventAt: student.subscription?.nextBillingAt ?? now })),
+    ...overdueToday.map((student) => ({ kind: "overdue" as const, mark: "ATR", title: "Pagamento em atraso", description: `${student.name} · vencimento ${formatDate(student.subscriptions[0]?.nextBillingAt)}`, eventAt: student.subscriptions[0]?.nextBillingAt ?? now })),
     ...generatedToday.map((payment) => ({ kind: "generated" as const, mark: payment.method === "BOLETO" ? "BOL" : payment.method === "CARD" ? "CAR" : "PIX", title: `${paymentMethodLabel(payment.method)} gerado`, description: `${payment.user.name} · ${formatCurrency(payment.amountCents)}`, eventAt: payment.createdAt })),
     ...expiredToday.map((payment) => ({ kind: "expired" as const, mark: "EXP", title: `${paymentMethodLabel(payment.method)} expirado`, description: `${payment.user.name} · cobrança não utilizada`, eventAt: payment.expiresAt ?? payment.updatedAt })),
   ].sort((a, b) => b.eventAt.getTime() - a.eventAt.getTime()).slice(0, 12);

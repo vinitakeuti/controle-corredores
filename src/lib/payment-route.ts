@@ -54,6 +54,9 @@ export async function handlePaymentRequest(context: PaymentRouteContext) {
     const requestKey = typeof body.requestKey === "string" ? body.requestKey.trim() : "";
     const customerIp = typeof body.customerIp === "string" ? body.customerIp.trim() : "";
     const installmentCount = typeof body.installmentCount === "number" ? body.installmentCount : undefined;
+    const subscriptionIds = Array.isArray(body.subscriptionIds)
+      ? body.subscriptionIds.filter((id): id is string => typeof id === "string" && id.length > 0).slice(0, 12)
+      : undefined;
     const expectedProvider = body.expectedProvider === "APPMAX" || body.expectedProvider === "ASAAS"
       ? body.expectedProvider
       : undefined;
@@ -76,6 +79,7 @@ export async function handlePaymentRequest(context: PaymentRouteContext) {
         : undefined,
       automaticPix: body.automaticPix === true,
       installmentCount,
+      subscriptionIds,
     });
     return NextResponse.json(result, { headers: noStoreHeaders() });
   } catch (error) {

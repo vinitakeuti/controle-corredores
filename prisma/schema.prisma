@@ -83,7 +83,7 @@ model User {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   session             Session[]
-  subscription        Subscription?
+  subscriptions       Subscription[]
   payments            Payment[]
   renewalReminders    RenewalReminder[]
   passwordResetTokens PasswordResetToken[]
@@ -110,7 +110,7 @@ model Session {
 
 model Subscription {
   id                     String             @id @default(cuid())
-  userId                 String             @unique
+  userId                 String
   status                 SubscriptionStatus @default(INCOMPLETE)
   planName               String             @default("Treinamento mensal")
   planId                 String?
@@ -131,10 +131,12 @@ model Subscription {
   user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan                   Plan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
   payments               Payment[]
+  paymentItems           PaymentSubscription[]
 
   @@index([status])
   @@index([nextBillingAt])
   @@index([planId])
+  @@index([userId])
 }
 
 model Payment {
@@ -166,12 +168,24 @@ model Payment {
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscription        Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   paymentLink         PaymentLink?  @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
+  subscriptionItems   PaymentSubscription[]
 
   @@index([userId, createdAt])
   @@index([status, dueAt])
   @@index([expiresAt])
   @@index([paymentLinkId])
   @@unique([provider, providerOrderId])
+}
+
+model PaymentSubscription {
+  id             String       @id @default(cuid())
+  paymentId      String
+  subscriptionId String
+  payment        Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([paymentId, subscriptionId])
+  @@index([subscriptionId])
 }
 
 model GatewayEvent {
