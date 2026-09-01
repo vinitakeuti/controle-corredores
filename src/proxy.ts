@@ -14,7 +14,7 @@ function isManagementPage(pathname: string) {
 }
 
 function isManagementApi(pathname: string) {
-  return /^\/api\/(admin|cron|webhooks)(\/|$)/.test(pathname);
+  return /^\/api\/(admin|cron|webhooks|demandas)(\/|$)/.test(pathname);
 }
 
 function unavailableApi() {
