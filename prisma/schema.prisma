@@ -59,6 +59,20 @@ enum GatewayEventStatus {
   FAILED
 }
 
+enum WorkAreaType {
+  GENERAL
+  SECTOR
+}
+
+enum DemandColumn {
+  OPEN
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
 model User {
   id                  String            @id @default(cuid())
   name                String
@@ -90,10 +104,55 @@ model User {
   emailDeliveries     EmailDelivery[]
   paymentLinks        PaymentLink[]     @relation("PaymentLinkStudent")
   createdPaymentLinks PaymentLink[]     @relation("PaymentLinkCreator")
+  createdDemands     Demand[]           @relation("DemandCreator")
+  demandAssignments  DemandAssignment[]
 
   @@index([role])
   @@index([joinedAt])
   @@index([leftAt])
+}
+
+model WorkArea {
+  id        String       @id @default(cuid())
+  name      String
+  type      WorkAreaType @default(SECTOR)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  demands   Demand[]
+
+  @@unique([name])
+  @@index([type, name])
+}
+
+model Demand {
+  id          String       @id @default(cuid())
+  workAreaId  String
+  createdById String
+  title       String
+  description String?
+  column      DemandColumn @default(OPEN)
+  position    Int          @default(0)
+  scheduledAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  workArea    WorkArea     @relation(fields: [workAreaId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation("DemandCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignees   DemandAssignment[]
+
+  @@index([workAreaId, column, position])
+  @@index([scheduledAt])
+}
+
+model DemandAssignment {
+  id        String   @id @default(cuid())
+  demandId  String
+  userId    String
+  createdAt DateTime @default(now())
+  demand    Demand   @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([demandId, userId])
+  @@index([userId])
 }
 
 model Session {

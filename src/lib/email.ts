@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { Prisma, SubscriptionStatus } from "@prisma/client";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatTime } from "@/lib/format";
 import { canonicalStudentAppUrl, managementAppUrl } from "@/lib/portal";
 import { planTotalCents } from "@/lib/plan-billing";
 import { prisma } from "@/lib/prisma";
@@ -53,6 +53,12 @@ function mailer() {
 export async function sendMessage(to: string, message: Message) {
   const { from, transport } = mailer();
   await transport.sendMail({ from, to, subject: message.subject, html: message.html, text: message.text });
+}
+
+export function demandAssignmentMessage({ recipientName, title, workAreaName, scheduledAt, demandUrl }: { recipientName: string; title: string; workAreaName: string; scheduledAt: Date | null; demandUrl: string }): Message {
+  const dateTime = scheduledAt ? `${formatDate(scheduledAt)} às ${formatTime(scheduledAt)}` : null;
+  const details = [{ label: "Área de trabalho", value: workAreaName }, ...(dateTime ? [{ label: "Data e horário", value: dateTime }] : [])];
+  return { subject: `Nova demanda para você · ${title}`, html: emailLayout({ eyebrow: "Nova demanda", title: `Olá, ${firstName(recipientName)}.`, intro: `Você foi atribuído à atividade “${title}”.`, details, action: { label: "Abrir demanda", href: demandUrl } }), text: `Olá, ${firstName(recipientName)}.\n\nVocê foi atribuído à atividade: ${title}\nÁrea: ${workAreaName}${dateTime ? `\nData e horário: ${dateTime}` : ""}\n\nAbrir demanda: ${demandUrl}` };
 }
 
 export function passwordResetMessage(name: string, resetUrl: string): Message {

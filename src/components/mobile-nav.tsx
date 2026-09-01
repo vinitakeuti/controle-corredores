@@ -5,8 +5,9 @@ import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { Brand } from "@/components/brand";
+import { DemandsMenu } from "@/components/demands-menu";
 
-export function MobileNav({ user, current }: { user: SessionUser; current: "admin" | "students" | "analysis" | "plans" | "integrations" | "settings" | "student" }) {
+export function MobileNav({ user, current }: { user: SessionUser; current: "admin" | "students" | "analysis" | "plans" | "integrations" | "settings" | "student" | "demands" }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export function MobileNav({ user, current }: { user: SessionUser; current: "admi
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "admin" ? "active" : ""}`} href="/admin" onClick={close}>Visão geral</Link> : null}
             {user.role !== UserRole.STUDENT ? <Link className={`nav-link ${current === "students" ? "active" : ""}`} href="/admin/alunos" onClick={close}>Alunos</Link> : null}
             {user.role !== UserRole.STUDENT ? <Link className={`nav-link ${current === "analysis" ? "active" : ""}`} href="/admin/analisar" onClick={close}>Analisar dados</Link> : null}
+            {user.role !== UserRole.STUDENT ? <DemandsMenu active={current === "demands"} onNavigate={close} /> : null}
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos" onClick={close}>Planos</Link> : null}
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes" onClick={close}>Integrações</Link> : null}
             {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" onClick={close}>Minha assinatura</Link> : null}
