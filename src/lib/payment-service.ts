@@ -27,6 +27,7 @@ import {
 } from "@/lib/asaas";
 import { getActivePaymentProvider } from "@/lib/integration-directory";
 import { sendPaymentNotification } from "@/lib/email";
+import { periodMonths, planTotalCents } from "@/lib/plan-billing";
 import { prisma } from "@/lib/prisma";
 
 export type AppmaxPaymentMethod = "PIX" | "BOLETO" | "CARD";
@@ -43,6 +44,7 @@ export type CreatePaymentInput = {
   holderName?: string;
   holderDocumentNumber?: string;
   automaticPix?: boolean;
+  installmentCount?: number;
 };
 
 export class PaymentServiceError extends Error {
@@ -202,19 +204,38 @@ export async function createPayment(input: CreatePaymentInput) {
   if (!account.subscription.planId) {
     throw new PaymentServiceError("Escolha um plano antes de gerar o pagamento.", 409);
   }
-  if (!account.subscription.allowedMethods.includes(prismaMethod)) {
+  if (!account.subscription.allowedMethods.includes(prismaMethod) && !(input.automaticPix && account.subscription.automaticPixEnabled)) {
     throw new PaymentServiceError("Este método de pagamento não está disponível para esta assinatura.", 403);
   }
   if (!account.phone || !account.cpf) {
     throw new PaymentServiceError("Complete o telefone e o CPF antes de gerar o pagamento.", 422);
   }
 
-  const amountCents = input.amountCents ?? account.subscription.priceCents;
+  const expectedAmountCents = planTotalCents(account.subscription.priceCents, account.subscription.billingPeriod);
+  const amountCents = input.amountCents ?? expectedAmountCents;
   if (!Number.isInteger(amountCents) || amountCents < 100 || amountCents > 10_000_000) {
     throw new PaymentServiceError("O valor da cobrança é inválido.");
   }
+  if (amountCents !== expectedAmountCents) {
+    throw new PaymentServiceError("O valor desta cobrança não corresponde ao plano selecionado.", 409);
+  }
+  const installmentCount = input.installmentCount ?? 1;
+  const maxInstallments = periodMonths[account.subscription.billingPeriod];
+  if (!Number.isInteger(installmentCount) || installmentCount < 1 || installmentCount > maxInstallments) {
+    throw new PaymentServiceError(`Escolha entre 1 e ${maxInstallments} parcela${maxInstallments === 1 ? "" : "s"}.`);
+  }
+  if (input.method !== "CARD" && installmentCount !== 1) {
+    throw new PaymentServiceError("Parcelamento está disponível apenas no cartão.");
+  }
+  if (input.automaticPix && installmentCount !== 1) {
+    throw new PaymentServiceError("Pix Automático não pode ser parcelado.");
+  }
+  if (input.automaticPix && !account.subscription.automaticPixEnabled) {
+    throw new PaymentServiceError("Pix Automático não está disponível para este plano.", 409);
+  }
   if (previous && (
     previous.amountCents !== amountCents
+    || previous.installmentCount !== installmentCount
     || previous.subscriptionId !== account.subscription.id
     || previous.paymentLinkId !== (input.paymentLinkId ?? null)
   )) {
@@ -240,6 +261,7 @@ export async function createPayment(input: CreatePaymentInput) {
         provider: activeProvider,
         method: prismaMethod,
         amountCents,
+        installmentCount,
         status: PaymentStatus.PENDING,
         ...(activeProvider === "ASAAS" && input.method === "PIX"
           ? input.automaticPix ? { providerOrderId: { startsWith: "pix-automatic:" } } : { NOT: { providerOrderId: { startsWith: "pix-automatic:" } } }
@@ -264,6 +286,9 @@ export async function createPayment(input: CreatePaymentInput) {
 
   const checkoutConfig = activeProvider === "APPMAX" ? await getAppmaxCheckoutConfig() : null;
   if (activeProvider === "APPMAX") {
+    if (installmentCount > 1) {
+      throw new PaymentServiceError("O parcelamento no cartão está disponível apenas pelo checkout Asaas.", 409);
+    }
     if (!checkoutConfig?.enabled) {
       throw new PaymentServiceError("O gateway de pagamento ainda não foi configurado.", 503);
     }
@@ -292,6 +317,7 @@ export async function createPayment(input: CreatePaymentInput) {
       paymentLinkId: input.paymentLinkId,
       requestKey: input.requestKey,
       amountCents,
+      installmentCount,
       status: PaymentStatus.PENDING,
       method: prismaMethod,
       dueAt: account.subscription.nextBillingAt ?? new Date(),
@@ -339,6 +365,7 @@ export async function createPayment(input: CreatePaymentInput) {
           startDate: account.subscription.nextBillingAt && account.subscription.nextBillingAt > new Date()
             ? account.subscription.nextBillingAt
             : new Date(),
+          billingPeriod: account.subscription.billingPeriod,
         });
         const updated = await prisma.$transaction(async (transaction) => {
           await transaction.subscription.update({
@@ -376,6 +403,7 @@ export async function createPayment(input: CreatePaymentInput) {
             customerId,
             billingType,
             amountCents,
+            installmentCount,
           });
         }
         if (!charge) {
@@ -386,6 +414,7 @@ export async function createPayment(input: CreatePaymentInput) {
               amountCents,
               description: account.subscription.planName,
               externalReference: payment.id,
+              installmentCount,
             });
           } catch (error) {
             if (error instanceof AsaasError && error.status >= 500) {
@@ -394,6 +423,7 @@ export async function createPayment(input: CreatePaymentInput) {
                 customerId,
                 billingType,
                 amountCents,
+                installmentCount,
               }).catch(() => null);
             }
             if (!charge) throw error;
@@ -616,11 +646,12 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
+      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true } });
       await transaction.subscription.update({
         where: { id: current.subscriptionId },
         data: {
           status: SubscriptionStatus.ACTIVE,
-          nextBillingAt: addMonths(paidAt),
+          nextBillingAt: addMonths(paidAt, periodMonths[subscription?.billingPeriod ?? "MONTHLY"]),
           providerCustomerId: snapshot.customerId ?? undefined,
           recurringEnabled: current.recurringRequested,
           recurringMethod: current.recurringRequested ? current.method : undefined,
@@ -674,7 +705,12 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
   if (snapshot.billingType !== expectedBillingType) {
     throw new PaymentServiceError("O método confirmado pelo Asaas não corresponde à cobrança local.", 409);
   }
-  if (paid && snapshot.valueCents !== payment.amountCents) {
+  const minimumInstallmentCents = Math.floor(payment.amountCents / payment.installmentCount);
+  const maximumInstallmentCents = Math.ceil(payment.amountCents / payment.installmentCount);
+  const validPaidAmount = payment.installmentCount === 1
+    ? snapshot.valueCents === payment.amountCents
+    : snapshot.valueCents !== null && snapshot.valueCents >= minimumInstallmentCents && snapshot.valueCents <= maximumInstallmentCents;
+  if (paid && !validPaidAmount) {
     throw new PaymentServiceError("O valor confirmado pelo Asaas não corresponde à cobrança local.", 409);
   }
 
@@ -710,11 +746,12 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
+      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true } });
       await transaction.subscription.update({
         where: { id: current.subscriptionId },
         data: {
           status: SubscriptionStatus.ACTIVE,
-          nextBillingAt: addMonths(paidAt),
+          nextBillingAt: addMonths(paidAt, periodMonths[subscription?.billingPeriod ?? "MONTHLY"]),
           recurringEnabled: current.recurringRequested,
           recurringMethod: current.recurringRequested ? current.method : null,
         },

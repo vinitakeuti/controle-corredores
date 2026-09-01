@@ -53,6 +53,7 @@ export async function handlePaymentRequest(context: PaymentRouteContext) {
     const method = typeof body.method === "string" ? body.method.toUpperCase() as AppmaxPaymentMethod : null;
     const requestKey = typeof body.requestKey === "string" ? body.requestKey.trim() : "";
     const customerIp = typeof body.customerIp === "string" ? body.customerIp.trim() : "";
+    const installmentCount = typeof body.installmentCount === "number" ? body.installmentCount : undefined;
     const expectedProvider = body.expectedProvider === "APPMAX" || body.expectedProvider === "ASAAS"
       ? body.expectedProvider
       : undefined;
@@ -74,6 +75,7 @@ export async function handlePaymentRequest(context: PaymentRouteContext) {
         ? body.holderDocumentNumber.replace(/\D/g, "")
         : undefined,
       automaticPix: body.automaticPix === true,
+      installmentCount,
     });
     return NextResponse.json(result, { headers: noStoreHeaders() });
   } catch (error) {

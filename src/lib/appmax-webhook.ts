@@ -5,6 +5,7 @@ import {
   SubscriptionStatus,
 } from "@prisma/client";
 import { synchronizeAppmaxOrder } from "@/lib/payment-service";
+import { periodMonths, planTotalCents } from "@/lib/plan-billing";
 import { prisma } from "@/lib/prisma";
 
 function addMonths(date: Date, count = 1) {
@@ -78,8 +79,9 @@ export async function processAppmaxGatewayEvent(eventId: string) {
         },
       });
     } else if (event.eventName === "subscription_charge_success") {
-      const amountCents = event.amountCents ?? subscription.priceCents;
-      if (amountCents !== subscription.priceCents) {
+      const expectedAmountCents = planTotalCents(subscription.priceCents, subscription.billingPeriod);
+      const amountCents = event.amountCents ?? expectedAmountCents;
+      if (amountCents !== expectedAmountCents) {
         throw new Error("Recurring charge amount does not match the subscription");
       }
       const method = subscription.recurringMethod ?? subscription.payments[0]?.method ?? PaymentMethod.CARD;
@@ -105,7 +107,7 @@ export async function processAppmaxGatewayEvent(eventId: string) {
           where: { id: subscription.id },
           data: {
             status: SubscriptionStatus.ACTIVE,
-            nextBillingAt: addMonths(occurredAt),
+            nextBillingAt: addMonths(occurredAt, periodMonths[subscription.billingPeriod]),
             recurringEnabled: true,
             recurringMethod: method,
             providerSubscriptionId: event.providerSubscriptionId ?? subscription.providerSubscriptionId,

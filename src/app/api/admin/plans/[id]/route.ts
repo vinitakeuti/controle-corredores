@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { cancelAsaasAutomaticPixAuthorization } from "@/lib/asaas";
 import { getCurrentUser } from "@/lib/auth";
-import { parseAmountCents } from "@/lib/billing";
+import { parseAllowedMethods, parseAmountCents } from "@/lib/billing";
+import { planTotalCents } from "@/lib/plan-billing";
 import { parsePlanPeriod } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
@@ -19,16 +20,31 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const priceCents = body.priceCents === undefined ? current.priceCents : parseAmountCents(body.priceCents);
     const period = body.period === undefined ? current.period : parsePlanPeriod(body.period);
     const active = body.active === undefined ? current.active : body.active === true;
-    if (!priceCents || !period) return NextResponse.json({ error: "Informe período e valor válidos." }, { status: 400, headers: noStoreHeaders() });
+    const allowedMethods = body.allowedMethods === undefined ? current.allowedMethods : parseAllowedMethods(body.allowedMethods);
+    const automaticPixEnabled = body.automaticPixEnabled === undefined ? current.automaticPixEnabled : body.automaticPixEnabled === true;
+    if (!priceCents || !period || !allowedMethods) return NextResponse.json({ error: "Informe período, valor e pelo menos um método de pagamento." }, { status: 400, headers: noStoreHeaders() });
     const priceChanged = priceCents !== current.priceCents;
-    const subscriptions = priceChanged ? await prisma.subscription.findMany({ where: { planId: id, hasCustomPrice: false }, select: { id: true, userId: true, asaasPixAuthorizationId: true, recurringEnabled: true } }) : [];
-    const authorizations = subscriptions.flatMap((subscription) => subscription.recurringEnabled && subscription.asaasPixAuthorizationId ? [subscription.asaasPixAuthorizationId] : []);
+    const periodChanged = period !== current.period;
+    const methodsChanged = allowedMethods.length !== current.allowedMethods.length || allowedMethods.some((method) => !current.allowedMethods.includes(method));
+    const nextAutomaticPixEnabled = automaticPixEnabled;
+    const automaticPixChanged = nextAutomaticPixEnabled !== current.automaticPixEnabled;
+    const subscriptions = priceChanged || periodChanged || methodsChanged || automaticPixChanged ? await prisma.subscription.findMany({ where: { planId: id }, select: { id: true, userId: true, priceCents: true, hasCustomPrice: true, asaasPixAuthorizationId: true, recurringEnabled: true } }) : [];
+    const standardSubscriptions = subscriptions.filter((subscription) => !subscription.hasCustomPrice);
+    const pixTermsChanged = priceChanged || periodChanged || automaticPixChanged;
+    const authorizations = pixTermsChanged ? subscriptions.flatMap((subscription) => subscription.recurringEnabled && subscription.asaasPixAuthorizationId ? [subscription.asaasPixAuthorizationId] : []) : [];
     await Promise.all(authorizations.map((authorizationId) => cancelAsaasAutomaticPixAuthorization(authorizationId)));
     const plan = await prisma.$transaction(async (transaction) => {
-      const updated = await transaction.plan.update({ where: { id }, data: { priceCents, period, active }, include: { service: true } });
+      const updated = await transaction.plan.update({ where: { id }, data: { priceCents, period, active, allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled }, include: { service: true } });
       if (subscriptions.length) {
-        await transaction.subscription.updateMany({ where: { id: { in: subscriptions.map((subscription) => subscription.id) } }, data: { priceCents, ...(authorizations.length ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
-        await transaction.paymentLink.updateMany({ where: { userId: { in: subscriptions.map((subscription) => subscription.userId) }, planId: id, status: "OPEN" }, data: { amountCents: priceCents } });
+        await transaction.subscription.updateMany({ where: { id: { in: subscriptions.map((subscription) => subscription.id) } }, data: { billingPeriod: period, allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled, ...(authorizations.length ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
+        if (standardSubscriptions.length) {
+          await transaction.subscription.updateMany({ where: { id: { in: standardSubscriptions.map((subscription) => subscription.id) } }, data: { priceCents } });
+        }
+        await transaction.paymentLink.updateMany({ where: { userId: { in: subscriptions.map((subscription) => subscription.userId) }, planId: id, status: "OPEN" }, data: { amountCents: planTotalCents(priceCents, period), allowedMethods } });
+        await Promise.all(subscriptions.filter((subscription) => subscription.hasCustomPrice).map((subscription) => transaction.paymentLink.updateMany({
+          where: { userId: subscription.userId, planId: id, status: "OPEN" },
+          data: { amountCents: planTotalCents(subscription.priceCents, period), allowedMethods },
+        })));
       }
       return updated;
     });

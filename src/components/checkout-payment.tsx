@@ -46,6 +46,8 @@ type CheckoutPaymentProps = {
   appmaxExternalId: string | null;
   recurrenceEnabled: boolean;
   allowedMethods: Method[];
+  automaticPixEnabled?: boolean;
+  installmentLimit?: number;
   embedded?: boolean;
   initialMethod?: CheckoutPaymentChoice;
   hideMethodSelector?: boolean;
@@ -68,6 +70,8 @@ export function CheckoutPayment({
   appmaxExternalId,
   recurrenceEnabled,
   allowedMethods,
+  automaticPixEnabled = false,
+  installmentLimit = 1,
   embedded = false,
   initialMethod,
   hideMethodSelector = false,
@@ -86,8 +90,9 @@ export function CheckoutPayment({
   const [copied, setCopied] = useState("");
   const [holderName, setHolderName] = useState(name);
   const [holderDocument, setHolderDocument] = useState(cpf);
+  const [installmentCount, setInstallmentCount] = useState(1);
   const availableMethods = allowedMethods;
-  const automaticPixAvailable = activeProvider === "ASAAS" && availableMethods.includes("PIX");
+  const automaticPixAvailable = activeProvider === "ASAAS" && automaticPixEnabled;
   const availableChoices: CheckoutPaymentChoice[] = [
     ...(availableMethods.includes("PIX") ? ["PIX" as const] : []),
     ...(automaticPixAvailable ? ["PIX_AUTOMATIC" as const] : []),
@@ -124,6 +129,7 @@ export function CheckoutPayment({
             ? holderDocumentRef.current.replace(/\D/g, "")
             : undefined,
           automaticPix,
+          installmentCount: selectedMethod === "CARD" ? installmentCount : 1,
         }),
       });
       const data = await response.json();
@@ -229,6 +235,7 @@ export function CheckoutPayment({
     setResult(null);
     setError("");
     requestKeyRef.current = newRequestKey();
+    if (nextMethod !== "CARD") setInstallmentCount(1);
   }
 
   const paymentReady = gatewayEnabled && (activeProvider === "ASAAS" || (appmaxReady && Boolean(customerIp)));
@@ -265,7 +272,7 @@ export function CheckoutPayment({
       </div> : null}
 
       {method === "PIX_AUTOMATIC" && automaticPixAvailable ? <div className="checkout-method-body">
-        <p>Autorize o Pix Automático para que as próximas mensalidades sejam cobradas na data programada. Você poderá cancelar essa autorização no seu banco.</p>
+        <p>Autorize o Pix Automático para que as próximas cobranças deste plano sejam realizadas na data programada. Você poderá cancelar essa autorização no seu banco.</p>
         <button className="button button-dark" type="button" onClick={() => submitPayment("PIX", undefined, true)} disabled={!paymentReady || loading}>{loading ? "Preparando..." : "Autorizar Pix Automático"}</button>
         {result?.pix ? <div className="gateway-payment-result">
           {result.pix.qrCode ? <img className="pix-qr-code" src={result.pix.qrCode} alt="QR Code para autorização do Pix Automático" /> : null}
@@ -290,6 +297,7 @@ export function CheckoutPayment({
 
       {method === "CARD" && availableMethods.includes("CARD") && activeProvider !== "APPMAX" ? <div className="checkout-method-body">
         <p>{activeProvider === "ASAAS" ? "Você será direcionado à Fatura Asaas para informar os dados do cartão em um ambiente seguro." : "O cartão será liberado assim que o gateway de pagamentos estiver ativo."}</p>
+        {activeProvider === "ASAAS" && installmentLimit > 1 ? <div className="field"><label htmlFor={`card-installments-${embedded ? "student" : "checkout"}`}>Parcelamento</label><select id={`card-installments-${embedded ? "student" : "checkout"}`} value={installmentCount} onChange={(event) => { setInstallmentCount(Number(event.target.value)); setResult(null); setError(""); requestKeyRef.current = newRequestKey(); }}>{Array.from({ length: installmentLimit }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count}x de {formatCurrency(Math.floor(amountCents / count))}{count === 1 ? " à vista" : ""}</option>)}</select><small>Sem acréscimo pela Pace Lab. Eventuais condições do cartão são exibidas pelo Asaas.</small></div> : null}
         <button className="button button-dark" type="button" onClick={() => submitPayment("CARD")} disabled={!paymentReady || loading}>{loading ? "Preparando..." : activeProvider === "ASAAS" ? "Continuar para o Asaas" : "Gateway indisponível"}</button>
         {result?.checkoutUrl ? <p className="checkout-note">Se o redirecionamento não ocorrer, <a href={result.checkoutUrl}>abra a Fatura Asaas</a>.</p> : null}
       </div> : null}

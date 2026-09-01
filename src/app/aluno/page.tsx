@@ -1,12 +1,14 @@
 import { UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { CheckoutPayment } from "@/components/checkout-payment";
+import { LiabilityTermAcceptance } from "@/components/liability-term-acceptance";
 import { PasswordChangeForm } from "@/components/password-change-form";
 import { StudentPlanPicker } from "@/components/student-plan-picker";
 import { StudentSubscriptionFlow } from "@/components/student-subscription-flow";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDate, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
 import { getPaymentCheckoutConfig } from "@/lib/payment-gateway";
+import { periodMonths, planTotalCents } from "@/lib/plan-billing";
 import { getActivePlans } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 
@@ -20,8 +22,12 @@ export default async function StudentPage() {
   const gateway = await getPaymentCheckoutConfig();
   const plans = await getActivePlans();
 
+  if (subscription?.status === "ACTIVE" && account?.liabilityTermRequiredAt && !account.liabilityTermAcceptedAt) {
+    return <AppShell user={user} current="student"><LiabilityTermAcceptance name={account.name} cpf={account.cpf} birthDate={formatDate(account.birthDate)} phone={account.phone} email={account.email} joinedAt={formatDate(account.joinedAt)} planName={subscription.planName} /></AppShell>;
+  }
+
   if (!subscription || !subscription.planId || subscription.status !== "ACTIVE") {
-    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>Escolha seu plano e conclua seu primeiro pagamento.</p></div></header>{plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} /> : <section className="panel empty-state"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></section>}</AppShell>;
+    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>Escolha seu plano e conclua seu primeiro pagamento.</p></div></header>{plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} automaticPixEnabled={subscription.automaticPixEnabled} /> : <section className="panel empty-state"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></section>}</AppShell>;
   }
 
   return (
@@ -47,12 +53,14 @@ export default async function StudentPage() {
         <CheckoutPayment
           name={account?.name ?? user.name}
           cpf={account?.cpf ?? ""}
-          amountCents={subscription.priceCents}
+          amountCents={planTotalCents(subscription.priceCents, subscription.billingPeriod)}
           gatewayEnabled={gateway.enabled}
           activeProvider={gateway.activeProvider}
           appmaxExternalId={gateway.appmaxExternalId}
           recurrenceEnabled={gateway.recurrenceEnabled}
           allowedMethods={subscription.allowedMethods}
+          automaticPixEnabled={subscription.automaticPixEnabled}
+          installmentLimit={periodMonths[subscription.billingPeriod]}
           embedded
         />
       </section>

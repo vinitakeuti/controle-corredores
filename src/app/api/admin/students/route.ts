@@ -8,6 +8,7 @@ import { isValidCpf, isValidPhone, normalizeCpf, normalizePhone, parseBirthDate 
 import { createOpaqueToken, generateTemporaryPassword, hashOpaqueToken } from "@/lib/tokens";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 import { portalUrl } from "@/lib/portal";
+import { planTotalCents } from "@/lib/plan-billing";
 import { planDisplayName } from "@/lib/plans";
 
 const MAX_BODY_LENGTH = 16_384;
@@ -50,11 +51,11 @@ export async function POST(request: Request) {
     const rawToken = createOpaqueToken();
     const student = await prisma.$transaction(async (transaction) => {
       const created = await transaction.user.create({
-        data: { name, email, phone, cpf, birthDate, passwordHash, passwordIsTemporary: true, role: UserRole.STUDENT },
+        data: { name, email, phone, cpf, birthDate, passwordHash, passwordIsTemporary: true, role: UserRole.STUDENT, liabilityTermRequiredAt: new Date() },
       });
-      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, priceCents: plan?.priceCents ?? DEFAULT_BILLING_PRICE_CENTS, allowedMethods } });
+      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, priceCents: plan?.priceCents ?? DEFAULT_BILLING_PRICE_CENTS, billingPeriod: plan?.period ?? "MONTHLY", allowedMethods: plan?.allowedMethods ?? allowedMethods, automaticPixEnabled: plan?.automaticPixEnabled ?? true } });
       const paymentLink = await transaction.paymentLink.create({
-        data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id, planId: subscription.planId, planName: subscription.planName, amountCents: subscription.priceCents, allowedMethods },
+        data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id, planId: subscription.planId, planName: subscription.planName, amountCents: plan ? planTotalCents(plan.priceCents, plan.period) : subscription.priceCents, allowedMethods: plan?.allowedMethods ?? allowedMethods },
       });
       return { id: created.id, name: created.name, email: created.email, subscription, paymentLink };
     });

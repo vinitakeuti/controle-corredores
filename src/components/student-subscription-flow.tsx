@@ -10,6 +10,8 @@ type Plan = {
   id: string;
   period: "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL";
   priceCents: number;
+  allowedMethods: Method[];
+  automaticPixEnabled: boolean;
   service: { name: string };
 };
 
@@ -24,6 +26,7 @@ type Props = {
   appmaxExternalId: string | null;
   recurrenceEnabled: boolean;
   allowedMethods: Method[];
+  automaticPixEnabled?: boolean;
 };
 
 const periodLabel = {
@@ -32,6 +35,22 @@ const periodLabel = {
   SEMIANNUAL: "Semestral",
   ANNUAL: "Anual",
 };
+
+const periodMonths = {
+  MONTHLY: 1,
+  QUARTERLY: 3,
+  SEMIANNUAL: 6,
+  ANNUAL: 12,
+};
+
+function paymentChoices(methods: Method[], provider: "APPMAX" | "ASAAS" | null, automaticPixEnabled: boolean): CheckoutPaymentChoice[] {
+  return [
+    ...(methods.includes("PIX") ? ["PIX" as const] : []),
+    ...(provider === "ASAAS" && automaticPixEnabled ? ["PIX_AUTOMATIC" as const] : []),
+    ...(methods.includes("CARD") ? ["CARD" as const] : []),
+    ...(methods.includes("BOLETO") ? ["BOLETO" as const] : []),
+  ];
+}
 
 export function StudentSubscriptionFlow({
   token,
@@ -44,21 +63,22 @@ export function StudentSubscriptionFlow({
   appmaxExternalId,
   recurrenceEnabled,
   allowedMethods,
+  automaticPixEnabled = false,
 }: Props) {
   const [stage, setStage] = useState<"plan" | "method" | "payment">("plan");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(() => plans.find((plan) => plan.id === initialPlanId) ?? null);
-  const automaticPixAvailable = activeProvider === "ASAAS" && allowedMethods.includes("PIX");
-  const choices: Array<{ id: CheckoutPaymentChoice; title: string; description: string }> = [
-    ...(allowedMethods.includes("PIX") ? [{ id: "PIX" as const, title: "Pix", description: "gere o QR Code para pagar agora" }] : []),
-    ...(automaticPixAvailable ? [{ id: "PIX_AUTOMATIC" as const, title: "Pix Automático", description: "autorize as cobranças mensais no banco" }] : []),
-    ...(allowedMethods.includes("CARD") ? [{ id: "CARD" as const, title: "Cartão", description: "pagamento em ambiente seguro" }] : []),
-    ...(allowedMethods.includes("BOLETO") ? [{ id: "BOLETO" as const, title: "Boleto", description: "gere a linha digitável" }] : []),
-  ];
+  const planMethods = selectedPlan?.allowedMethods ?? allowedMethods;
+  const selectedAutomaticPixEnabled = selectedPlan?.automaticPixEnabled ?? automaticPixEnabled;
+  const choices: Array<{ id: CheckoutPaymentChoice; title: string; description: string }> = paymentChoices(planMethods, activeProvider, selectedAutomaticPixEnabled).map((id) => ({
+    id,
+    title: id === "PIX" ? "Pix" : id === "PIX_AUTOMATIC" ? "Pix Automático" : id === "CARD" ? "Cartão" : "Boleto",
+    description: id === "PIX" ? "gere o QR Code para pagar agora" : id === "PIX_AUTOMATIC" ? "autorize as cobranças do plano" : id === "CARD" ? "pagamento em ambiente seguro" : "gere a linha digitável",
+  }));
   const [method, setMethod] = useState<CheckoutPaymentChoice | null>(choices[0]?.id ?? null);
 
   function continueWithPlan(plan: Plan) {
     setSelectedPlan(plan);
-    setMethod(choices[0]?.id ?? null);
+    setMethod(paymentChoices(plan.allowedMethods, activeProvider, plan.automaticPixEnabled)[0] ?? null);
     setStage("method");
   }
 
@@ -76,7 +96,7 @@ export function StudentSubscriptionFlow({
         <div className="panel-heading">
           <div><p className="eyebrow">Etapa 2 de 3</p><h2>Como você prefere pagar?</h2><p>Selecione uma opção para continuar.</p></div>
         </div>
-        <div className="selected-plan-summary"><div><small>Plano escolhido</small><strong>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]}</strong></div><b>{formatCurrency(selectedPlan.priceCents)}<small>/mês</small></b></div>
+        <div className="selected-plan-summary"><div><small>Plano escolhido</small><strong>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]}</strong></div><b>{formatCurrency(selectedPlan.priceCents * periodMonths[selectedPlan.period])}<small>{selectedPlan.period === "MONTHLY" ? " à vista" : ` em até ${periodMonths[selectedPlan.period]}x`}</small></b></div>
         {choices.length ? <div className="subscription-method-options" role="radiogroup" aria-label="Método de pagamento">
           {choices.map((choice) => <button className={method === choice.id ? "active" : ""} type="button" role="radio" aria-checked={method === choice.id} key={choice.id} onClick={() => setMethod(choice.id)}><strong>{choice.title}</strong><span>{choice.description}</span></button>)}
         </div> : <div className="payment-configuration-notice"><strong>Nenhum método disponível</strong><p>Peça à assessoria para liberar uma forma de pagamento.</p></div>}
@@ -84,9 +104,9 @@ export function StudentSubscriptionFlow({
       </div> : null}
 
       {stage === "payment" && selectedPlan && method ? <div className="subscription-flow-stage">
-        <div className="subscription-flow-payment-heading"><div><p className="eyebrow">Etapa 3 de 3</p><h2>Conclua seu pagamento</h2><p>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]} · {formatCurrency(selectedPlan.priceCents)} por mês</p></div></div>
+        <div className="subscription-flow-payment-heading"><div><p className="eyebrow">Etapa 3 de 3</p><h2>Conclua seu pagamento</h2><p>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]} · {formatCurrency(selectedPlan.priceCents * periodMonths[selectedPlan.period])} no período</p></div></div>
         <button className="subscription-flow-change-method" type="button" onClick={() => setStage("method")}>← Trocar método de pagamento</button>
-        <CheckoutPayment token={token} name={name} cpf={cpf} amountCents={selectedPlan.priceCents} gatewayEnabled={gatewayEnabled} activeProvider={activeProvider} appmaxExternalId={appmaxExternalId} recurrenceEnabled={recurrenceEnabled} allowedMethods={allowedMethods} embedded hideHeading hideMethodSelector initialMethod={method} />
+        <CheckoutPayment token={token} name={name} cpf={cpf} amountCents={selectedPlan.priceCents * periodMonths[selectedPlan.period]} gatewayEnabled={gatewayEnabled} activeProvider={activeProvider} appmaxExternalId={appmaxExternalId} recurrenceEnabled={recurrenceEnabled} allowedMethods={planMethods} automaticPixEnabled={selectedPlan.automaticPixEnabled} installmentLimit={periodMonths[selectedPlan.period]} embedded hideHeading hideMethodSelector initialMethod={method} />
       </div> : null}
     </section>
   );

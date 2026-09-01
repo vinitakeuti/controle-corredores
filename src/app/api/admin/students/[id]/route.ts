@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PaymentLinkStatus, UserRole } from "@prisma/client";
 import { cancelAsaasAutomaticPixAuthorization } from "@/lib/asaas";
 import { parseAllowedMethods, parseAmountCents } from "@/lib/billing";
+import { planTotalCents } from "@/lib/plan-billing";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
@@ -55,7 +56,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     });
     await prisma.paymentLink.updateMany({
       where: { userId: student.id, status: PaymentLinkStatus.OPEN },
-      data: { amountCents: priceCents, allowedMethods },
+      data: { amountCents: planTotalCents(priceCents, student.subscription.billingPeriod), allowedMethods },
     });
     return NextResponse.json({ subscription, reauthorizationRequired: cancelAutomaticPix, changed: priceChanged || methodsChanged }, { headers: noStoreHeaders() });
   } catch (error) {

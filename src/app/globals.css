@@ -109,7 +109,7 @@
 .plan-service-group + .plan-service-group { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--line-soft); }
 .plan-service-group h3 { margin: 0 0 10px; color: var(--text); font-size: 15px; }
 .plan-table { border-top: 1px solid var(--line); }
-.plan-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 18px; min-height: 64px; border-bottom: 1px solid var(--line); }
+.plan-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(215px, 0.75fr) auto; align-items: center; gap: 18px; min-height: 64px; border-bottom: 1px solid var(--line); }
 .plan-row span, .plan-row b { display: grid; gap: 3px; }
 .plan-row strong, .plan-row b { color: var(--text); font-size: 13px; }
 .plan-row small { color: var(--muted); font-size: 11px; font-weight: 500; }
@@ -120,6 +120,8 @@
 .plan-row-price small { color: var(--muted); font-size: 10px; }
 .plan-row-actions { display: flex; gap: 7px; }
 .plan-row-actions .button { min-width: 0; }
+.plan-method-options { padding: 8px 10px; background: rgba(255,255,255,0.34); }
+.plan-method-options label { margin: 2px 8px 2px 0; font-size: 11px; }
 .plans-catalog { display: grid; gap: 16px; }
 .plans-catalog-heading, .service-catalog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .plans-catalog-heading h2 { margin: 0; color: var(--text); font-size: 20px; letter-spacing: -0.04em; }
@@ -132,7 +134,7 @@
 .service-catalog-header h3 { margin: 0; color: var(--text); font-size: 20px; letter-spacing: -0.04em; }
 .service-catalog-header span { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
 .service-catalog-actions, .plan-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
-.inline-plan-form { display: grid; grid-template-columns: minmax(150px, 0.35fr) minmax(150px, 0.35fr) auto; gap: 12px; align-items: end; margin: 0 0 16px; padding: 15px; background: rgba(18, 27, 23, 0.05); border: 1px solid var(--line-soft); }
+.inline-plan-form { display: grid; grid-template-columns: minmax(130px, 0.3fr) minmax(150px, 0.3fr) minmax(205px, 0.5fr) auto; gap: 12px; align-items: end; margin: 0 0 16px; padding: 15px; background: rgba(18, 27, 23, 0.05); border: 1px solid var(--line-soft); }
 .inline-plan-actions { display: flex; gap: 8px; }
 .inline-plan-actions .button { min-height: 40px; white-space: nowrap; }
 .service-no-plans { margin: 0; padding: 17px 0 3px; color: var(--muted); font-size: 12px; }
@@ -180,6 +182,25 @@
 .student-subscription-flow .checkout-payment-embedded .payment-code { width: 100%; text-align: left; }
 .student-subscription-flow .checkout-payment-embedded .gateway-payment-result > small { max-width: 420px; text-align: center; }
 .student-subscription-flow .checkout-payment-embedded .payment-result-actions { justify-content: center; }
+.liability-term-panel { max-width: 880px; margin: 0 auto; }
+.liability-term-heading { padding: 18px 0 24px; border-bottom: 1px solid var(--line); }
+.liability-term-heading h1 { margin: 5px 0 9px; color: var(--text); font-size: clamp(29px, 5vw, 44px); letter-spacing: -0.06em; }
+.liability-term-heading > p:not(.eyebrow) { max-width: 610px; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.liability-term-document { max-height: min(60vh, 700px); margin-top: 20px; padding: 26px; overflow: auto; color: var(--muted-strong); background: rgba(255,255,255,0.42); border: 1px solid var(--line); }
+.liability-term-document h2 { margin: 0 0 22px; color: var(--text); font-size: 18px; letter-spacing: -0.035em; text-transform: uppercase; }
+.liability-term-document h3 { margin: 25px 0 10px; color: var(--text); font-size: 14px; }
+.liability-term-document p, .liability-term-document li { font-size: 13px; line-height: 1.7; }
+.liability-term-document p { margin: 0 0 11px; }
+.liability-term-document ol { margin: 0 0 11px; padding-left: 21px; }
+.liability-term-document li + li { margin-top: 5px; }
+.liability-term-data { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.liability-term-data > div { padding: 10px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.liability-term-data dt { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.liability-term-data dd { margin: 5px 0 0; color: var(--text); font-size: 12px; overflow-wrap: anywhere; }
+.liability-term-signature { display: grid; gap: 15px; max-width: 570px; margin-top: 20px; padding: 22px 0 8px; }
+.term-confirmation { display: flex; align-items: flex-start; gap: 10px; color: var(--text); font-size: 13px; font-weight: 700; line-height: 1.45; }
+.term-confirmation input { width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--accent); }
+.signed-term-document { white-space: pre-wrap; }
 .plan-picker { max-width: 760px; }
 .plan-picker-compact .panel-heading { margin-bottom: 16px; }
 .student-plan-options { display: grid; gap: 12px; }
@@ -202,6 +223,7 @@
   .plan-row { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 11px 0; }
   .plan-row .button { grid-column: 1 / -1; width: 100%; }
   .plan-row-price { justify-items: start; }
+  .plan-row .plan-method-options { grid-column: 1 / -1; }
   .plan-row-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .plan-row-actions .button { width: 100%; }
   .plans-catalog-heading, .service-catalog-header { display: grid; }
@@ -216,6 +238,8 @@
   .subscription-steps li { gap: 5px; font-size: 9px; letter-spacing: .04em; }
   .subscription-steps li span { width: 19px; height: 19px; }
   .subscription-method-options { grid-template-columns: 1fr; }
+  .liability-term-document { max-height: none; padding: 18px; }
+  .liability-term-data { grid-template-columns: 1fr; }
   .subscription-flow-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .subscription-flow-actions .button { width: 100%; min-width: 0; }
   .subscription-flow-stage { padding-top: 24px; }

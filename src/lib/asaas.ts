@@ -1,4 +1,6 @@
 import { getStoredAsaasIntegration } from "@/lib/asaas-integration";
+import { PlanPeriod } from "@prisma/client";
+import { asaasFrequencyForPeriod } from "@/lib/plan-billing";
 
 type JsonObject = Record<string, unknown>;
 
@@ -189,13 +191,14 @@ export async function createAsaasAutomaticPixAuthorization(input: {
   amountCents: number;
   description: string;
   startDate: Date;
+  billingPeriod: PlanPeriod;
 }) : Promise<AsaasAutomaticPixAuthorization> {
   const payload = await asaasRequest("/pix/automatic/authorizations", {
     method: "POST",
     body: JSON.stringify({
       customerId: input.customerId,
       contractId: input.contractId.slice(0, 35),
-      frequency: "MONTHLY",
+      frequency: asaasFrequencyForPeriod[input.billingPeriod],
       startDate: dateInMaceio(input.startDate),
       value: input.amountCents / 100,
       description: input.description.slice(0, 35),
@@ -238,13 +241,17 @@ export async function createAsaasPayment(input: {
   amountCents: number;
   description: string;
   externalReference: string;
+  installmentCount?: number;
 }) {
+  const installment = input.installmentCount && input.installmentCount > 1
+    ? { installmentCount: input.installmentCount, totalValue: input.amountCents / 100 }
+    : { value: input.amountCents / 100 };
   const payload = await asaasRequest("/payments", {
     method: "POST",
     body: JSON.stringify({
       customer: input.customerId,
       billingType: input.billingType,
-      value: input.amountCents / 100,
+      ...installment,
       dueDate: todayInMaceio(),
       description: input.description.slice(0, 500),
       externalReference: input.externalReference,
@@ -266,21 +273,29 @@ export async function findAsaasPaymentByExternalReference(input: {
   customerId: string;
   billingType: AsaasBillingType;
   amountCents: number;
+  installmentCount?: number;
 }) {
-  const search = new URLSearchParams({ externalReference: input.externalReference, limit: "2" });
+  const search = new URLSearchParams({ externalReference: input.externalReference, limit: "20" });
   const matches = dataItems(await asaasRequest(`/payments?${search.toString()}`));
-  if (matches.length > 1) {
+  const installmentCount = input.installmentCount ?? 1;
+  if (installmentCount === 1 && matches.length > 1) {
     throw new AsaasError("Há mais de uma cobrança Asaas para esta tentativa.", 409);
   }
-  const payment = matches[0];
+  const payment = installmentCount > 1
+    ? matches.find((candidate) => numberValue(candidate?.installmentNumber) === 1) ?? matches[0]
+    : matches[0];
   const id = stringValue(payment?.id);
   if (!id) return null;
   const remoteValue = numberValue(payment?.value);
+  const minimumInstallmentCents = Math.floor(input.amountCents / installmentCount);
+  const maximumInstallmentCents = Math.ceil(input.amountCents / installmentCount);
   const valid = stringValue(payment?.externalReference) === input.externalReference
     && stringValue(payment?.customer) === input.customerId
     && stringValue(payment?.billingType) === input.billingType
     && remoteValue !== null
-    && Math.round(remoteValue * 100) === input.amountCents;
+    && (installmentCount === 1
+      ? Math.round(remoteValue * 100) === input.amountCents
+      : Math.round(remoteValue * 100) >= minimumInstallmentCents && Math.round(remoteValue * 100) <= maximumInstallmentCents);
   if (!valid) {
     throw new AsaasError("A cobrança recuperada não corresponde à tentativa local.", 409);
   }

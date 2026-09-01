@@ -74,6 +74,12 @@ model User {
   joinedAt            DateTime          @default(now())
   leftAt              DateTime?
   tutorialSeenAt      DateTime?
+  liabilityTermRequiredAt DateTime?
+  liabilityTermAcceptedAt DateTime?
+  liabilityTermAcceptedName String?
+  liabilityTermAcceptedCpf String?
+  liabilityTermVersion String?
+  liabilityTermDocument String?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   session             Session[]
@@ -109,7 +115,9 @@ model Subscription {
   planName               String             @default("Treinamento mensal")
   planId                 String?
   priceCents             Int                @default(15000)
+  billingPeriod          PlanPeriod         @default(MONTHLY)
   hasCustomPrice         Boolean            @default(false)
+  automaticPixEnabled    Boolean            @default(true)
   nextBillingAt          DateTime?
   providerCustomerId     String?
   providerSubscriptionId String?
@@ -136,6 +144,7 @@ model Payment {
   paymentLinkId       String?
   requestKey          String?       @unique
   amountCents         Int
+  installmentCount    Int           @default(1)
   status              PaymentStatus @default(PENDING)
   method              PaymentMethod
   dueAt               DateTime
@@ -266,6 +275,8 @@ model Plan {
   serviceId   String
   period      PlanPeriod
   priceCents  Int
+  allowedMethods PaymentMethod[] @default([PIX, CARD, BOLETO])
+  automaticPixEnabled Boolean @default(true)
   active      Boolean    @default(true)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

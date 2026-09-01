@@ -7,6 +7,7 @@ import { portalUrl } from "@/lib/portal";
 import { createOpaqueToken, hashOpaqueToken } from "@/lib/tokens";
 import { DEFAULT_ALLOWED_METHODS, DEFAULT_BILLING_PRICE_CENTS, parseAllowedMethods } from "@/lib/billing";
 import { planDisplayName } from "@/lib/plans";
+import { planTotalCents } from "@/lib/plan-billing";
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   if (requestedPlanId && !plan) return NextResponse.json({ error: "O plano escolhido não está disponível" }, { status: 400, headers: noStoreHeaders() });
   if (!allowedMethods) return NextResponse.json({ error: "Selecione ao menos um método de pagamento" }, { status: 400, headers: noStoreHeaders() });
   const rawToken = createOpaqueToken();
-  await prisma.paymentLink.create({ data: { tokenHash: hashOpaqueToken(rawToken), createdById: admin.id, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, amountCents: plan?.priceCents ?? DEFAULT_BILLING_PRICE_CENTS, allowedMethods } });
+  await prisma.paymentLink.create({ data: { tokenHash: hashOpaqueToken(rawToken), createdById: admin.id, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, amountCents: plan ? planTotalCents(plan.priceCents, plan.period) : DEFAULT_BILLING_PRICE_CENTS, allowedMethods: plan?.allowedMethods ?? allowedMethods } });
   const paymentUrl = portalUrl("STUDENT", `/pagamento/${rawToken}`);
   return NextResponse.json({ paymentUrl }, { headers: noStoreHeaders() });
 }

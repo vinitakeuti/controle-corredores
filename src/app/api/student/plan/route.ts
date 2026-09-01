@@ -3,6 +3,7 @@ import { PaymentLinkStatus, UserRole } from "@prisma/client";
 import { cancelAsaasAutomaticPixAuthorization } from "@/lib/asaas";
 import { getCurrentUser } from "@/lib/auth";
 import { planDisplayName } from "@/lib/plans";
+import { planTotalCents } from "@/lib/plan-billing";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 
@@ -18,13 +19,17 @@ export async function PATCH(request: Request) {
       prisma.subscription.findUnique({ where: { userId: user.id } }),
     ]);
     if (!plan || !subscription) return NextResponse.json({ error: "Plano ou assinatura não encontrados." }, { status: 404, headers: noStoreHeaders() });
-    const priceChanged = subscription.priceCents !== plan.priceCents;
-    const shouldCancelPix = priceChanged && subscription.recurringEnabled && Boolean(subscription.asaasPixAuthorizationId);
+    const termsChanged = subscription.priceCents !== plan.priceCents
+      || subscription.billingPeriod !== plan.period
+      || subscription.automaticPixEnabled !== plan.automaticPixEnabled
+      || subscription.allowedMethods.length !== plan.allowedMethods.length
+      || plan.allowedMethods.some((method) => !subscription.allowedMethods.includes(method));
+    const shouldCancelPix = termsChanged && subscription.recurringEnabled && Boolean(subscription.asaasPixAuthorizationId);
     if (shouldCancelPix && subscription.asaasPixAuthorizationId) await cancelAsaasAutomaticPixAuthorization(subscription.asaasPixAuthorizationId);
     const planName = planDisplayName(plan);
     await prisma.$transaction(async (transaction) => {
-      await transaction.subscription.update({ where: { id: subscription.id }, data: { planId: plan.id, planName, priceCents: plan.priceCents, hasCustomPrice: false, ...(shouldCancelPix ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
-      await transaction.paymentLink.updateMany({ where: { userId: user.id, status: PaymentLinkStatus.OPEN }, data: { planId: plan.id, planName, amountCents: plan.priceCents } });
+      await transaction.subscription.update({ where: { id: subscription.id }, data: { planId: plan.id, planName, priceCents: plan.priceCents, billingPeriod: plan.period, allowedMethods: plan.allowedMethods, automaticPixEnabled: plan.automaticPixEnabled, hasCustomPrice: false, ...(shouldCancelPix ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
+      await transaction.paymentLink.updateMany({ where: { userId: user.id, status: PaymentLinkStatus.OPEN }, data: { planId: plan.id, planName, amountCents: planTotalCents(plan.priceCents, plan.period), allowedMethods: plan.allowedMethods } });
     });
     return NextResponse.json({ ok: true, planName, reauthorizationRequired: shouldCancelPix }, { headers: noStoreHeaders() });
   } catch (error) {

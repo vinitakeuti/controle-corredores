@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
-import { parseAmountCents } from "@/lib/billing";
+import { DEFAULT_ALLOWED_METHODS, parseAllowedMethods, parseAmountCents } from "@/lib/billing";
 import { getActivePlans, parsePlanPeriod, planDisplayName } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
@@ -22,13 +22,15 @@ export async function POST(request: Request) {
     const serviceName = typeof body.serviceName === "string" ? body.serviceName.trim().replace(/\s+/g, " ") : "";
     const period = parsePlanPeriod(body.period);
     const priceCents = parseAmountCents(body.priceCents);
-    if ((!serviceId && (serviceName.length < 2 || serviceName.length > 80)) || !period || !priceCents) return NextResponse.json({ error: "Informe serviço, período e valor válidos." }, { status: 400, headers: noStoreHeaders() });
+    const allowedMethods = body.allowedMethods === undefined ? [...DEFAULT_ALLOWED_METHODS] : parseAllowedMethods(body.allowedMethods);
+    const automaticPixEnabled = body.automaticPixEnabled === undefined ? true : body.automaticPixEnabled === true;
+    if ((!serviceId && (serviceName.length < 2 || serviceName.length > 80)) || !period || !priceCents || !allowedMethods) return NextResponse.json({ error: "Informe serviço, período, valor e pelo menos um método de pagamento." }, { status: 400, headers: noStoreHeaders() });
 
     const service = serviceId
       ? await prisma.service.findUnique({ where: { id: serviceId } })
       : await prisma.service.upsert({ where: { name: serviceName }, update: { active: true }, create: { name: serviceName } });
     if (!service) return NextResponse.json({ error: "Serviço não encontrado." }, { status: 404, headers: noStoreHeaders() });
-    const plan = await prisma.plan.create({ data: { serviceId: service.id, period, priceCents }, include: { service: true } });
+    const plan = await prisma.plan.create({ data: { serviceId: service.id, period, priceCents, allowedMethods, automaticPixEnabled }, include: { service: true } });
     return NextResponse.json({ plan: { ...plan, label: planDisplayName(plan) } }, { headers: noStoreHeaders() });
   } catch (error) {
     const message = error instanceof Error && /Unique constraint/.test(error.message) ? "Esse serviço já possui um plano para esse período." : "Não foi possível criar o plano.";
