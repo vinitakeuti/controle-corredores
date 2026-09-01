@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSession, defaultPathForRole, verifyCredentials } from "@/lib/auth";
+import { createSession, defaultPathForRole, isStaffRole, verifyCredentials } from "@/lib/auth";
+import { isStudentPortalEnabled, portalForHost, portalUrlForRole } from "@/lib/portal";
 import { checkLoginRateLimit, clearLoginFailures, loginRateLimitKeys, registerLoginFailure } from "@/lib/rate-limit";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 
@@ -33,9 +34,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401, headers: noStoreHeaders() });
     }
 
+    if (isStudentPortalEnabled()) {
+      const portal = portalForHost(request.headers.get("host"));
+      if (portal === "STUDENT" && isStaffRole(user.role)) {
+        return NextResponse.json({ error: "Este acesso é exclusivo para alunos. Use o portal de gestão." }, { status: 403, headers: noStoreHeaders() });
+      }
+      if (portal === "MANAGEMENT" && !isStaffRole(user.role)) {
+        return NextResponse.json({ error: "Este acesso é exclusivo para a equipe. Use o portal do aluno." }, { status: 403, headers: noStoreHeaders() });
+      }
+    }
+
     clearLoginFailures(keys);
     await createSession(user.id, request);
-    return NextResponse.json({ redirectTo: defaultPathForRole(user.role) }, { headers: noStoreHeaders() });
+    return NextResponse.json({ redirectTo: portalUrlForRole(user.role, defaultPathForRole(user.role)) }, { headers: noStoreHeaders() });
   } catch {
     return NextResponse.json({ error: "Não foi possível entrar" }, { status: 400, headers: noStoreHeaders() });
   }

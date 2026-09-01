@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { Prisma, SubscriptionStatus } from "@prisma/client";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { canonicalStudentAppUrl, managementAppUrl } from "@/lib/portal";
 import { prisma } from "@/lib/prisma";
 
 type EmailTemplate = "password-reset" | "payment-failed" | "payment-paid" | "due-tomorrow";
@@ -59,7 +60,7 @@ export function passwordResetMessage(name: string, resetUrl: string): Message {
 }
 
 export function collaboratorWelcomeMessage({ name, email, temporaryPassword, role }: { name: string; email: string; temporaryPassword: string; role: "ADMIN" | "OPERATOR" }): Message {
-  const appUrl = (process.env.APP_URL ?? "https://gestao.pacelabcoaching.com").replace(/\/$/, "");
+  const appUrl = managementAppUrl();
   const loginUrl = `${appUrl}/login`;
   const roleLabel = role === "ADMIN" ? "Administrador" : "Operador";
   const greeting = firstName(name);
@@ -93,19 +94,22 @@ export function collaboratorWelcomeMessage({ name, email, temporaryPassword, rol
 function paymentPaidMessage(name: string, amountCents: number, planName: string, paidAt?: Date | null): Message {
   const greeting = firstName(name);
   const details = [{ label: "Plano", value: planName }, { label: "Pagamento confirmado", value: textDate(paidAt) }, { label: "Valor recebido", value: formatCurrency(amountCents) }];
-  return { subject: "Pagamento confirmado · Pace Lab", html: emailLayout({ eyebrow: "Pagamento confirmado", title: `Bom treino, ${greeting}.`, intro: "Recebemos seu pagamento e sua assinatura está em dia.", details, action: process.env.APP_URL ? { label: "Abrir área do aluno", href: `${process.env.APP_URL.replace(/\/$/, "")}/aluno` } : undefined }), text: `Pagamento confirmado.\nPlano: ${planName}\nPagamento confirmado: ${textDate(paidAt)}\nValor recebido: ${formatCurrency(amountCents)}` };
+  const studentUrl = `${canonicalStudentAppUrl()}/aluno`;
+  return { subject: "Pagamento confirmado · Pace Lab", html: emailLayout({ eyebrow: "Pagamento confirmado", title: `Bom treino, ${greeting}.`, intro: "Recebemos seu pagamento e sua assinatura está em dia.", details, action: { label: "Abrir área do aluno", href: studentUrl } }), text: `Pagamento confirmado.\nPlano: ${planName}\nPagamento confirmado: ${textDate(paidAt)}\nValor recebido: ${formatCurrency(amountCents)}\nÁrea do aluno: ${studentUrl}` };
 }
 
 function paymentFailedMessage(name: string, amountCents: number, planName: string): Message {
   const greeting = firstName(name);
   const details = [{ label: "Plano", value: planName }, { label: "Valor da cobrança", value: formatCurrency(amountCents) }, { label: "Status", value: "Pagamento não confirmado" }];
-  return { subject: "Não foi possível concluir seu pagamento · Pace Lab", html: emailLayout({ eyebrow: "Pagamento pendente", title: `Vamos resolver, ${greeting}.`, intro: "Não conseguimos confirmar sua cobrança. Você pode tentar novamente ou escolher outra forma de pagamento.", details, action: process.env.APP_URL ? { label: "Ver opções de pagamento", href: `${process.env.APP_URL.replace(/\/$/, "")}/aluno` } : undefined }), text: `Não foi possível concluir seu pagamento.\nPlano: ${planName}\nValor da cobrança: ${formatCurrency(amountCents)}\nStatus: Pagamento não confirmado` };
+  const studentUrl = `${canonicalStudentAppUrl()}/aluno`;
+  return { subject: "Não foi possível concluir seu pagamento · Pace Lab", html: emailLayout({ eyebrow: "Pagamento pendente", title: `Vamos resolver, ${greeting}.`, intro: "Não conseguimos confirmar sua cobrança. Você pode tentar novamente ou escolher outra forma de pagamento.", details, action: { label: "Ver opções de pagamento", href: studentUrl } }), text: `Não foi possível concluir seu pagamento.\nPlano: ${planName}\nValor da cobrança: ${formatCurrency(amountCents)}\nStatus: Pagamento não confirmado\nOpções de pagamento: ${studentUrl}` };
 }
 
 function dueTomorrowMessage(name: string, amountCents: number, planName: string, dueAt: Date): Message {
   const greeting = firstName(name);
   const details = [{ label: "Plano", value: planName }, { label: "Vencimento", value: `Amanhã, ${textDate(dueAt)}` }, { label: "Valor da mensalidade", value: formatCurrency(amountCents) }];
-  return { subject: "Sua mensalidade vence amanhã · Pace Lab", html: emailLayout({ eyebrow: "Lembrete de mensalidade", title: `Seu próximo passo, ${greeting}.`, intro: "Sua mensalidade vence amanhã. Deixe o pagamento preparado para seguir treinando sem interrupções.", details, action: process.env.APP_URL ? { label: "Abrir pagamentos", href: `${process.env.APP_URL.replace(/\/$/, "")}/aluno` } : undefined }), text: `Sua mensalidade vence amanhã.\nPlano: ${planName}\nVencimento: Amanhã, ${textDate(dueAt)}\nValor da mensalidade: ${formatCurrency(amountCents)}` };
+  const studentUrl = `${canonicalStudentAppUrl()}/aluno`;
+  return { subject: "Sua mensalidade vence amanhã · Pace Lab", html: emailLayout({ eyebrow: "Lembrete de mensalidade", title: `Seu próximo passo, ${greeting}.`, intro: "Sua mensalidade vence amanhã. Deixe o pagamento preparado para seguir treinando sem interrupções.", details, action: { label: "Abrir pagamentos", href: studentUrl } }), text: `Sua mensalidade vence amanhã.\nPlano: ${planName}\nVencimento: Amanhã, ${textDate(dueAt)}\nValor da mensalidade: ${formatCurrency(amountCents)}\nPagamentos: ${studentUrl}` };
 }
 
 async function sendTracked({ dedupeKey, type, userId, recipient, message }: { dedupeKey: string; type: string; userId: string; recipient: string; message: Message }) {
@@ -165,7 +169,7 @@ export async function sendDueTomorrowReminders() {
 }
 
 export async function sendEmailPreview(type: EmailTemplate, recipient: string) {
-  const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "https://gestao.pacelabcoaching.com";
+  const appUrl = managementAppUrl();
   const message = type === "password-reset" ? passwordResetMessage("Maria Corredora", `${appUrl}/redefinir-senha/visualizacao`) : type === "payment-paid" ? paymentPaidMessage("Maria Corredora", 15000, "Fortalecimento · Trimestral", new Date()) : type === "payment-failed" ? paymentFailedMessage("Maria Corredora", 15000, "Fortalecimento · Trimestral") : dueTomorrowMessage("Maria Corredora", 15000, "Fortalecimento · Trimestral", new Date(Date.now() + 24 * 60 * 60 * 1000));
   await sendMessage(recipient, message);
 }

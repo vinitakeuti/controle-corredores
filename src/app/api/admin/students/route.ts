@@ -6,7 +6,8 @@ import { getCurrentUser, isStaffRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isValidCpf, isValidPhone, normalizeCpf, normalizePhone, parseBirthDate } from "@/lib/student-input";
 import { createOpaqueToken, generateTemporaryPassword, hashOpaqueToken } from "@/lib/tokens";
-import { isSameOrigin, noStoreHeaders, publicUrl } from "@/lib/security";
+import { isSameOrigin, noStoreHeaders } from "@/lib/security";
+import { portalUrl } from "@/lib/portal";
 import { planDisplayName } from "@/lib/plans";
 
 const MAX_BODY_LENGTH = 16_384;
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
       return { id: created.id, name: created.name, email: created.email, subscription, paymentLink };
     });
 
-    const paymentUrl = publicUrl(request, `/pagamento/${rawToken}`);
+    const paymentUrl = portalUrl("STUDENT", `/pagamento/${rawToken}`);
     return NextResponse.json({ studentId: student.id, name: student.name, email: student.email, temporaryPassword, paymentUrl }, { headers: noStoreHeaders() });
   } catch (error) {
     console.error("student creation failed", error);

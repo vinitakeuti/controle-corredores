@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { getCurrentUser, isStaffRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSameOrigin, noStoreHeaders, publicUrl } from "@/lib/security";
+import { isSameOrigin, noStoreHeaders } from "@/lib/security";
+import { portalUrl } from "@/lib/portal";
 import { createOpaqueToken, hashOpaqueToken } from "@/lib/tokens";
 import { DEFAULT_ALLOWED_METHODS, DEFAULT_BILLING_PRICE_CENTS, parseAllowedMethods } from "@/lib/billing";
 import { planDisplayName } from "@/lib/plans";
@@ -29,6 +30,6 @@ export async function POST(request: Request) {
   if (!allowedMethods) return NextResponse.json({ error: "Selecione ao menos um método de pagamento" }, { status: 400, headers: noStoreHeaders() });
   const rawToken = createOpaqueToken();
   await prisma.paymentLink.create({ data: { tokenHash: hashOpaqueToken(rawToken), createdById: admin.id, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, amountCents: plan?.priceCents ?? DEFAULT_BILLING_PRICE_CENTS, allowedMethods } });
-  const paymentUrl = publicUrl(request, `/pagamento/${rawToken}`);
+  const paymentUrl = portalUrl("STUDENT", `/pagamento/${rawToken}`);
   return NextResponse.json({ paymentUrl }, { headers: noStoreHeaders() });
 }

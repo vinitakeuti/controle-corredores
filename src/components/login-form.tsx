@@ -1,10 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export function LoginForm() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,15 +19,15 @@ export function LoginForm() {
       body: JSON.stringify({ email, password }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      setError("E-mail ou senha inválidos.");
+      setError(data.error ?? "E-mail ou senha inválidos.");
       setLoading(false);
       return;
     }
 
-    const data = await response.json();
-    router.push(data.redirectTo);
-    router.refresh();
+    window.location.assign(data.redirectTo);
   }
 
   return (
