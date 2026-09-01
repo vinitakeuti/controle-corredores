@@ -1,15 +1,12 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { SubscriptionStatus, UserRole } from "@prisma/client";
-import { DEFAULT_ALLOWED_METHODS, DEFAULT_BILLING_PRICE_CENTS, parseAllowedMethods } from "@/lib/billing";
 import { getCurrentUser, isStaffRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isValidCpf, isValidPhone, normalizeCpf, normalizePhone, parseBirthDate } from "@/lib/student-input";
 import { createOpaqueToken, generateTemporaryPassword, hashOpaqueToken } from "@/lib/tokens";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 import { portalUrl } from "@/lib/portal";
-import { planTotalCents } from "@/lib/plan-billing";
-import { planDisplayName } from "@/lib/plans";
 
 const MAX_BODY_LENGTH = 16_384;
 
@@ -27,17 +24,12 @@ export async function POST(request: Request) {
     const phone = typeof body.phone === "string" ? normalizePhone(body.phone) : null;
     const cpf = typeof body.cpf === "string" ? normalizeCpf(body.cpf) : null;
     const birthDate = typeof body.birthDate === "string" ? parseBirthDate(body.birthDate) : null;
-    const allowedMethods = body.allowedMethods === undefined ? [...DEFAULT_ALLOWED_METHODS] : parseAllowedMethods(body.allowedMethods);
-    const requestedPlanId = typeof body.planId === "string" ? body.planId : "";
-    const plan = requestedPlanId ? await prisma.plan.findFirst({ where: { id: requestedPlanId, active: true, service: { active: true } }, include: { service: true } }) : null;
 
     if (name.length < 2 || name.length > 120) return NextResponse.json({ error: "Informe um nome válido" }, { status: 400, headers: noStoreHeaders() });
     if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) return NextResponse.json({ error: "Informe um e-mail válido" }, { status: 400, headers: noStoreHeaders() });
     if (!phone || !isValidPhone(phone)) return NextResponse.json({ error: "Informe um telefone válido" }, { status: 400, headers: noStoreHeaders() });
     if (!cpf || !isValidCpf(cpf)) return NextResponse.json({ error: "Informe um CPF válido" }, { status: 400, headers: noStoreHeaders() });
     if (body.birthDate && !birthDate) return NextResponse.json({ error: "Informe uma data de nascimento válida" }, { status: 400, headers: noStoreHeaders() });
-    if (requestedPlanId && !plan) return NextResponse.json({ error: "O plano escolhido não está disponível" }, { status: 400, headers: noStoreHeaders() });
-    if (!allowedMethods) return NextResponse.json({ error: "Selecione ao menos um método de pagamento" }, { status: 400, headers: noStoreHeaders() });
 
     const [existingEmail, existingCpf] = await Promise.all([
       prisma.user.findUnique({ where: { email }, select: { id: true } }),
@@ -53,9 +45,9 @@ export async function POST(request: Request) {
       const created = await transaction.user.create({
         data: { name, email, phone, cpf, birthDate, passwordHash, passwordIsTemporary: true, role: UserRole.STUDENT, liabilityTermRequiredAt: new Date() },
       });
-      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE, planId: plan?.id, planName: plan ? planDisplayName(plan) : undefined, priceCents: plan?.priceCents ?? DEFAULT_BILLING_PRICE_CENTS, billingPeriod: plan?.period ?? "MONTHLY", allowedMethods: plan?.allowedMethods ?? allowedMethods, automaticPixEnabled: plan?.automaticPixEnabled ?? true } });
+      const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE } });
       const paymentLink = await transaction.paymentLink.create({
-        data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id, planId: subscription.planId, planName: subscription.planName, amountCents: plan ? planTotalCents(plan.priceCents, plan.period) : subscription.priceCents, allowedMethods: plan?.allowedMethods ?? allowedMethods },
+        data: { tokenHash: hashOpaqueToken(rawToken), userId: created.id, createdById: admin.id },
       });
       return { id: created.id, name: created.name, email: created.email, subscription, paymentLink };
     });
