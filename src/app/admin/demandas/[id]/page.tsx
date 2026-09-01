@@ -6,6 +6,8 @@ import { DemandBoard } from "@/components/demand-board";
 import { requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function DemandAreaPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireStaff(); const { id } = await params;
   const [area, people] = await Promise.all([prisma.workArea.findUnique({ where: { id }, include: { demands: { include: { assignees: { include: { user: { select: { id: true, name: true, email: true } } } } }, orderBy: [{ column: "asc" }, { position: "asc" }, { createdAt: "asc" }] } } }), prisma.user.findMany({ where: { active: true, role: { in: [UserRole.ADMIN, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } })]);

@@ -5,6 +5,8 @@ import { WorkAreaManager } from "@/components/work-area-manager";
 import { requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function DemandsPage() {
   const user = await requireStaff();
   const areas = await prisma.workArea.findMany({ include: { _count: { select: { demands: true } } }, orderBy: [{ type: "asc" }, { name: "asc" }] });

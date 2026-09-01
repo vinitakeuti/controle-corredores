@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 
+export const dynamic = "force-dynamic";
+
 async function staff() {
   const user = await getCurrentUser();
   return user && (user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR) ? user : null;
