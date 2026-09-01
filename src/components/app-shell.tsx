@@ -4,7 +4,7 @@ import type { SessionUser } from "@/lib/auth";
 import { Brand } from "@/components/brand";
 import { MobileNav } from "@/components/mobile-nav";
 import { PlatformTutorial } from "@/components/platform-tutorial";
-import { DemandsMenu } from "@/components/demands-menu";
+
 
 export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: "admin" | "students" | "analysis" | "plans" | "integrations" | "settings" | "student" | "demands" }) {
   return (
@@ -16,7 +16,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "admin" ? "active" : ""}`} href="/admin">Visão geral</Link> : null}
           {user.role !== UserRole.STUDENT ? <Link className={`nav-link ${current === "students" ? "active" : ""}`} href="/admin/alunos" data-tutorial-anchor="nav-students">Alunos</Link> : null}
           {user.role !== UserRole.STUDENT ? <Link className={`nav-link ${current === "analysis" ? "active" : ""}`} href="/admin/analisar">Analisar dados</Link> : null}
-          {user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR ? <DemandsMenu active={current === "demands"} /> : null}
+          {user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR ? <Link className={`nav-link ${current === "demands" ? "active" : ""}`} href="/admin/demandas">Demandas</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos" data-tutorial-anchor="nav-plans">Planos</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes">Integrações</Link> : null}
           {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" data-tutorial-anchor="nav-student">Minha assinatura</Link> : null}
