@@ -912,7 +912,12 @@ input[type="date"] { width: 100%; min-width: 0; max-width: 100%; min-height: 46p
   background: rgba(255, 255, 255, 0.42);
   transform: rotate(-36deg);
 }
-.sidebar .brand-mark { margin-bottom: 46px; }
+.sidebar .brand-mark {
+  width: 118px;
+  height: 118px;
+  margin: -6px 0 30px 4px;
+}
+.sidebar .brand-logo-image { width: 118px; height: 118px; }
 .nav-link { position: relative; border-radius: 0; }
 .nav-link.active, .nav-link:hover { background: rgba(255, 255, 255, 0.09); border-color: transparent; }
 .nav-link.active::before { position: absolute; top: 50%; left: -13px; width: 4px; height: 22px; content: ""; background: var(--accent); transform: translateY(-50%); }
