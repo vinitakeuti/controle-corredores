@@ -1272,9 +1272,11 @@ body.tutorial-open { overflow: hidden; }
 .demand-column > header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
 .demand-column > header span { display: grid; width: 22px; height: 22px; place-items: center; color: var(--muted); border: 1px solid var(--line); border-radius: 50%; font-size: 11px; }
 .demand-column-cards { display: grid; gap: 9px; padding: 12px 0; }
-.demand-card { width: 100%; padding: 14px; color: var(--text); background: rgba(255,255,255,.9); border: 1px solid var(--line); border-left: 3px solid var(--text); text-align: left; touch-action: manipulation; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease; }
+.demand-card { width: 100%; padding: 14px; color: var(--text); background: rgba(255,255,255,.9); border: 1px solid var(--line); border-left: 3px solid var(--text); text-align: left; touch-action: pan-x pan-y; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease; }
 .demand-card:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(20,30,25,.08); }
 .demand-card.dragging { opacity: .55; border-left-color: var(--accent); transform: rotate(1deg) scale(.98); }
+.demand-card.completed { border-left-color: #829087; opacity: .76; }
+.demand-card.completed strong { text-decoration: line-through; }
 .demand-card strong { display: block; font-size: 14px; line-height: 1.25; }
 .demand-card p { display: -webkit-box; overflow: hidden; margin: 7px 0; color: var(--muted); font-size: 12px; line-height: 1.4; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .demand-card small { color: var(--muted); font-size: 10px; }
@@ -1287,6 +1289,20 @@ body.tutorial-open { overflow: hidden; }
 .demand-editor { position: relative; z-index: 1; width: min(620px, 100%); max-height: min(760px, calc(100dvh - 36px)); overflow-y: auto; padding: 26px; background: #f9faf7; border: 1px solid #fff; box-shadow: 0 25px 80px rgba(0,0,0,.3); }
 .demand-editor .panel-heading { display: flex; justify-content: space-between; gap: 18px; }
 .demand-editor h2 { margin: 5px 0 0; }
+.demand-view-copy { margin: 22px 0; }
+.demand-view-copy > p { margin: 0 0 20px; line-height: 1.55; white-space: pre-wrap; }
+.demand-view-copy dl { display: grid; gap: 12px; margin: 0; }
+.demand-view-copy dl div { padding: 13px 0; border-top: 1px solid var(--line); }
+.demand-view-copy dt { margin-bottom: 4px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.demand-view-copy dd { margin: 0; font-size: 14px; font-weight: 650; }
+.demand-view-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 18px; border-top: 1px solid var(--line); }
+.demand-archive-panel { display: grid; gap: 12px; margin-top: 18px; padding: 18px; border: 1px solid var(--line); background: rgba(235,240,235,.55); }
+.demand-archive-panel h3 { margin: -4px 0 2px; font-size: 17px; }
+.demand-folder-create { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.demand-archive-list { display: grid; gap: 10px; margin-top: 20px; }
+.demand-archive-list article { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.demand-archive-list strong, .demand-archive-list small { display: block; }
+.demand-archive-list small { margin-top: 4px; color: var(--muted); font-size: 11px; }
 .demand-editor .field + .field { margin-top: 14px; }
 .demand-editor textarea { width: 100%; resize: vertical; }
 .demand-editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
@@ -1341,7 +1357,7 @@ body.tutorial-open { overflow: hidden; }
 .sales-performance strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .sales-performance span { color: var(--muted); font-size: 11px; }
 .sales-performance b { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 12px; }
-@media (max-width: 760px) { .work-area-grid { grid-template-columns: 1fr; } .demands-page-heading { position: relative; } .demands-page-heading .work-area-create-trigger { position: absolute; top: -2px; right: 0; width: 38px; height: 38px; font-size: 25px; } .demands-page-heading .eyebrow { padding-right: 52px; } .demand-board-head { align-items: flex-start; flex-direction: column; } .demand-board-head .button, .demand-board-actions { width: 100%; } .demand-board-actions .button { flex: 1; } .demand-columns { grid-auto-columns: minmax(78vw, 1fr); } .demand-column { min-height: 410px; } .demand-editor, .work-area-editor { padding: 20px; } .demand-editor-grid { grid-template-columns: 1fr; } .column-editor-list > div { flex-wrap: wrap; } .column-editor-list input { width: 100%; flex-basis: 100%; } .sales-heading { display: flex; align-items: flex-start; } .sales-seller-filter { margin-left: auto; } .sales-seller-filter form { right: 0; width: min(270px, calc(100vw - 32px)); } .sales-filter, .sales-layout { grid-template-columns: 1fr; } .sales-filter .button { width: 100%; } .sales-table { min-width: 710px; } }
+@media (max-width: 760px) { .work-area-grid { grid-template-columns: 1fr; } .demands-page-heading { position: relative; } .demands-page-heading .work-area-create-trigger { position: absolute; top: -2px; right: 0; width: 38px; height: 38px; font-size: 25px; } .demands-page-heading .eyebrow { padding-right: 52px; } .demand-board-head { align-items: flex-start; flex-direction: column; } .demand-board-head .button, .demand-board-actions { width: 100%; } .demand-board-actions .button { flex: 1; } .demand-columns { grid-auto-columns: minmax(78vw, 1fr); } .demand-column { min-height: 410px; } .demand-editor, .work-area-editor { padding: 20px; } .demand-editor-grid { grid-template-columns: 1fr; } .column-editor-list > div { flex-wrap: wrap; } .column-editor-list input { width: 100%; flex-basis: 100%; } .demand-view-actions .button { flex: 1 1 calc(50% - 8px); } .demand-folder-create { grid-template-columns: 1fr; } .sales-heading { display: flex; align-items: flex-start; } .sales-seller-filter { margin-left: auto; } .sales-seller-filter form { right: 0; width: min(270px, calc(100vw - 32px)); } .sales-filter, .sales-layout { grid-template-columns: 1fr; } .sales-filter .button { width: 100%; } .sales-table { min-width: 710px; } }
 
 @media (max-width: 760px) {
   .tutorial-card { right: 16px; bottom: 16px; left: 16px; width: auto; padding: 23px 21px 20px; }

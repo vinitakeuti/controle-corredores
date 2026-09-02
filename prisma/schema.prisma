@@ -117,6 +117,7 @@ model WorkArea {
   demands   Demand[]
   columns   WorkAreaColumn[]
   members   WorkAreaMember[]
+  folders   DemandFolder[]
 
   @@unique([name])
   @@index([type, name])
@@ -157,15 +158,35 @@ model Demand {
   columnId    String
   position    Int                @default(0)
   scheduledAt DateTime?
+  requestKey  String?            @unique
+  completedAt DateTime?
+  archivedAt  DateTime?
+  folderId    String?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   workArea    WorkArea           @relation(fields: [workAreaId], references: [id], onDelete: Cascade)
   column      WorkAreaColumn     @relation(fields: [columnId], references: [id], onDelete: Restrict)
+  folder      DemandFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
   createdBy   User               @relation("DemandCreator", fields: [createdById], references: [id], onDelete: Restrict)
   assignees   DemandAssignment[]
 
   @@index([workAreaId, columnId, position])
   @@index([scheduledAt])
+  @@index([workAreaId, archivedAt])
+  @@index([folderId])
+}
+
+model DemandFolder {
+  id         String   @id @default(cuid())
+  workAreaId String
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  workArea   WorkArea @relation(fields: [workAreaId], references: [id], onDelete: Cascade)
+  demands    Demand[]
+
+  @@unique([workAreaId, name])
+  @@index([workAreaId, name])
 }
 
 model DemandAssignment {

@@ -13,6 +13,18 @@ function ids(value: unknown) { return Array.isArray(value) ? [...new Set(value.f
 function scheduled(value: unknown) { if (typeof value !== "string" || !value) return null; const date = new Date(value); return Number.isNaN(date.getTime()) ? undefined : date; }
 const demandInclude = { assignees: { include: { user: { select: { id: true, name: true, email: true } } } } } as const;
 
+export async function GET(request: Request) {
+  try {
+    const user = await staff(); if (!user) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
+    const workAreaId = new URL(request.url).searchParams.get("workAreaId") ?? "";
+    if (!workAreaId) return NextResponse.json({ error: "Quadro inválido" }, { status: 400, headers: noStoreHeaders() });
+    const membership = await prisma.workAreaMember.findUnique({ where: { workAreaId_userId: { workAreaId, userId: user.id } }, select: { id: true } });
+    if (!membership) return NextResponse.json({ error: "Você não faz parte deste quadro" }, { status: 403, headers: noStoreHeaders() });
+    const demands = await prisma.demand.findMany({ where: { workAreaId, archivedAt: { not: null } }, include: { ...demandInclude, folder: { select: { id: true, name: true } } }, orderBy: { archivedAt: "desc" } });
+    return NextResponse.json({ demands }, { headers: noStoreHeaders() });
+  } catch (error) { console.error("demand archive listing failed", error); return NextResponse.json({ error: "Não foi possível carregar o arquivo" }, { status: 502, headers: noStoreHeaders() }); }
+}
+
 export async function POST(request: Request) {
   try {
     if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
@@ -20,19 +32,33 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const workAreaId = typeof body.workAreaId === "string" ? body.workAreaId : "";
     const columnId = typeof body.columnId === "string" ? body.columnId : "";
+    const requestKey = typeof body.requestKey === "string" ? body.requestKey.trim().slice(0, 120) : "";
     const title = typeof body.title === "string" ? body.title.trim().slice(0, 140) : "";
     const description = typeof body.description === "string" ? body.description.trim().slice(0, 3000) : "";
     const scheduledAt = scheduled(body.scheduledAt); const assigneeIds = ids(body.assigneeIds);
     if (!workAreaId || !columnId || !title || scheduledAt === undefined) return NextResponse.json({ error: "Preencha título e uma data válida" }, { status: 400, headers: noStoreHeaders() });
     const membership = await prisma.workAreaMember.findUnique({ where: { workAreaId_userId: { workAreaId, userId: user.id } }, select: { id: true } });
     if (!membership) return NextResponse.json({ error: "Você não faz parte deste quadro" }, { status: 403, headers: noStoreHeaders() });
+    if (requestKey) {
+      const existing = await prisma.demand.findUnique({ where: { requestKey }, include: demandInclude });
+      if (existing) return NextResponse.json({ demand: existing, duplicate: true }, { headers: noStoreHeaders() });
+    }
     const [area, column, assignees, last] = await Promise.all([
       prisma.workArea.findUnique({ where: { id: workAreaId } }), prisma.workAreaColumn.findUnique({ where: { id: columnId } }),
       prisma.user.findMany({ where: { id: { in: assigneeIds }, active: true, role: { in: [UserRole.ADMIN, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true } }),
       prisma.demand.aggregate({ where: { workAreaId, columnId }, _max: { position: true } }),
     ]);
     if (!area || !column || column.workAreaId !== workAreaId || assignees.length !== assigneeIds.length) return NextResponse.json({ error: "Área, coluna ou responsáveis inválidos" }, { status: 400, headers: noStoreHeaders() });
-    const demand = await prisma.demand.create({ data: { workAreaId, columnId, createdById: user.id, title, description: description || null, position: (last._max.position ?? -1) + 1, scheduledAt: scheduledAt ?? null, assignees: { createMany: { data: assigneeIds.map((userId) => ({ userId })) } } }, include: demandInclude });
+    let demand;
+    try {
+      demand = await prisma.demand.create({ data: { workAreaId, columnId, createdById: user.id, title, description: description || null, requestKey: requestKey || null, position: (last._max.position ?? -1) + 1, scheduledAt: scheduledAt ?? null, assignees: { createMany: { data: assigneeIds.map((userId) => ({ userId })) } } }, include: demandInclude });
+    } catch (error) {
+      if (requestKey) {
+        const existing = await prisma.demand.findUnique({ where: { requestKey }, include: demandInclude });
+        if (existing) return NextResponse.json({ demand: existing, duplicate: true }, { headers: noStoreHeaders() });
+      }
+      throw error;
+    }
     await Promise.all(assignees.map((assignee) => sendMessage(assignee.email, demandAssignmentMessage({ recipientName: assignee.name, title, workAreaName: area.name, scheduledAt: demand.scheduledAt, demandUrl: `${managementAppUrl()}/admin/demandas/${area.id}` })).catch(() => undefined)));
     return NextResponse.json({ demand }, { headers: noStoreHeaders() });
   } catch (error) { console.error("demand creation failed", error); return NextResponse.json({ error: "Não foi possível criar a demanda" }, { status: 502, headers: noStoreHeaders() }); }
@@ -54,16 +80,36 @@ export async function PATCH(request: Request) {
     const scheduledAt = body.scheduledAt === undefined ? undefined : scheduled(body.scheduledAt);
     if (scheduledAt === undefined && body.scheduledAt !== undefined) return NextResponse.json({ error: "Data inválida" }, { status: 400, headers: noStoreHeaders() });
     const assigneeIds = body.assigneeIds === undefined ? null : ids(body.assigneeIds);
+    const completedAt = body.completed === undefined ? undefined : body.completed ? new Date() : null;
+    const folderId = body.folderId === undefined ? undefined : typeof body.folderId === "string" && body.folderId ? body.folderId : null;
     const [column, assignees] = await Promise.all([
       columnId ? prisma.workAreaColumn.findUnique({ where: { id: columnId } }) : null,
       assigneeIds ? prisma.user.findMany({ where: { id: { in: assigneeIds }, active: true, role: { in: [UserRole.ADMIN, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true } }) : [],
     ]);
     if (columnId && (!column || column.workAreaId !== existing.workAreaId)) return NextResponse.json({ error: "Coluna inválida" }, { status: 400, headers: noStoreHeaders() });
     if (assigneeIds && assignees.length !== assigneeIds.length) return NextResponse.json({ error: "Responsável inválido" }, { status: 400, headers: noStoreHeaders() });
+    if (folderId) {
+      const folder = await prisma.demandFolder.findUnique({ where: { id: folderId }, select: { workAreaId: true } });
+      if (!folder || folder.workAreaId !== existing.workAreaId) return NextResponse.json({ error: "Pasta inválida" }, { status: 400, headers: noStoreHeaders() });
+    }
     const position = columnId && columnId !== existing.columnId ? (await prisma.demand.aggregate({ where: { workAreaId: existing.workAreaId, columnId }, _max: { position: true } }))._max.position ?? -1 : undefined;
-    const updated = await prisma.demand.update({ where: { id }, data: { ...(title ? { title } : {}), ...(description !== undefined ? { description: description || null } : {}), ...(columnId ? { columnId, position: position === undefined ? undefined : position + 1 } : {}), ...(scheduledAt !== undefined ? { scheduledAt } : {}), ...(assigneeIds !== null ? { assignees: { deleteMany: {}, createMany: { data: assigneeIds.map((userId) => ({ userId })) } } } : {}) }, include: demandInclude });
+    const updated = await prisma.demand.update({ where: { id }, data: { ...(title ? { title } : {}), ...(description !== undefined ? { description: description || null } : {}), ...(columnId ? { columnId, position: position === undefined ? undefined : position + 1 } : {}), ...(scheduledAt !== undefined ? { scheduledAt } : {}), ...(completedAt !== undefined ? { completedAt } : {}), ...(folderId !== undefined ? { folderId, archivedAt: folderId ? new Date() : null } : {}), ...(assigneeIds !== null ? { assignees: { deleteMany: {}, createMany: { data: assigneeIds.map((userId) => ({ userId })) } } } : {}) }, include: demandInclude });
     const oldIds = new Set(existing.assignees.map((item) => item.userId));
     await Promise.all(assignees.filter((assignee) => !oldIds.has(assignee.id)).map((assignee) => sendMessage(assignee.email, demandAssignmentMessage({ recipientName: assignee.name, title: updated.title, workAreaName: existing.workArea.name, scheduledAt: updated.scheduledAt, demandUrl: `${managementAppUrl()}/admin/demandas/${existing.workAreaId}` })).catch(() => undefined)));
     return NextResponse.json({ demand: updated }, { headers: noStoreHeaders() });
   } catch (error) { console.error("demand update failed", error); return NextResponse.json({ error: "Não foi possível atualizar a demanda" }, { status: 502, headers: noStoreHeaders() }); }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
+    const user = await staff(); if (!user) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
+    const id = new URL(request.url).searchParams.get("id") ?? "";
+    const demand = await prisma.demand.findUnique({ where: { id }, select: { workAreaId: true } });
+    if (!demand) return NextResponse.json({ error: "Demanda não encontrada" }, { status: 404, headers: noStoreHeaders() });
+    const membership = await prisma.workAreaMember.findUnique({ where: { workAreaId_userId: { workAreaId: demand.workAreaId, userId: user.id } }, select: { id: true } });
+    if (!membership) return NextResponse.json({ error: "Você não faz parte deste quadro" }, { status: 403, headers: noStoreHeaders() });
+    await prisma.demand.delete({ where: { id } });
+    return NextResponse.json({ ok: true }, { headers: noStoreHeaders() });
+  } catch (error) { console.error("demand deletion failed", error); return NextResponse.json({ error: "Não foi possível excluir a demanda" }, { status: 502, headers: noStoreHeaders() }); }
 }
