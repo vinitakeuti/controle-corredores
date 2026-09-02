@@ -27,7 +27,13 @@ export async function POST(request: Request) {
     const name = typeof body.name === "string" ? body.name.trim().replace(/\s+/g, " ").slice(0, 80) : "";
     const type = body.type === "GENERAL" ? WorkAreaType.GENERAL : WorkAreaType.SECTOR;
     if (!name) return NextResponse.json({ error: "Informe o nome da área" }, { status: 400, headers: noStoreHeaders() });
-    const area = await prisma.workArea.create({ data: { name, type } });
+    const area = await prisma.workArea.create({
+      data: {
+        name,
+        type,
+        columns: { create: ["Em aberto", "Segunda", "Terça", "Quarta", "Quinta", "Sexta"].map((columnName, position) => ({ name: columnName, position })) },
+      },
+    });
     return NextResponse.json({ area }, { headers: noStoreHeaders() });
   } catch (error) {
     const message = error instanceof Error && error.message.includes("Unique constraint") ? "Já existe uma área com este nome" : "Não foi possível criar a área";

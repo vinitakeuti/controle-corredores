@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function DemandAreaPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireStaff(); const { id } = await params;
-  const [area, people] = await Promise.all([prisma.workArea.findUnique({ where: { id }, include: { demands: { include: { assignees: { include: { user: { select: { id: true, name: true, email: true } } } } }, orderBy: [{ column: "asc" }, { position: "asc" }, { createdAt: "asc" }] } } }), prisma.user.findMany({ where: { active: true, role: { in: [UserRole.ADMIN, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } })]);
+  const [area, people] = await Promise.all([prisma.workArea.findUnique({ where: { id }, include: { columns: { orderBy: { position: "asc" } }, demands: { include: { assignees: { include: { user: { select: { id: true, name: true, email: true } } } } }, orderBy: [{ position: "asc" }, { createdAt: "asc" }] } } }), prisma.user.findMany({ where: { active: true, role: { in: [UserRole.ADMIN, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } })]);
   if (!area) notFound();
   const demands = area.demands.map((demand) => ({ ...demand, scheduledAt: demand.scheduledAt?.toISOString() ?? null }));
-  return <AppShell user={user} current="demands"><div className="page-back"><Link href="/admin/demandas">← Áreas de trabalho</Link></div><DemandBoard areaId={area.id} areaName={area.name} initialDemands={demands} people={people} /></AppShell>;
+  return <AppShell user={user} current="demands"><div className="page-back"><Link href="/admin/demandas">← Áreas de trabalho</Link></div><DemandBoard areaId={area.id} areaName={area.name} initialColumns={area.columns} initialDemands={demands} people={people} /></AppShell>;
 }

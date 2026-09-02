@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const rawToken = createOpaqueToken();
     const student = await prisma.$transaction(async (transaction) => {
       const created = await transaction.user.create({
-        data: { name, email, phone, cpf, birthDate, passwordHash, passwordIsTemporary: true, role: UserRole.STUDENT, liabilityTermRequiredAt: new Date() },
+        data: { name, email, phone, cpf, birthDate, passwordHash, passwordIsTemporary: true, role: UserRole.STUDENT, saleOwnerId: admin.id, liabilityTermRequiredAt: new Date() },
       });
       const subscription = await transaction.subscription.create({ data: { userId: created.id, status: SubscriptionStatus.INCOMPLETE } });
       const paymentLink = await transaction.paymentLink.create({

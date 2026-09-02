@@ -1,87 +1,22 @@
 import { PaymentStatus, SubscriptionStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { requireRole } from "@/lib/auth";
-import { formatCurrency, formatDate, formatTime, greetingForDate, paymentMethodLabel, toDateEnd, toDateStart } from "@/lib/format";
+import { formatCurrency, formatDate, formatTime, greetingForDate, paymentMethodLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
-type AdminSearchParams = { from?: string; to?: string };
-type Notification = { kind: "paid" | "overdue" | "generated" | "expired"; mark: string; title: string; description: string; eventAt: Date };
-
-function inputDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-export default async function AdminPage({ searchParams }: { searchParams: Promise<AdminSearchParams> }) {
+export default async function AdminPage() {
   const user = await requireRole(UserRole.ADMIN);
-  const params = await searchParams;
   const now = new Date();
-  const dayStart = new Date(now);
-  dayStart.setHours(0, 0, 0, 0);
-  const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-  const fromValue = params.from ?? inputDate(defaultFrom);
-  const toValue = params.to ?? inputDate(now);
-  const from = toDateStart(fromValue) ?? defaultFrom;
-  const to = toDateEnd(toValue) ?? now;
-
-  const [totalStudents, upToDate, overdue, newStudents, dropouts, paidToday, overdueToday, generatedToday, expiredToday] = await Promise.all([
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+  const [totalStudents, activeStudents, overdueStudents, pendingStudents, monthlyPayments, recentPayments, recentStudents] = await Promise.all([
     prisma.user.count({ where: { role: UserRole.STUDENT } }),
-    prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { status: SubscriptionStatus.ACTIVE, OR: [{ nextBillingAt: null }, { nextBillingAt: { gte: now } }] } } } }),
+    prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { status: SubscriptionStatus.ACTIVE } } } }),
     prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } } }),
-    prisma.user.count({ where: { role: UserRole.STUDENT, joinedAt: { gte: from, lte: to } } }),
-    prisma.user.count({ where: { role: UserRole.STUDENT, leftAt: { not: null, gte: from, lte: to } } }),
-    prisma.payment.findMany({ where: { status: PaymentStatus.PAID, paidAt: { gte: dayStart, lte: now } }, include: { user: true }, orderBy: { paidAt: "desc" }, take: 12 }),
-    prisma.user.findMany({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { status: SubscriptionStatus.PAST_DUE, nextBillingAt: { gte: dayStart, lte: now } } } }, include: { subscription: true }, orderBy: { name: "asc" }, take: 12 }),
-    prisma.payment.findMany({ where: { createdAt: { gte: dayStart, lte: now } }, include: { user: true }, orderBy: { createdAt: "desc" }, take: 12 }),
-    prisma.payment.findMany({ where: { OR: [{ status: PaymentStatus.EXPIRED, updatedAt: { gte: dayStart, lte: now } }, { status: PaymentStatus.PENDING, expiresAt: { gte: dayStart, lte: now } }] }, include: { user: true }, orderBy: { expiresAt: "desc" }, take: 12 }),
+    prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { status: SubscriptionStatus.INCOMPLETE } } } }),
+    prisma.payment.aggregate({ where: { status: PaymentStatus.PAID, paidAt: { gte: monthStart, lte: now } }, _sum: { amountCents: true }, _count: true }),
+    prisma.payment.findMany({ where: { status: PaymentStatus.PAID }, include: { user: true }, orderBy: { paidAt: "desc" }, take: 8 }),
+    prisma.user.findMany({ where: { role: UserRole.STUDENT, createdAt: { gte: todayStart, lte: now } }, include: { saleOwner: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
   ]);
-
-  const notifications: Notification[] = [
-    ...paidToday.map((payment) => ({ kind: "paid" as const, mark: "OK", title: "Pagamento recebido", description: `${payment.user.name} · ${formatCurrency(payment.amountCents)}`, eventAt: payment.paidAt ?? payment.createdAt })),
-    ...overdueToday.map((student) => ({ kind: "overdue" as const, mark: "ATR", title: "Pagamento em atraso", description: `${student.name} · vencimento ${formatDate(student.subscription?.nextBillingAt)}`, eventAt: student.subscription?.nextBillingAt ?? now })),
-    ...generatedToday.map((payment) => ({ kind: "generated" as const, mark: payment.method === "BOLETO" ? "BOL" : payment.method === "CARD" ? "CAR" : "PIX", title: `${paymentMethodLabel(payment.method)} gerado`, description: `${payment.user.name} · ${formatCurrency(payment.amountCents)}`, eventAt: payment.createdAt })),
-    ...expiredToday.map((payment) => ({ kind: "expired" as const, mark: "EXP", title: `${paymentMethodLabel(payment.method)} expirado`, description: `${payment.user.name} · cobrança não utilizada`, eventAt: payment.expiresAt ?? payment.updatedAt })),
-  ].sort((a, b) => b.eventAt.getTime() - a.eventAt.getTime()).slice(0, 12);
-
-  return (
-    <AppShell user={user} current="admin">
-      <header className="page-heading">
-        <div><p className="eyebrow">Visão geral</p><h1>{greetingForDate(now)}, {user.name.split(" ")[0]}.</h1><p>Acompanhe a saúde das assinaturas da equipe.</p></div>
-        <div className="date-now">Atualizado hoje</div>
-      </header>
-
-      <section className="metric-grid" aria-label="Indicadores principais">
-        <article className="metric-card"><p>Total de alunos</p><strong>{totalStudents}</strong><small>cadastros na equipe</small></article>
-        <article className="metric-card"><p>Pagantes em dia</p><strong>{upToDate}</strong><small>assinaturas ativas</small></article>
-        <article className="metric-card alert"><p>Pagamentos atrasados</p><strong>{overdue}</strong><small>precisam de atenção</small></article>
-        <article className="metric-card"><p>Novos no período</p><strong>{newStudents}</strong><small>filtro aplicado abaixo</small></article>
-      </section>
-
-      <div className="section-grid">
-        <section className="panel">
-          <div className="panel-heading"><div><h2>Notificações relevantes</h2><p>Eventos registrados somente hoje.</p></div><span className="pill">{notifications.length} hoje</span></div>
-          {notifications.length === 0 ? <div className="empty-state">Nenhum evento relevante registrado hoje.</div> : <div className="notification-list">{notifications.map((notification, index) => <div className="notification-item" key={`${notification.kind}-${notification.eventAt.toISOString()}-${index}`}><span className="notification-mark">{notification.mark}</span><div><div className="notification-title">{notification.title}</div><div className="notification-description">{notification.description}</div></div><time className="notification-time">{formatTime(notification.eventAt)}</time></div>)}</div>}
-        </section>
-
-        <aside>
-          <section className="panel movement-panel">
-            <div className="panel-heading"><div><h2>Movimentação</h2><p>Alunos que entraram ou saíram.</p></div></div>
-            <form className="movement-filter" method="get">
-              <p>Período de análise</p>
-              <div className="movement-date-fields">
-                <label htmlFor="from"><span>De</span><input id="from" name="from" type="date" defaultValue={fromValue} /></label>
-                <label htmlFor="to"><span>Até</span><input id="to" name="to" type="date" defaultValue={toValue} /></label>
-              </div>
-              <button className="button button-secondary" type="submit">Aplicar período</button>
-            </form>
-            <div className="summary-list">
-              <div className="summary-item"><span>Alunos novos</span><strong>{newStudents}</strong></div>
-              <div className="summary-item"><span>Desistentes</span><strong>{dropouts}</strong></div>
-              <div className="summary-item"><span>Período</span><strong>{fromValue} — {toValue}</strong></div>
-            </div>
-          </section>
-          <div className="notice"><strong>Lembretes por e-mail</strong><p>A estrutura já reserva os lembretes de renovação para conectar o provedor de e-mail depois.</p></div>
-        </aside>
-      </div>
-    </AppShell>
-  );
+  return <AppShell user={user} current="admin"><header className="page-heading"><div><p className="eyebrow">Visão geral</p><h1>{greetingForDate(now)}, {user.name.split(" ")[0]}.</h1><p>Um retrato financeiro e operacional da Pace Lab.</p></div><div className="date-now">Atualizado agora</div></header><section className="metric-grid" aria-label="Indicadores principais"><article className="metric-card"><p>Alunos ativos</p><strong>{activeStudents}</strong><small>{totalStudents} cadastros no total</small></article><article className="metric-card"><p>Receita no mês</p><strong>{formatCurrency(monthlyPayments._sum.amountCents ?? 0)}</strong><small>{monthlyPayments._count} pagamentos confirmados</small></article><article className="metric-card alert"><p>Em atraso</p><strong>{overdueStudents}</strong><small>precisam de atenção</small></article><article className="metric-card"><p>Aguardando pagamento</p><strong>{pendingStudents}</strong><small>possíveis vendas em aberto</small></article></section><div className="section-grid"><section className="panel"><div className="panel-heading"><div><h2>Últimos pagamentos</h2><p>Confirmações mais recentes.</p></div></div>{recentPayments.length ? <div className="notification-list">{recentPayments.map((payment) => <div className="notification-item" key={payment.id}><span className="notification-mark">OK</span><div><div className="notification-title">{payment.user.name}</div><div className="notification-description">{paymentMethodLabel(payment.method)} · {formatCurrency(payment.amountCents)}</div></div><time className="notification-time">{formatTime(payment.paidAt ?? payment.createdAt)}</time></div>)}</div> : <div className="empty-state">Ainda não há pagamentos confirmados.</div>}</section><aside><section className="panel"><div className="panel-heading"><div><h2>Novos cadastros</h2><p>Entradas registradas hoje.</p></div><span className="pill">{recentStudents.length} hoje</span></div>{recentStudents.length ? <div className="summary-list">{recentStudents.map((student) => <div className="summary-item" key={student.id}><span>{student.name}<small>{student.saleOwner?.name ? "Venda: " + student.saleOwner.name : "Sem vendedor definido"}</small></span><strong>{formatDate(student.createdAt)}</strong></div>)}</div> : <div className="empty-state">Nenhum novo cadastro hoje.</div>}</section></aside></div></AppShell>;
 }

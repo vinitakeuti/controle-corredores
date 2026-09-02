@@ -64,82 +64,93 @@ enum WorkAreaType {
   SECTOR
 }
 
-enum DemandColumn {
-  OPEN
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-}
-
 model User {
-  id                  String            @id @default(cuid())
-  name                String
-  email               String            @unique
-  passwordHash        String
-  passwordIsTemporary Boolean           @default(false)
-  phone               String?
-  cpf                 String?           @unique
-  asaasCustomerId     String?           @unique
-  birthDate           DateTime?
-  role                UserRole          @default(STUDENT)
-  active              Boolean           @default(true)
-  joinedAt            DateTime          @default(now())
-  leftAt              DateTime?
-  tutorialSeenAt      DateTime?
-  liabilityTermRequiredAt DateTime?
-  liabilityTermAcceptedAt DateTime?
+  id                        String               @id @default(cuid())
+  name                      String
+  email                     String               @unique
+  passwordHash              String
+  passwordIsTemporary       Boolean              @default(false)
+  phone                     String?
+  cpf                       String?              @unique
+  asaasCustomerId           String?              @unique
+  birthDate                 DateTime?
+  role                      UserRole             @default(STUDENT)
+  active                    Boolean              @default(true)
+  joinedAt                  DateTime             @default(now())
+  leftAt                    DateTime?
+  tutorialSeenAt            DateTime?
+  liabilityTermRequiredAt   DateTime?
+  liabilityTermAcceptedAt   DateTime?
   liabilityTermAcceptedName String?
-  liabilityTermAcceptedCpf String?
-  liabilityTermVersion String?
-  liabilityTermDocument String?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-  session             Session[]
-  subscription        Subscription?
-  payments            Payment[]
-  renewalReminders    RenewalReminder[]
-  passwordResetTokens PasswordResetToken[]
-  emailDeliveries     EmailDelivery[]
-  paymentLinks        PaymentLink[]     @relation("PaymentLinkStudent")
-  createdPaymentLinks PaymentLink[]     @relation("PaymentLinkCreator")
-  createdDemands     Demand[]           @relation("DemandCreator")
-  demandAssignments  DemandAssignment[]
+  liabilityTermAcceptedCpf  String?
+  liabilityTermVersion      String?
+  liabilityTermDocument     String?
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+  session                   Session[]
+  subscription              Subscription?
+  payments                  Payment[]
+  renewalReminders          RenewalReminder[]
+  passwordResetTokens       PasswordResetToken[]
+  emailDeliveries           EmailDelivery[]
+  paymentLinks              PaymentLink[]        @relation("PaymentLinkStudent")
+  createdPaymentLinks       PaymentLink[]        @relation("PaymentLinkCreator")
+  createdDemands            Demand[]             @relation("DemandCreator")
+  demandAssignments         DemandAssignment[]
+  saleOwnerId               String?
+  saleOwner                 User?                @relation("SaleOwner", fields: [saleOwnerId], references: [id], onDelete: SetNull)
+  sales                     User[]               @relation("SaleOwner")
 
   @@index([role])
   @@index([joinedAt])
   @@index([leftAt])
+  @@index([saleOwnerId])
 }
 
 model WorkArea {
-  id        String       @id @default(cuid())
+  id        String           @id @default(cuid())
   name      String
-  type      WorkAreaType @default(SECTOR)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  type      WorkAreaType     @default(SECTOR)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
   demands   Demand[]
+  columns   WorkAreaColumn[]
 
   @@unique([name])
   @@index([type, name])
 }
 
+model WorkAreaColumn {
+  id         String   @id @default(cuid())
+  workAreaId String
+  name       String
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  workArea   WorkArea @relation(fields: [workAreaId], references: [id], onDelete: Cascade)
+  demands    Demand[]
+
+  @@unique([workAreaId, name])
+  @@index([workAreaId, position])
+}
+
 model Demand {
-  id          String       @id @default(cuid())
+  id          String             @id @default(cuid())
   workAreaId  String
   createdById String
   title       String
   description String?
-  column      DemandColumn @default(OPEN)
-  position    Int          @default(0)
+  columnId    String
+  position    Int                @default(0)
   scheduledAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  workArea    WorkArea     @relation(fields: [workAreaId], references: [id], onDelete: Cascade)
-  createdBy   User         @relation("DemandCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  workArea    WorkArea           @relation(fields: [workAreaId], references: [id], onDelete: Cascade)
+  column      WorkAreaColumn     @relation(fields: [columnId], references: [id], onDelete: Restrict)
+  createdBy   User               @relation("DemandCreator", fields: [createdById], references: [id], onDelete: Restrict)
   assignees   DemandAssignment[]
 
-  @@index([workAreaId, column, position])
+  @@index([workAreaId, columnId, position])
   @@index([scheduledAt])
 }
 
@@ -168,28 +179,28 @@ model Session {
 }
 
 model Subscription {
-  id                     String             @id @default(cuid())
-  userId                 String             @unique
-  status                 SubscriptionStatus @default(INCOMPLETE)
-  planName               String             @default("Treinamento mensal")
-  planId                 String?
-  priceCents             Int                @default(15000)
-  billingPeriod          PlanPeriod         @default(MONTHLY)
-  hasCustomPrice         Boolean            @default(false)
-  automaticPixEnabled    Boolean            @default(true)
-  nextBillingAt          DateTime?
-  providerCustomerId     String?
-  providerSubscriptionId String?
-  asaasPixAuthorizationId String?          @unique
+  id                          String             @id @default(cuid())
+  userId                      String             @unique
+  status                      SubscriptionStatus @default(INCOMPLETE)
+  planName                    String             @default("Treinamento mensal")
+  planId                      String?
+  priceCents                  Int                @default(15000)
+  billingPeriod               PlanPeriod         @default(MONTHLY)
+  hasCustomPrice              Boolean            @default(false)
+  automaticPixEnabled         Boolean            @default(true)
+  nextBillingAt               DateTime?
+  providerCustomerId          String?
+  providerSubscriptionId      String?
+  asaasPixAuthorizationId     String?            @unique
   asaasPixAuthorizationStatus String?
-  allowedMethods         PaymentMethod[]   @default([PIX, CARD, BOLETO])
-  recurringEnabled       Boolean            @default(false)
-  recurringMethod        PaymentMethod?
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
-  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan                   Plan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
-  payments               Payment[]
+  allowedMethods              PaymentMethod[]    @default([PIX, CARD, BOLETO])
+  recurringEnabled            Boolean            @default(false)
+  recurringMethod             PaymentMethod?
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+  user                        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                        Plan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
+  payments                    Payment[]
 
   @@index([status])
   @@index([nextBillingAt])
@@ -226,11 +237,11 @@ model Payment {
   subscription        Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   paymentLink         PaymentLink?  @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
 
+  @@unique([provider, providerOrderId])
   @@index([userId, createdAt])
   @@index([status, dueAt])
   @@index([expiresAt])
   @@index([paymentLinkId])
-  @@unique([provider, providerOrderId])
 }
 
 model GatewayEvent {
@@ -268,50 +279,50 @@ model RenewalReminder {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
   userId    String
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
 }
 
 model EmailDelivery {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   type      String
-  dedupeKey String   @unique
+  dedupeKey String    @unique
   recipient String
   userId    String?
   sentAt    DateTime?
   lastError String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId, type])
   @@index([sentAt])
 }
 
 model PaymentLink {
-  id          String            @id @default(cuid())
-  tokenHash   String            @unique
-  userId      String?
-  createdById String
-  status      PaymentLinkStatus @default(OPEN)
-  planName    String            @default("Treinamento mensal")
-  planId      String?
-  amountCents Int               @default(15000)
-  allowedMethods PaymentMethod[] @default([PIX, CARD, BOLETO])
-  completedAt DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  user        User?             @relation("PaymentLinkStudent", fields: [userId], references: [id], onDelete: SetNull)
-  createdBy   User              @relation("PaymentLinkCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  plan        Plan?             @relation(fields: [planId], references: [id], onDelete: SetNull)
-  payments    Payment[]
+  id             String            @id @default(cuid())
+  tokenHash      String            @unique
+  userId         String?
+  createdById    String
+  status         PaymentLinkStatus @default(OPEN)
+  planName       String            @default("Treinamento mensal")
+  planId         String?
+  amountCents    Int               @default(15000)
+  allowedMethods PaymentMethod[]   @default([PIX, CARD, BOLETO])
+  completedAt    DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  user           User?             @relation("PaymentLinkStudent", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy      User              @relation("PaymentLinkCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  plan           Plan?             @relation(fields: [planId], references: [id], onDelete: SetNull)
+  payments       Payment[]
 
   @@index([userId, status])
   @@index([createdById, createdAt])
@@ -330,18 +341,18 @@ model Service {
 }
 
 model Plan {
-  id          String     @id @default(cuid())
-  serviceId   String
-  period      PlanPeriod
-  priceCents  Int
-  allowedMethods PaymentMethod[] @default([PIX, CARD, BOLETO])
-  automaticPixEnabled Boolean @default(true)
-  active      Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  service     Service    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  subscriptions Subscription[]
-  paymentLinks PaymentLink[]
+  id                  String          @id @default(cuid())
+  serviceId           String
+  period              PlanPeriod
+  priceCents          Int
+  allowedMethods      PaymentMethod[] @default([PIX, CARD, BOLETO])
+  automaticPixEnabled Boolean         @default(true)
+  active              Boolean         @default(true)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  service             Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  subscriptions       Subscription[]
+  paymentLinks        PaymentLink[]
 
   @@unique([serviceId, period])
   @@index([active, serviceId])

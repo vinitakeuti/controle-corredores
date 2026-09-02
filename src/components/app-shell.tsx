@@ -6,7 +6,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { PlatformTutorial } from "@/components/platform-tutorial";
 
 
-export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: "admin" | "students" | "analysis" | "plans" | "integrations" | "settings" | "student" | "demands" }) {
+export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: "admin" | "students" | "analysis" | "plans" | "integrations" | "settings" | "student" | "demands" | "sales" }) {
   return (
     <div className="app-shell">
       <MobileNav user={user} current={current} />
@@ -15,6 +15,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
         <nav aria-label="Navegação principal">
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "admin" ? "active" : ""}`} href="/admin">Visão geral</Link> : null}
           {user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR ? <Link className={`nav-link ${current === "demands" ? "active" : ""}`} href="/admin/demandas">Demandas</Link> : null}
+          {user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR ? <Link className={`nav-link ${current === "sales" ? "active" : ""}`} href="/admin/vendas">Vendas</Link> : null}
           {user.role !== UserRole.STUDENT ? <Link className={`nav-link ${current === "students" ? "active" : ""}`} href="/admin/alunos" data-tutorial-anchor="nav-students">Alunos</Link> : null}
           {user.role !== UserRole.STUDENT ? <Link className={`nav-link ${current === "analysis" ? "active" : ""}`} href="/admin/analisar">Analisar dados</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos" data-tutorial-anchor="nav-plans">Planos</Link> : null}
