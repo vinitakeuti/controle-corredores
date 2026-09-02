@@ -1,5 +1,6 @@
 -- Um aluno pode manter mais de um produto ativo ao mesmo tempo.
-ALTER TABLE "Subscription" DROP CONSTRAINT "Subscription_userId_key";
+-- A migration inicial criou uma unique *index* (e não uma constraint).
+DROP INDEX "Subscription_userId_key";
 
 CREATE INDEX "Subscription_userId_idx" ON "Subscription"("userId");
 
