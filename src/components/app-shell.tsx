@@ -14,9 +14,9 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
         <Brand href={user.role === UserRole.STUDENT ? "/aluno" : user.role === UserRole.OPERATOR ? "/admin/alunos" : "/admin"} />
         <nav aria-label="Navegação principal">
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "admin" ? "active" : ""}`} href="/admin">Visão geral</Link> : null}
+          {user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR ? <Link className={`nav-link ${current === "demands" ? "active" : ""}`} href="/admin/demandas">Demandas</Link> : null}
           {user.role !== UserRole.STUDENT ? <Link className={`nav-link ${current === "students" ? "active" : ""}`} href="/admin/alunos" data-tutorial-anchor="nav-students">Alunos</Link> : null}
           {user.role !== UserRole.STUDENT ? <Link className={`nav-link ${current === "analysis" ? "active" : ""}`} href="/admin/analisar">Analisar dados</Link> : null}
-          {user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR ? <Link className={`nav-link ${current === "demands" ? "active" : ""}`} href="/admin/demandas">Demandas</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos" data-tutorial-anchor="nav-plans">Planos</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes">Integrações</Link> : null}
           {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" data-tutorial-anchor="nav-student">Minha assinatura</Link> : null}
