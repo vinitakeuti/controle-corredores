@@ -1278,16 +1278,21 @@ body.tutorial-open { overflow: hidden; }
 .demand-column > header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
 .demand-column > header span { display: grid; width: 22px; height: 22px; place-items: center; color: var(--muted); border: 1px solid var(--line); border-radius: 50%; font-size: 11px; }
 .demand-column-cards { display: grid; gap: 9px; padding: 12px 0; }
-.demand-card { width: 100%; padding: 14px; color: var(--text); background: rgba(255,255,255,.9); border: 1px solid var(--line); border-left: 3px solid var(--text); text-align: left; touch-action: pan-x pan-y; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease; }
+.demand-card { width: 100%; color: var(--text); background: rgba(255,255,255,.9); border: 1px solid var(--line); border-left: 3px solid var(--text); transition: transform .16s ease, box-shadow .16s ease; }
 .demand-card:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(20,30,25,.08); }
-.demand-card.dragging { opacity: .55; border-left-color: var(--accent); transform: rotate(1deg) scale(.98); touch-action: none; cursor: grabbing; }
 .demand-card.completed { border-left-color: #829087; opacity: .76; }
 .demand-card.completed strong { text-decoration: line-through; }
+.demand-card-open { display: block; width: 100%; padding: 14px 14px 9px; color: inherit; background: transparent; border: 0; text-align: left; font: inherit; cursor: pointer; }
+.demand-card-open:hover { background: rgba(245,247,244,.64); }
 .demand-card strong { display: block; font-size: 14px; line-height: 1.25; }
 .demand-card p { display: -webkit-box; overflow: hidden; margin: 7px 0; color: var(--muted); font-size: 12px; line-height: 1.4; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .demand-card small { color: var(--muted); font-size: 10px; }
 .demand-avatars { display: flex; gap: 4px; margin-top: 12px; }
 .demand-avatars span { display: grid; width: 23px; height: 23px; place-items: center; color: #fff; background: #26332d; border-radius: 50%; font-size: 9px; font-weight: 800; }
+.demand-move-actions { display: flex; justify-content: flex-end; gap: 4px; padding: 0 9px 9px; }
+.demand-move-actions button { display: grid; width: 28px; height: 26px; place-items: center; color: var(--text); background: transparent; border: 1px solid var(--line); font: inherit; cursor: pointer; }
+.demand-move-actions button:hover:not(:disabled) { background: var(--text); color: #fff; }
+.demand-move-actions button:disabled { opacity: .3; cursor: default; }
 .demand-add-inline { width: 100%; margin-top: 4px; padding: 10px; color: var(--muted); background: transparent; border: 1px dashed var(--line); font: inherit; font-size: 12px; cursor: pointer; }
 .demand-add-inline:hover { color: var(--text); border-color: var(--text); }
 .demand-editor-layer { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 18px; }
