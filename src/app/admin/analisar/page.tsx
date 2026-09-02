@@ -29,9 +29,9 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
   const query = typeof params.q === "string" ? params.q.trim().slice(0, 80) : "";
   const requestedPage = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
   const searchFilter: Prisma.UserWhereInput = query ? { OR: [{ name: { contains: query, mode: "insensitive" } }, { email: { contains: query, mode: "insensitive" } }] } : {};
-  const onTimeWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, subscriptions: { some: { status: SubscriptionStatus.ACTIVE, OR: [{ nextBillingAt: null }, { nextBillingAt: { gte: now } }] } } };
-  const overdueWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, subscriptions: { some: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } };
-  const awaitingPaymentWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, subscriptions: { some: { status: SubscriptionStatus.INCOMPLETE } }, payments: { none: { status: "PAID" } } };
+  const onTimeWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, subscription: { is: { status: SubscriptionStatus.ACTIVE, OR: [{ nextBillingAt: null }, { nextBillingAt: { gte: now } }] } } };
+  const overdueWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, subscription: { is: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } };
+  const awaitingPaymentWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, active: true, ...searchFilter, subscription: { is: { status: SubscriptionStatus.INCOMPLETE } }, payments: { none: { status: "PAID" } } };
 
   const [onTimeTotal, overdueTotal, awaitingPaymentTotal] = await Promise.all([prisma.user.count({ where: onTimeWhere }), prisma.user.count({ where: overdueWhere }), prisma.user.count({ where: awaitingPaymentWhere })]);
   const selectedTotal = status === "overdue" ? overdueTotal : status === "awaiting-payment" ? awaitingPaymentTotal : onTimeTotal;
@@ -39,7 +39,7 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
   const currentPage = Math.min(requestedPage, totalPages);
   const students = await prisma.user.findMany({
     where: status === "overdue" ? overdueWhere : status === "awaiting-payment" ? awaitingPaymentWhere : onTimeWhere,
-    include: { subscriptions: { orderBy: { nextBillingAt: "asc" }, take: 1 } },
+    include: { subscription: true },
     orderBy: { name: "asc" },
     skip: (currentPage - 1) * PAGE_SIZE,
     take: PAGE_SIZE,
@@ -73,7 +73,7 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
           <table className="students-table">
             <thead><tr><th>Aluno</th><th>Próxima cobrança</th><th>Status</th></tr></thead>
             <tbody>
-              {students.length === 0 ? <tr><td className="table-empty" colSpan={3}>Nenhum aluno encontrado.</td></tr> : students.map((student) => <tr key={student.id}><td><div className="student-primary">{student.name}</div><div className="student-secondary">{student.email}</div></td><td>{status === "awaiting-payment" ? `Cadastrado em ${formatDate(student.joinedAt)}` : <>{status === "overdue" ? "Venceu em " : "Próxima em "}{formatDate(student.subscriptions[0]?.nextBillingAt)}</>}</td><td><span className={`pill ${status === "overdue" || status === "awaiting-payment" ? "pill-coral" : ""}`}>{status === "awaiting-payment" ? "Aguardando pagamento" : subscriptionLabel(student.subscriptions[0]?.status ?? "")}</span></td></tr>)}
+              {students.length === 0 ? <tr><td className="table-empty" colSpan={3}>Nenhum aluno encontrado.</td></tr> : students.map((student) => <tr key={student.id}><td><div className="student-primary">{student.name}</div><div className="student-secondary">{student.email}</div></td><td>{status === "awaiting-payment" ? `Cadastrado em ${formatDate(student.joinedAt)}` : <>{status === "overdue" ? "Venceu em " : "Próxima em "}{formatDate(student.subscription?.nextBillingAt)}</>}</td><td><span className={`pill ${status === "overdue" || status === "awaiting-payment" ? "pill-coral" : ""}`}>{status === "awaiting-payment" ? "Aguardando pagamento" : subscriptionLabel(student.subscription?.status ?? "")}</span></td></tr>)}
             </tbody>
           </table>
         </div>

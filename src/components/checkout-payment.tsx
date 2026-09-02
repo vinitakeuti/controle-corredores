@@ -41,7 +41,6 @@ type CheckoutPaymentProps = {
   name: string;
   cpf: string;
   amountCents: number;
-  subscriptionIds?: string[];
   gatewayEnabled: boolean;
   activeProvider: "APPMAX" | "ASAAS" | null;
   appmaxExternalId: string | null;
@@ -66,7 +65,6 @@ export function CheckoutPayment({
   name,
   cpf,
   amountCents,
-  subscriptionIds,
   gatewayEnabled,
   activeProvider,
   appmaxExternalId,
@@ -132,7 +130,6 @@ export function CheckoutPayment({
             : undefined,
           automaticPix,
           installmentCount: selectedMethod === "CARD" ? installmentCount : 1,
-          subscriptionIds,
         }),
       });
       const data = await response.json();
