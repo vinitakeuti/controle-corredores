@@ -12,11 +12,12 @@ function nameOf(value: unknown) { return typeof value === "string" ? value.trim(
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
-  if (!await staff()) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
+  const user = await staff(); if (!user) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
   const body = await request.json() as Record<string, unknown>;
   const workAreaId = typeof body.workAreaId === "string" ? body.workAreaId : "";
   const name = nameOf(body.name);
   if (!workAreaId || !name) return NextResponse.json({ error: "Informe o nome da coluna" }, { status: 400, headers: noStoreHeaders() });
+  if (!await prisma.workAreaMember.findUnique({ where: { workAreaId_userId: { workAreaId, userId: user.id } }, select: { id: true } })) return NextResponse.json({ error: "Você não faz parte deste quadro" }, { status: 403, headers: noStoreHeaders() });
   const [area, last] = await Promise.all([prisma.workArea.findUnique({ where: { id: workAreaId }, select: { id: true } }), prisma.workAreaColumn.aggregate({ where: { workAreaId }, _max: { position: true } })]);
   if (!area) return NextResponse.json({ error: "Área não encontrada" }, { status: 404, headers: noStoreHeaders() });
   try {
@@ -27,11 +28,13 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
-  if (!await staff()) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
+  const user = await staff(); if (!user) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
   const body = await request.json() as Record<string, unknown>;
   const id = typeof body.id === "string" ? body.id : "";
   const name = nameOf(body.name);
   if (!id || !name) return NextResponse.json({ error: "Informe o nome da coluna" }, { status: 400, headers: noStoreHeaders() });
+  const existing = await prisma.workAreaColumn.findUnique({ where: { id }, select: { workAreaId: true } });
+  if (!existing || !await prisma.workAreaMember.findUnique({ where: { workAreaId_userId: { workAreaId: existing.workAreaId, userId: user.id } }, select: { id: true } })) return NextResponse.json({ error: "Você não faz parte deste quadro" }, { status: 403, headers: noStoreHeaders() });
   try {
     const column = await prisma.workAreaColumn.update({ where: { id }, data: { name } });
     return NextResponse.json({ column }, { headers: noStoreHeaders() });
@@ -40,10 +43,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
-  if (!await staff()) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
+  const user = await staff(); if (!user) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
   const id = new URL(request.url).searchParams.get("id") ?? "";
   const column = await prisma.workAreaColumn.findUnique({ where: { id }, include: { _count: { select: { demands: true } }, workArea: { select: { id: true } } } });
   if (!column) return NextResponse.json({ error: "Coluna não encontrada" }, { status: 404, headers: noStoreHeaders() });
+  if (!await prisma.workAreaMember.findUnique({ where: { workAreaId_userId: { workAreaId: column.workAreaId, userId: user.id } }, select: { id: true } })) return NextResponse.json({ error: "Você não faz parte deste quadro" }, { status: 403, headers: noStoreHeaders() });
   if (column._count.demands) return NextResponse.json({ error: "Mova as demandas desta coluna antes de excluí-la" }, { status: 409, headers: noStoreHeaders() });
   const total = await prisma.workAreaColumn.count({ where: { workAreaId: column.workAreaId } });
   if (total <= 1) return NextResponse.json({ error: "A área precisa ter ao menos uma coluna" }, { status: 409, headers: noStoreHeaders() });

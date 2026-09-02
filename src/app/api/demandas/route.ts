@@ -24,6 +24,8 @@ export async function POST(request: Request) {
     const description = typeof body.description === "string" ? body.description.trim().slice(0, 3000) : "";
     const scheduledAt = scheduled(body.scheduledAt); const assigneeIds = ids(body.assigneeIds);
     if (!workAreaId || !columnId || !title || scheduledAt === undefined) return NextResponse.json({ error: "Preencha título e uma data válida" }, { status: 400, headers: noStoreHeaders() });
+    const membership = await prisma.workAreaMember.findUnique({ where: { workAreaId_userId: { workAreaId, userId: user.id } }, select: { id: true } });
+    if (!membership) return NextResponse.json({ error: "Você não faz parte deste quadro" }, { status: 403, headers: noStoreHeaders() });
     const [area, column, assignees, last] = await Promise.all([
       prisma.workArea.findUnique({ where: { id: workAreaId } }), prisma.workAreaColumn.findUnique({ where: { id: columnId } }),
       prisma.user.findMany({ where: { id: { in: assigneeIds }, active: true, role: { in: [UserRole.ADMIN, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true } }),
@@ -44,6 +46,8 @@ export async function PATCH(request: Request) {
     const id = typeof body.id === "string" ? body.id : "";
     const existing = await prisma.demand.findUnique({ where: { id }, include: { workArea: true, assignees: true } });
     if (!existing) return NextResponse.json({ error: "Demanda não encontrada" }, { status: 404, headers: noStoreHeaders() });
+    const membership = await prisma.workAreaMember.findUnique({ where: { workAreaId_userId: { workAreaId: existing.workAreaId, userId: user.id } }, select: { id: true } });
+    if (!membership) return NextResponse.json({ error: "Você não faz parte deste quadro" }, { status: 403, headers: noStoreHeaders() });
     const columnId = typeof body.columnId === "string" ? body.columnId : undefined;
     const title = typeof body.title === "string" ? body.title.trim().slice(0, 140) : undefined;
     const description = typeof body.description === "string" ? body.description.trim().slice(0, 3000) : undefined;

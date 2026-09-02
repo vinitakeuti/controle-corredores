@@ -97,6 +97,7 @@ model User {
   createdPaymentLinks       PaymentLink[]        @relation("PaymentLinkCreator")
   createdDemands            Demand[]             @relation("DemandCreator")
   demandAssignments         DemandAssignment[]
+  workAreaMemberships       WorkAreaMember[]
   saleOwnerId               String?
   saleOwner                 User?                @relation("SaleOwner", fields: [saleOwnerId], references: [id], onDelete: SetNull)
   sales                     User[]               @relation("SaleOwner")
@@ -115,9 +116,22 @@ model WorkArea {
   updatedAt DateTime         @updatedAt
   demands   Demand[]
   columns   WorkAreaColumn[]
+  members   WorkAreaMember[]
 
   @@unique([name])
   @@index([type, name])
+}
+
+model WorkAreaMember {
+  id         String   @id @default(cuid())
+  workAreaId String
+  userId     String
+  createdAt  DateTime @default(now())
+  workArea   WorkArea @relation(fields: [workAreaId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workAreaId, userId])
+  @@index([userId])
 }
 
 model WorkAreaColumn {

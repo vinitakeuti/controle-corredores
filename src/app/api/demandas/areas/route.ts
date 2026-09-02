@@ -14,7 +14,7 @@ async function staff() {
 export async function GET() {
   const user = await staff();
   if (!user) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
-  const areas = await prisma.workArea.findMany({ include: { _count: { select: { demands: true } } }, orderBy: [{ type: "asc" }, { name: "asc" }] });
+  const areas = await prisma.workArea.findMany({ where: { members: { some: { userId: user.id } } }, include: { _count: { select: { demands: true } } }, orderBy: [{ type: "asc" }, { name: "asc" }] });
   return NextResponse.json({ areas }, { headers: noStoreHeaders() });
 }
 
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
         name,
         type,
         columns: { create: ["Em aberto", "Segunda", "Terça", "Quarta", "Quinta", "Sexta"].map((columnName, position) => ({ name: columnName, position })) },
+        members: { create: { userId: user.id } },
       },
     });
     return NextResponse.json({ area }, { headers: noStoreHeaders() });
