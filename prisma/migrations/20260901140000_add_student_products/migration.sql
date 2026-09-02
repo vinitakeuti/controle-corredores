@@ -1,11 +1,13 @@
 -- Um aluno pode manter mais de um produto ativo ao mesmo tempo.
--- A migration inicial criou uma unique *index* (e não uma constraint).
-DROP INDEX "Subscription_userId_key";
+-- A versão inicial podia existir como constraint ou apenas como unique index.
+-- As guardas tornam esta migration segura após uma tentativa interrompida.
+ALTER TABLE "Subscription" DROP CONSTRAINT IF EXISTS "Subscription_userId_key";
+DROP INDEX IF EXISTS "Subscription_userId_key";
 
-CREATE INDEX "Subscription_userId_idx" ON "Subscription"("userId");
+CREATE INDEX IF NOT EXISTS "Subscription_userId_idx" ON "Subscription"("userId");
 
 -- Uma cobrança inicial pode quitar mais de um produto do aluno.
-CREATE TABLE "PaymentSubscription" (
+CREATE TABLE IF NOT EXISTS "PaymentSubscription" (
     "id" TEXT NOT NULL,
     "paymentId" TEXT NOT NULL,
     "subscriptionId" TEXT NOT NULL,
@@ -13,16 +15,23 @@ CREATE TABLE "PaymentSubscription" (
     CONSTRAINT "PaymentSubscription_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "PaymentSubscription_paymentId_subscriptionId_key"
+CREATE UNIQUE INDEX IF NOT EXISTS "PaymentSubscription_paymentId_subscriptionId_key"
 ON "PaymentSubscription"("paymentId", "subscriptionId");
 
-CREATE INDEX "PaymentSubscription_subscriptionId_idx"
+CREATE INDEX IF NOT EXISTS "PaymentSubscription_subscriptionId_idx"
 ON "PaymentSubscription"("subscriptionId");
 
-ALTER TABLE "PaymentSubscription"
-ADD CONSTRAINT "PaymentSubscription_paymentId_fkey"
-FOREIGN KEY ("paymentId") REFERENCES "Payment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PaymentSubscription_paymentId_fkey') THEN
+    ALTER TABLE "PaymentSubscription"
+    ADD CONSTRAINT "PaymentSubscription_paymentId_fkey"
+    FOREIGN KEY ("paymentId") REFERENCES "Payment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
 
-ALTER TABLE "PaymentSubscription"
-ADD CONSTRAINT "PaymentSubscription_subscriptionId_fkey"
-FOREIGN KEY ("subscriptionId") REFERENCES "Subscription"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PaymentSubscription_subscriptionId_fkey') THEN
+    ALTER TABLE "PaymentSubscription"
+    ADD CONSTRAINT "PaymentSubscription_subscriptionId_fkey"
+    FOREIGN KEY ("subscriptionId") REFERENCES "Subscription"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
