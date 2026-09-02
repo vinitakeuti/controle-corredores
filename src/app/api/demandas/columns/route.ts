@@ -48,9 +48,13 @@ export async function DELETE(request: Request) {
   const column = await prisma.workAreaColumn.findUnique({ where: { id }, include: { _count: { select: { demands: true } }, workArea: { select: { id: true } } } });
   if (!column) return NextResponse.json({ error: "Coluna não encontrada" }, { status: 404, headers: noStoreHeaders() });
   if (!await prisma.workAreaMember.findUnique({ where: { workAreaId_userId: { workAreaId: column.workAreaId, userId: user.id } }, select: { id: true } })) return NextResponse.json({ error: "Você não faz parte deste quadro" }, { status: 403, headers: noStoreHeaders() });
-  if (column._count.demands) return NextResponse.json({ error: "Mova as demandas desta coluna antes de excluí-la" }, { status: 409, headers: noStoreHeaders() });
   const total = await prisma.workAreaColumn.count({ where: { workAreaId: column.workAreaId } });
   if (total <= 1) return NextResponse.json({ error: "A área precisa ter ao menos uma coluna" }, { status: 409, headers: noStoreHeaders() });
-  await prisma.workAreaColumn.delete({ where: { id } });
-  return NextResponse.json({ ok: true }, { headers: noStoreHeaders() });
+  const destination = await prisma.workAreaColumn.findFirst({ where: { workAreaId: column.workAreaId, id: { not: id } }, orderBy: { position: "asc" }, select: { id: true } });
+  if (!destination) return NextResponse.json({ error: "Não foi possível definir o destino das demandas" }, { status: 409, headers: noStoreHeaders() });
+  await prisma.$transaction(async (transaction) => {
+    await transaction.demand.updateMany({ where: { columnId: id }, data: { columnId: destination.id } });
+    await transaction.workAreaColumn.delete({ where: { id } });
+  });
+  return NextResponse.json({ ok: true, movedToColumnId: destination.id }, { headers: noStoreHeaders() });
 }
