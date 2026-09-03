@@ -41,7 +41,8 @@ export default async function StudentPage() {
         <div className="subscription-meta">
           <div><small>Status</small><strong>{subscriptionLabel(subscription?.status ?? "INCOMPLETE")}</strong></div>
           <div><small>Próxima cobrança</small><strong>{formatDate(subscription?.nextBillingAt)}</strong></div>
-          <div><small>{subscription.hasCustomPrice ? "Valor exclusivo" : "Valor mensal"}</small><strong>{subscription ? formatCurrency(subscription.priceCents) : "—"}</strong></div>
+          <div><small>{subscription.hasCustomPrice ? "Valor exclusivo por mês" : "Valor por mês"}</small><strong>{subscription ? formatCurrency(subscription.priceCents) : "—"}</strong></div>
+          <div><small>Valor total do plano</small><strong>{subscription ? formatCurrency(planTotalCents(subscription.priceCents, subscription.billingPeriod)) : "—"}</strong></div>
         </div>
       </section>
 
