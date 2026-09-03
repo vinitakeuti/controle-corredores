@@ -1268,9 +1268,9 @@ body.tutorial-open { overflow: hidden; }
 .demand-columns { display: grid; width: max-content; min-width: 100%; grid-auto-flow: column; grid-auto-columns: minmax(240px, 1fr); gap: 12px; }
 .demand-board-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .demand-settings { position: relative; }
-.demand-settings-trigger { display: grid; width: 42px; height: 42px; place-items: center; color: var(--text); background: rgba(255,255,255,.55); border: 1px solid var(--line); font-size: 20px; line-height: 1; cursor: pointer; }
-.demand-settings-trigger:hover, .demand-settings-trigger[aria-expanded="true"] { background: #fff; border-color: var(--text); }
-.demand-settings-menu { position: absolute; z-index: 6; top: calc(100% + 8px); right: 0; display: grid; width: 185px; padding: 6px; background: #fff; border: 1px solid var(--line); box-shadow: 0 16px 36px rgba(20,30,25,.14); }
+.demand-settings-trigger { display: grid; width: 36px; height: 42px; place-items: center; padding: 0; color: var(--text); background: transparent; border: 0; font-size: 25px; font-weight: 600; line-height: .7; cursor: pointer; }
+.demand-settings-trigger:hover, .demand-settings-trigger[aria-expanded="true"] { color: var(--accent); }
+.demand-settings-menu { position: absolute; z-index: 6; top: calc(100% + 6px); right: 0; display: grid; width: 178px; padding: 5px; background: #fff; border: 1px solid var(--line); box-shadow: 0 12px 28px rgba(20,30,25,.12); }
 .demand-settings-menu button { padding: 10px 11px; color: var(--text); background: transparent; border: 0; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 .demand-settings-menu button:hover { background: rgba(235,240,235,.75); }
 .demand-column { min-height: 470px; padding: 13px; background: rgba(235,239,233,.7); border: 1px solid var(--line); transition: background .18s ease, border-color .18s ease; }
