@@ -27,7 +27,7 @@ export default async function StudentPage() {
   }
 
   if (!subscription || !subscription.planId || subscription.status !== "ACTIVE") {
-    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>Escolha seu plano e conclua seu primeiro pagamento.</p></div></header>{plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} automaticPixEnabled={subscription.automaticPixEnabled} /> : <section className="panel empty-state"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></section>}</AppShell>;
+    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>{subscription?.hasCustomPrice ? "Sua condição comercial já está definida. Escolha como pagar." : "Escolha seu plano e conclua seu primeiro pagamento."}</p></div></header>{subscription?.hasCustomPrice ? <p className="student-exclusive-price">Você recebeu um valor exclusivo definido pela Pace Lab para esta assinatura.</p> : null}{plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} automaticPixEnabled={subscription.automaticPixEnabled} customPriceCents={subscription.hasCustomPrice ? subscription.priceCents : null} lockPlan={subscription.hasCustomPrice && Boolean(subscription.planId)} /> : <section className="panel empty-state"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></section>}</AppShell>;
   }
 
   return (
@@ -47,7 +47,7 @@ export default async function StudentPage() {
 
       {subscription.hasCustomPrice ? <p className="student-exclusive-price">Sua assinatura possui um valor exclusivo definido pela Pace Lab.</p> : null}
 
-      {plans.length ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}
+      {plans.length && !subscription.hasCustomPrice ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}
 
       <section className="panel student-payment-panel" data-tutorial-anchor="student-payment">
         <CheckoutPayment

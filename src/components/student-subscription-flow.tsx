@@ -27,6 +27,8 @@ type Props = {
   recurrenceEnabled: boolean;
   allowedMethods: Method[];
   automaticPixEnabled?: boolean;
+  customPriceCents?: number | null;
+  lockPlan?: boolean;
 };
 
 const periodLabel = {
@@ -64,8 +66,10 @@ export function StudentSubscriptionFlow({
   recurrenceEnabled,
   allowedMethods,
   automaticPixEnabled = false,
+  customPriceCents = null,
+  lockPlan = false,
 }: Props) {
-  const [stage, setStage] = useState<"plan" | "method" | "payment">("plan");
+  const [stage, setStage] = useState<"plan" | "method" | "payment">(() => lockPlan && Boolean(plans.find((plan) => plan.id === initialPlanId)) ? "method" : "plan");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(() => plans.find((plan) => plan.id === initialPlanId) ?? null);
   const planMethods = selectedPlan?.allowedMethods ?? allowedMethods;
   const selectedAutomaticPixEnabled = selectedPlan?.automaticPixEnabled ?? automaticPixEnabled;
@@ -75,6 +79,7 @@ export function StudentSubscriptionFlow({
     description: id === "PIX" ? "gere o QR Code para pagar agora" : id === "PIX_AUTOMATIC" ? "autorize as cobranças do plano" : id === "CARD" ? "pagamento em ambiente seguro" : "gere a linha digitável",
   }));
   const [method, setMethod] = useState<CheckoutPaymentChoice | null>(choices[0]?.id ?? null);
+  const selectedPriceCents = selectedPlan && selectedPlan.id === initialPlanId && customPriceCents !== null ? customPriceCents : selectedPlan?.priceCents ?? 0;
 
   function continueWithPlan(plan: Plan) {
     setSelectedPlan(plan);
@@ -96,17 +101,17 @@ export function StudentSubscriptionFlow({
         <div className="panel-heading">
           <div><p className="eyebrow">Etapa 2 de 3</p><h2>Como você prefere pagar?</h2><p>Selecione uma opção para continuar.</p></div>
         </div>
-        <div className="selected-plan-summary"><div><small>Plano escolhido</small><strong>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]}</strong></div><b>{formatCurrency(selectedPlan.priceCents * periodMonths[selectedPlan.period])}<small>{selectedPlan.period === "MONTHLY" ? " à vista" : ` em até ${periodMonths[selectedPlan.period]}x`}</small></b></div>
+        <div className="selected-plan-summary"><div><small>{customPriceCents !== null ? "Condição exclusiva" : "Plano escolhido"}</small><strong>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]}</strong></div><b>{formatCurrency(selectedPriceCents * periodMonths[selectedPlan.period])}<small>{selectedPlan.period === "MONTHLY" ? " à vista" : ` em até ${periodMonths[selectedPlan.period]}x`}</small></b></div>
         {choices.length ? <div className="subscription-method-options" role="radiogroup" aria-label="Método de pagamento">
           {choices.map((choice) => <button className={method === choice.id ? "active" : ""} type="button" role="radio" aria-checked={method === choice.id} key={choice.id} onClick={() => setMethod(choice.id)}><strong>{choice.title}</strong><span>{choice.description}</span></button>)}
         </div> : <div className="payment-configuration-notice"><strong>Nenhum método disponível</strong><p>Peça à assessoria para liberar uma forma de pagamento.</p></div>}
-        <div className="creation-actions subscription-flow-actions"><button className="button button-quiet" type="button" onClick={() => setStage("plan")}>Voltar</button><button className="button button-dark" type="button" disabled={!method} onClick={() => setStage("payment")}>Prosseguir para pagamento</button></div>
+        <div className="creation-actions subscription-flow-actions">{lockPlan ? null : <button className="button button-quiet" type="button" onClick={() => setStage("plan")}>Voltar</button>}<button className="button button-dark" type="button" disabled={!method} onClick={() => setStage("payment")}>Prosseguir para pagamento</button></div>
       </div> : null}
 
       {stage === "payment" && selectedPlan && method ? <div className="subscription-flow-stage">
-        <div className="subscription-flow-payment-heading"><div><p className="eyebrow">Etapa 3 de 3</p><h2>Conclua seu pagamento</h2><p>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]} · {formatCurrency(selectedPlan.priceCents * periodMonths[selectedPlan.period])} no período</p></div></div>
+        <div className="subscription-flow-payment-heading"><div><p className="eyebrow">Etapa 3 de 3</p><h2>Conclua seu pagamento</h2><p>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]} · {formatCurrency(selectedPriceCents * periodMonths[selectedPlan.period])} no período</p></div></div>
         <button className="subscription-flow-change-method" type="button" onClick={() => setStage("method")}>← Trocar método de pagamento</button>
-        <CheckoutPayment token={token} name={name} cpf={cpf} amountCents={selectedPlan.priceCents * periodMonths[selectedPlan.period]} gatewayEnabled={gatewayEnabled} activeProvider={activeProvider} appmaxExternalId={appmaxExternalId} recurrenceEnabled={recurrenceEnabled} allowedMethods={planMethods} automaticPixEnabled={selectedPlan.automaticPixEnabled} installmentLimit={periodMonths[selectedPlan.period]} embedded hideHeading hideMethodSelector initialMethod={method} />
+        <CheckoutPayment token={token} name={name} cpf={cpf} amountCents={selectedPriceCents * periodMonths[selectedPlan.period]} gatewayEnabled={gatewayEnabled} activeProvider={activeProvider} appmaxExternalId={appmaxExternalId} recurrenceEnabled={recurrenceEnabled} allowedMethods={planMethods} automaticPixEnabled={selectedPlan.automaticPixEnabled} installmentLimit={periodMonths[selectedPlan.period]} embedded hideHeading hideMethodSelector initialMethod={method} />
       </div> : null}
     </section>
   );

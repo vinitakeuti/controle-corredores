@@ -617,6 +617,8 @@ input[type="date"] { color-scheme: dark; }
 .enrollment-details strong { overflow: hidden; color: var(--text); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
 .billing-fields { display: grid; grid-template-columns: minmax(180px, 0.45fr) minmax(260px, 0.55fr); gap: 18px; align-items: end; }
 .billing-fields .field { margin: 0; }
+.billing-plan-methods { display: flex; gap: 8px; align-items: baseline; margin-top: 14px; padding: 12px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.billing-plan-methods strong { color: var(--text); font-size: 13px; }
 .method-options { min-width: 0; margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; }
 .method-options legend { padding: 0 4px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .method-options label { display: inline-flex; align-items: center; gap: 7px; margin: 4px 14px 4px 0; color: var(--muted-strong); font-size: 12px; }
