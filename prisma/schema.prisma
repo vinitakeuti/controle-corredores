@@ -222,6 +222,7 @@ model Subscription {
   priceCents                  Int                @default(15000)
   billingPeriod               PlanPeriod         @default(MONTHLY)
   hasCustomPrice              Boolean            @default(false)
+  manualMonthlyBilling        Boolean            @default(false)
   automaticPixEnabled         Boolean            @default(true)
   nextBillingAt               DateTime?
   providerCustomerId          String?

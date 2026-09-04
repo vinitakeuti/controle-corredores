@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { PaymentLinkStatus, UserRole } from "@prisma/client";
+import { PaymentLinkStatus, PaymentMethod, UserRole } from "@prisma/client";
 import { cancelAsaasAutomaticPixAuthorization } from "@/lib/asaas";
 import { parseAmountCents } from "@/lib/billing";
-import { planTotalCents } from "@/lib/plan-billing";
+import { subscriptionChargeCents } from "@/lib/plan-billing";
 import { planDisplayName } from "@/lib/plans";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -28,7 +28,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const plan = planId ? await prisma.plan.findFirst({ where: { id: planId, active: true, service: { active: true } }, include: { service: true } }) : null;
     if (!plan) return NextResponse.json({ error: "Selecione um plano ativo para este aluno" }, { status: 400, headers: noStoreHeaders() });
     const priceCents = body.priceCents === undefined ? (student.subscription.planId === plan.id ? student.subscription.priceCents : plan.priceCents) : parseAmountCents(body.priceCents);
-    const allowedMethods = plan.allowedMethods;
+    const manualMonthlyBilling = body.manualMonthlyBilling === undefined ? student.subscription.manualMonthlyBilling : body.manualMonthlyBilling === true;
+    // Esta condição é uma exceção individual: ela sempre gera uma cobrança
+    // avulsa em Pix, uma vez por mês, independentemente da duração do plano.
+    if (manualMonthlyBilling && !plan.allowedMethods.includes(PaymentMethod.PIX)) {
+      return NextResponse.json({ error: "Este plano não permite Pix, necessário para a cobrança mensal manual." }, { status: 400, headers: noStoreHeaders() });
+    }
+    const allowedMethods = manualMonthlyBilling ? [PaymentMethod.PIX] : plan.allowedMethods;
     if (!priceCents) return NextResponse.json({ error: "Informe um valor entre R$ 1,00 e R$ 100.000,00" }, { status: 400, headers: noStoreHeaders() });
 
     const methodsChanged = allowedMethods.length !== student.subscription.allowedMethods.length
@@ -36,12 +42,14 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const priceChanged = priceCents !== student.subscription.priceCents;
     const planChanged = plan.id !== student.subscription.planId;
     const periodChanged = plan.period !== student.subscription.billingPeriod;
-    const automaticPixChanged = plan.automaticPixEnabled !== student.subscription.automaticPixEnabled;
+    const automaticPixEnabled = plan.automaticPixEnabled && !manualMonthlyBilling;
+    const automaticPixChanged = automaticPixEnabled !== student.subscription.automaticPixEnabled;
+    const manualBillingChanged = manualMonthlyBilling !== student.subscription.manualMonthlyBilling;
     const hasCustomPrice = priceCents !== plan.priceCents;
     const cancelAutomaticPix = Boolean(
       student.subscription.asaasPixAuthorizationId
       && student.subscription.recurringEnabled
-      && (priceChanged || planChanged || periodChanged || automaticPixChanged || (student.subscription.allowedMethods.includes("PIX") && !allowedMethods.includes("PIX"))),
+      && (priceChanged || planChanged || periodChanged || automaticPixChanged || manualBillingChanged || (student.subscription.allowedMethods.includes("PIX") && !allowedMethods.includes("PIX"))),
     );
     if (cancelAutomaticPix && student.subscription.asaasPixAuthorizationId) {
       await cancelAsaasAutomaticPixAuthorization(student.subscription.asaasPixAuthorizationId);
@@ -55,8 +63,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         planId: plan.id,
         planName: planDisplayName(plan),
         billingPeriod: plan.period,
+        manualMonthlyBilling,
         allowedMethods,
-        automaticPixEnabled: plan.automaticPixEnabled,
+        automaticPixEnabled,
         ...(cancelAutomaticPix ? {
           asaasPixAuthorizationStatus: "CANCELLED",
           recurringEnabled: false,
@@ -66,9 +75,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     });
     await prisma.paymentLink.updateMany({
       where: { userId: student.id, status: PaymentLinkStatus.OPEN },
-      data: { planId: plan.id, planName: planDisplayName(plan), amountCents: planTotalCents(priceCents, plan.period), allowedMethods },
+      data: { planId: plan.id, planName: planDisplayName(plan), amountCents: subscriptionChargeCents(priceCents, plan.period, manualMonthlyBilling), allowedMethods },
     });
-    return NextResponse.json({ subscription, reauthorizationRequired: cancelAutomaticPix, changed: priceChanged || planChanged || methodsChanged }, { headers: noStoreHeaders() });
+    return NextResponse.json({ subscription, reauthorizationRequired: cancelAutomaticPix, changed: priceChanged || planChanged || methodsChanged || manualBillingChanged }, { headers: noStoreHeaders() });
   } catch (error) {
     console.error("student billing update failed", error);
     return NextResponse.json({ error: "Não foi possível atualizar a cobrança do aluno" }, { status: 502, headers: noStoreHeaders() });

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { UserRole } from "@prisma/client";
+import { PaymentMethod, UserRole } from "@prisma/client";
 import { cancelAsaasAutomaticPixAuthorization } from "@/lib/asaas";
 import { getCurrentUser } from "@/lib/auth";
 import { parseAllowedMethods, parseAmountCents } from "@/lib/billing";
-import { planTotalCents } from "@/lib/plan-billing";
+import { planTotalCents, subscriptionChargeCents } from "@/lib/plan-billing";
 import { parsePlanPeriod } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
@@ -28,22 +28,32 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const methodsChanged = allowedMethods.length !== current.allowedMethods.length || allowedMethods.some((method) => !current.allowedMethods.includes(method));
     const nextAutomaticPixEnabled = automaticPixEnabled;
     const automaticPixChanged = nextAutomaticPixEnabled !== current.automaticPixEnabled;
-    const subscriptions = priceChanged || periodChanged || methodsChanged || automaticPixChanged ? await prisma.subscription.findMany({ where: { planId: id }, select: { id: true, userId: true, priceCents: true, hasCustomPrice: true, asaasPixAuthorizationId: true, recurringEnabled: true } }) : [];
+    const subscriptions = priceChanged || periodChanged || methodsChanged || automaticPixChanged ? await prisma.subscription.findMany({ where: { planId: id }, select: { id: true, userId: true, priceCents: true, hasCustomPrice: true, manualMonthlyBilling: true, asaasPixAuthorizationId: true, recurringEnabled: true } }) : [];
     const standardSubscriptions = subscriptions.filter((subscription) => !subscription.hasCustomPrice);
+    const manualSubscriptions = subscriptions.filter((subscription) => subscription.manualMonthlyBilling);
+    if (manualSubscriptions.length && !allowedMethods.includes(PaymentMethod.PIX)) {
+      return NextResponse.json({ error: "Este plano possui alunos em cobrança mensal manual via Pix. Mantenha o Pix disponível ou desative essa condição no perfil desses alunos." }, { status: 400, headers: noStoreHeaders() });
+    }
     const pixTermsChanged = priceChanged || periodChanged || automaticPixChanged;
     const authorizations = pixTermsChanged ? subscriptions.flatMap((subscription) => subscription.recurringEnabled && subscription.asaasPixAuthorizationId ? [subscription.asaasPixAuthorizationId] : []) : [];
     await Promise.all(authorizations.map((authorizationId) => cancelAsaasAutomaticPixAuthorization(authorizationId)));
     const plan = await prisma.$transaction(async (transaction) => {
       const updated = await transaction.plan.update({ where: { id }, data: { priceCents, period, active, allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled }, include: { service: true } });
       if (subscriptions.length) {
-        await transaction.subscription.updateMany({ where: { id: { in: subscriptions.map((subscription) => subscription.id) } }, data: { billingPeriod: period, allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled, ...(authorizations.length ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
+        await transaction.subscription.updateMany({ where: { id: { in: subscriptions.map((subscription) => subscription.id) } }, data: { billingPeriod: period, ...(authorizations.length ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
+        await transaction.subscription.updateMany({ where: { id: { in: subscriptions.filter((subscription) => !subscription.manualMonthlyBilling).map((subscription) => subscription.id) } }, data: { allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled } });
+        await transaction.subscription.updateMany({ where: { id: { in: manualSubscriptions.map((subscription) => subscription.id) } }, data: { allowedMethods: [PaymentMethod.PIX], automaticPixEnabled: false } });
         if (standardSubscriptions.length) {
           await transaction.subscription.updateMany({ where: { id: { in: standardSubscriptions.map((subscription) => subscription.id) } }, data: { priceCents } });
         }
-        await transaction.paymentLink.updateMany({ where: { userId: { in: subscriptions.map((subscription) => subscription.userId) }, planId: id, status: "OPEN" }, data: { amountCents: planTotalCents(priceCents, period), allowedMethods } });
+        await transaction.paymentLink.updateMany({ where: { userId: { in: subscriptions.filter((subscription) => !subscription.manualMonthlyBilling).map((subscription) => subscription.userId) }, planId: id, status: "OPEN" }, data: { amountCents: planTotalCents(priceCents, period), allowedMethods } });
         await Promise.all(subscriptions.filter((subscription) => subscription.hasCustomPrice).map((subscription) => transaction.paymentLink.updateMany({
           where: { userId: subscription.userId, planId: id, status: "OPEN" },
-          data: { amountCents: planTotalCents(subscription.priceCents, period), allowedMethods },
+          data: { amountCents: subscriptionChargeCents(subscription.priceCents, period, subscription.manualMonthlyBilling), allowedMethods: subscription.manualMonthlyBilling ? [PaymentMethod.PIX] : allowedMethods },
+        })));
+        await Promise.all(manualSubscriptions.filter((subscription) => !subscription.hasCustomPrice).map((subscription) => transaction.paymentLink.updateMany({
+          where: { userId: subscription.userId, planId: id, status: "OPEN" },
+          data: { amountCents: subscriptionChargeCents(subscription.priceCents, period, true), allowedMethods: [PaymentMethod.PIX] },
         })));
       }
       return updated;

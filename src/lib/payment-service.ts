@@ -27,7 +27,7 @@ import {
 } from "@/lib/asaas";
 import { getActivePaymentProvider } from "@/lib/integration-directory";
 import { sendPaymentNotification } from "@/lib/email";
-import { periodMonths, planTotalCents } from "@/lib/plan-billing";
+import { periodMonths, subscriptionChargeCents, subscriptionCycleMonths } from "@/lib/plan-billing";
 import { prisma } from "@/lib/prisma";
 
 export type AppmaxPaymentMethod = "PIX" | "BOLETO" | "CARD";
@@ -211,7 +211,7 @@ export async function createPayment(input: CreatePaymentInput) {
     throw new PaymentServiceError("Complete o telefone e o CPF antes de gerar o pagamento.", 422);
   }
 
-  const expectedAmountCents = planTotalCents(account.subscription.priceCents, account.subscription.billingPeriod);
+  const expectedAmountCents = subscriptionChargeCents(account.subscription.priceCents, account.subscription.billingPeriod, account.subscription.manualMonthlyBilling);
   const amountCents = input.amountCents ?? expectedAmountCents;
   if (!Number.isInteger(amountCents) || amountCents < 100 || amountCents > 10_000_000) {
     throw new PaymentServiceError("O valor da cobrança é inválido.");
@@ -220,7 +220,7 @@ export async function createPayment(input: CreatePaymentInput) {
     throw new PaymentServiceError("O valor desta cobrança não corresponde ao plano selecionado.", 409);
   }
   const installmentCount = input.installmentCount ?? 1;
-  const maxInstallments = periodMonths[account.subscription.billingPeriod];
+  const maxInstallments = account.subscription.manualMonthlyBilling ? 1 : periodMonths[account.subscription.billingPeriod];
   if (!Number.isInteger(installmentCount) || installmentCount < 1 || installmentCount > maxInstallments) {
     throw new PaymentServiceError(`Escolha entre 1 e ${maxInstallments} parcela${maxInstallments === 1 ? "" : "s"}.`);
   }
@@ -307,9 +307,11 @@ export async function createPayment(input: CreatePaymentInput) {
     }
   }
 
-  const recurringRequested = activeProvider === "ASAAS"
-    ? Boolean(input.automaticPix)
-    : Boolean(checkoutConfig?.recurrenceEnabled && input.method !== "BOLETO");
+  const recurringRequested = account.subscription.manualMonthlyBilling
+    ? false
+    : activeProvider === "ASAAS"
+      ? Boolean(input.automaticPix)
+      : Boolean(checkoutConfig?.recurrenceEnabled && input.method !== "BOLETO");
   const payment = previous ?? reusablePayment ?? await prisma.payment.create({
     data: {
       userId: account.id,
@@ -646,12 +648,12 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true } });
+      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true } });
       await transaction.subscription.update({
         where: { id: current.subscriptionId },
         data: {
           status: SubscriptionStatus.ACTIVE,
-          nextBillingAt: addMonths(paidAt, periodMonths[subscription?.billingPeriod ?? "MONTHLY"]),
+          nextBillingAt: addMonths(paidAt, subscriptionCycleMonths(subscription?.billingPeriod ?? "MONTHLY", subscription?.manualMonthlyBilling)),
           providerCustomerId: snapshot.customerId ?? undefined,
           recurringEnabled: current.recurringRequested,
           recurringMethod: current.recurringRequested ? current.method : undefined,
@@ -746,12 +748,12 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true } });
+      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true } });
       await transaction.subscription.update({
         where: { id: current.subscriptionId },
         data: {
           status: SubscriptionStatus.ACTIVE,
-          nextBillingAt: addMonths(paidAt, periodMonths[subscription?.billingPeriod ?? "MONTHLY"]),
+          nextBillingAt: addMonths(paidAt, subscriptionCycleMonths(subscription?.billingPeriod ?? "MONTHLY", subscription?.manualMonthlyBilling)),
           recurringEnabled: current.recurringRequested,
           recurringMethod: current.recurringRequested ? current.method : null,
         },

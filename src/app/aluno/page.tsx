@@ -8,7 +8,7 @@ import { StudentSubscriptionFlow } from "@/components/student-subscription-flow"
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDate, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
 import { getPaymentCheckoutConfig } from "@/lib/payment-gateway";
-import { periodMonths, planTotalCents } from "@/lib/plan-billing";
+import { periodMonths, subscriptionChargeCents } from "@/lib/plan-billing";
 import { getActivePlans } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 
@@ -27,7 +27,7 @@ export default async function StudentPage() {
   }
 
   if (!subscription || !subscription.planId || subscription.status !== "ACTIVE") {
-    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>{subscription?.hasCustomPrice ? "Sua condição comercial já está definida. Escolha como pagar." : "Escolha seu plano e conclua seu primeiro pagamento."}</p></div></header>{subscription?.hasCustomPrice ? <p className="student-exclusive-price">Você recebeu um valor exclusivo definido pela Pace Lab para esta assinatura.</p> : null}{plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} automaticPixEnabled={subscription.automaticPixEnabled} customPriceCents={subscription.hasCustomPrice ? subscription.priceCents : null} lockPlan={subscription.hasCustomPrice && Boolean(subscription.planId)} /> : <section className="panel empty-state"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></section>}</AppShell>;
+    return <AppShell user={user} current="student"><header className="page-heading student-page-heading" data-tutorial-anchor="student-heading"><div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>{subscription?.hasCustomPrice || subscription?.manualMonthlyBilling ? "Sua condição comercial já está definida. Escolha como pagar." : "Escolha seu plano e conclua seu primeiro pagamento."}</p></div></header>{subscription?.hasCustomPrice || subscription?.manualMonthlyBilling ? <p className="student-exclusive-price">{subscription.manualMonthlyBilling ? "Sua cobrança é manual e mensal, conforme a condição definida pela Pace Lab." : "Você recebeu um valor exclusivo definido pela Pace Lab para esta assinatura."}</p> : null}{plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} automaticPixEnabled={subscription.automaticPixEnabled} customPriceCents={subscription.hasCustomPrice ? subscription.priceCents : null} manualMonthlyBilling={subscription.manualMonthlyBilling} lockPlan={(subscription.hasCustomPrice || subscription.manualMonthlyBilling) && Boolean(subscription.planId)} /> : <section className="panel empty-state"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></section>}</AppShell>;
   }
 
   return (
@@ -42,26 +42,26 @@ export default async function StudentPage() {
           <div><small>Status</small><strong>{subscriptionLabel(subscription?.status ?? "INCOMPLETE")}</strong></div>
           <div><small>Próxima cobrança</small><strong>{formatDate(subscription?.nextBillingAt)}</strong></div>
           <div><small>{subscription.hasCustomPrice ? "Valor exclusivo por mês" : "Valor por mês"}</small><strong>{subscription ? formatCurrency(subscription.priceCents) : "—"}</strong></div>
-          <div><small>Valor total do plano</small><strong>{subscription ? formatCurrency(planTotalCents(subscription.priceCents, subscription.billingPeriod)) : "—"}</strong></div>
+          <div><small>{subscription.manualMonthlyBilling ? "Cobrança mensal manual" : "Valor total do plano"}</small><strong>{subscription ? formatCurrency(subscriptionChargeCents(subscription.priceCents, subscription.billingPeriod, subscription.manualMonthlyBilling)) : "—"}</strong></div>
         </div>
       </section>
 
-      {subscription.hasCustomPrice ? <p className="student-exclusive-price">Sua assinatura possui um valor exclusivo definido pela Pace Lab.</p> : null}
+      {subscription.hasCustomPrice || subscription.manualMonthlyBilling ? <p className="student-exclusive-price">{subscription.manualMonthlyBilling ? "Sua cobrança é manual e mensal. A cada mês, gere o pagamento do valor indicado acima." : "Sua assinatura possui um valor exclusivo definido pela Pace Lab."}</p> : null}
 
-      {plans.length && !subscription.hasCustomPrice ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}
+      {plans.length && !subscription.hasCustomPrice && !subscription.manualMonthlyBilling ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}
 
       <section className="panel student-payment-panel" data-tutorial-anchor="student-payment">
         <CheckoutPayment
           name={account?.name ?? user.name}
           cpf={account?.cpf ?? ""}
-          amountCents={planTotalCents(subscription.priceCents, subscription.billingPeriod)}
+          amountCents={subscriptionChargeCents(subscription.priceCents, subscription.billingPeriod, subscription.manualMonthlyBilling)}
           gatewayEnabled={gateway.enabled}
           activeProvider={gateway.activeProvider}
           appmaxExternalId={gateway.appmaxExternalId}
-          recurrenceEnabled={gateway.recurrenceEnabled}
+          recurrenceEnabled={subscription.manualMonthlyBilling ? false : gateway.recurrenceEnabled}
           allowedMethods={subscription.allowedMethods}
-          automaticPixEnabled={subscription.automaticPixEnabled}
-          installmentLimit={periodMonths[subscription.billingPeriod]}
+          automaticPixEnabled={subscription.manualMonthlyBilling ? false : subscription.automaticPixEnabled}
+          installmentLimit={subscription.manualMonthlyBilling ? 1 : periodMonths[subscription.billingPeriod]}
           embedded
         />
       </section>

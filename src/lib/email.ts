@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import { Prisma, SubscriptionStatus } from "@prisma/client";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
 import { canonicalStudentAppUrl, managementAppUrl } from "@/lib/portal";
-import { planTotalCents } from "@/lib/plan-billing";
+import { subscriptionChargeCents } from "@/lib/plan-billing";
 import { prisma } from "@/lib/prisma";
 
 type EmailTemplate = "password-reset" | "payment-failed" | "payment-paid" | "due-tomorrow";
@@ -165,7 +165,7 @@ export async function sendDueTomorrowReminders() {
     const reminder = await prisma.renewalReminder.upsert({ where: { userId_type_scheduledFor: { userId: subscription.userId, type: "UPCOMING", scheduledFor } }, update: {}, create: { userId: subscription.userId, type: "UPCOMING", scheduledFor } });
     if (reminder.sentAt) continue;
     try {
-      await sendMessage(subscription.user.email, dueTomorrowMessage(subscription.user.name, planTotalCents(subscription.priceCents, subscription.billingPeriod), subscription.planName, subscription.nextBillingAt));
+      await sendMessage(subscription.user.email, dueTomorrowMessage(subscription.user.name, subscriptionChargeCents(subscription.priceCents, subscription.billingPeriod, subscription.manualMonthlyBilling), subscription.planName, subscription.nextBillingAt));
       await prisma.renewalReminder.update({ where: { id: reminder.id }, data: { sentAt: new Date() } });
       sent += 1;
     } catch (error) {

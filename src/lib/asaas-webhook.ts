@@ -1,8 +1,8 @@
 import { GatewayEventStatus, PaymentMethod, PaymentStatus, SubscriptionStatus } from "@prisma/client";
-import { getAsaasPayment } from "@/lib/asaas";
+import { cancelAsaasAutomaticPixAuthorization, getAsaasPayment } from "@/lib/asaas";
 import { synchronizeAsaasPayment } from "@/lib/payment-service";
 import { sendPaymentNotification } from "@/lib/email";
-import { periodMonths } from "@/lib/plan-billing";
+import { subscriptionCycleMonths } from "@/lib/plan-billing";
 import { prisma } from "@/lib/prisma";
 
 function addMonths(date: Date, count = 1) {
@@ -29,9 +29,14 @@ async function processAutomaticPixAuthorization(event: {
   if (!event.providerSubscriptionId) return false;
   const subscription = await prisma.subscription.findUnique({
     where: { asaasPixAuthorizationId: event.providerSubscriptionId },
-    select: { id: true, userId: true, nextBillingAt: true, status: true, billingPeriod: true },
+    select: { id: true, userId: true, nextBillingAt: true, status: true, billingPeriod: true, manualMonthlyBilling: true },
   });
   if (!subscription) return false;
+  if (subscription.manualMonthlyBilling) {
+    await cancelAsaasAutomaticPixAuthorization(event.providerSubscriptionId).catch(() => undefined);
+    await prisma.subscription.update({ where: { id: subscription.id }, data: { automaticPixEnabled: false, asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } });
+    return true;
+  }
 
   const status = event.eventName.replace("PIX_AUTOMATIC_RECURRING_AUTHORIZATION_", "");
   const activated = status === "ACTIVATED";
@@ -46,7 +51,7 @@ async function processAutomaticPixAuthorization(event: {
           status: SubscriptionStatus.ACTIVE,
           nextBillingAt: addMonths(subscription.nextBillingAt && subscription.nextBillingAt > paidAt
             ? subscription.nextBillingAt
-            : paidAt, periodMonths[subscription.billingPeriod]),
+            : paidAt, subscriptionCycleMonths(subscription.billingPeriod, subscription.manualMonthlyBilling)),
           asaasPixAuthorizationStatus: "ACTIVE",
           recurringEnabled: true,
           recurringMethod: PaymentMethod.PIX,
