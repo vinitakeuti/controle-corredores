@@ -33,6 +33,10 @@ function buildHref(status: ListStatus, page: number, query: string) {
   return `/admin/analisar?${search.toString()}`;
 }
 
+function filterLabel(status: ListStatus) {
+  return [...paymentTabs, ...conditionTabs].find((tab) => tab.id === status)?.label ?? "Em dia";
+}
+
 function verificationLabel(status: string, requiredAt: Date | null) {
   if (!requiredAt) return { label: "Não exigido", tone: "muted" };
   if (status === "APPROVED") return { label: "Validado", tone: "ok" };
@@ -85,10 +89,13 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
     <header className="page-heading"><div><p className="eyebrow">Análise de dados</p><h1>Saúde das assinaturas.</h1><p>Organize pagamentos, condições comerciais e validações em uma só visão.</p></div><div className="date-now">{selectedTotal} resultados</div></header>
 
     <section className="panel analysis-panel">
-      <div className="analysis-tab-groups">
-        <div className="analysis-tab-group"><p>Status de pagamento</p><div className="analysis-tabs" role="tablist" aria-label="Status das assinaturas">{paymentTabs.map((tab) => <Link className={`analysis-tab ${status === tab.id ? "active" : ""}`} href={buildHref(tab.id, 1, query)} role="tab" aria-selected={status === tab.id} key={tab.id}>{tab.label} <span>{totals[tab.id]}</span></Link>)}</div></div>
-        <div className="analysis-tab-group"><p>Condições e verificação</p><div className="analysis-tabs analysis-condition-tabs" role="tablist" aria-label="Condições comerciais e termo">{conditionTabs.map((tab) => <Link className={`analysis-tab ${status === tab.id ? "active" : ""}`} href={buildHref(tab.id, 1, query)} role="tab" aria-selected={status === tab.id} key={tab.id}>{tab.label} <span>{totals[tab.id]}</span></Link>)}</div></div>
-      </div>
+      <details className="analysis-filter-menu">
+        <summary><span><small>Filtrar alunos por</small><strong>{filterLabel(status)}</strong></span><b>{selectedTotal}</b><i aria-hidden="true">⌄</i></summary>
+        <div className="analysis-filter-options">
+          <section><p>Status de pagamento</p><div>{paymentTabs.map((tab) => <Link className={status === tab.id ? "active" : ""} href={buildHref(tab.id, 1, query)} key={tab.id}><span>{tab.label}</span><b>{totals[tab.id]}</b></Link>)}</div></section>
+          <section><p>Condições e verificação</p><div>{conditionTabs.map((tab) => <Link className={status === tab.id ? "active" : ""} href={buildHref(tab.id, 1, query)} key={tab.id}><span>{tab.label}</span><b>{totals[tab.id]}</b></Link>)}</div></section>
+        </div>
+      </details>
 
       <div className="analysis-toolbar"><div><h2>{titles[status].title}</h2><p>{titles[status].description} Página {currentPage} de {totalPages}.</p></div><form className="student-search" method="get"><input type="hidden" name="status" value={status} /><label className="sr-only" htmlFor="student-search">Buscar aluno</label><input id="student-search" name="q" type="search" placeholder="Buscar nome ou e-mail" defaultValue={query} /><button className="button button-secondary" type="submit">Buscar</button></form></div>
 
