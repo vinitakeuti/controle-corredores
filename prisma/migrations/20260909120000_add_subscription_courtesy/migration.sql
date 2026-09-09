@@ -1,0 +1,1 @@
+ALTER TABLE "Subscription" ADD COLUMN "isCourtesy" BOOLEAN NOT NULL DEFAULT false;

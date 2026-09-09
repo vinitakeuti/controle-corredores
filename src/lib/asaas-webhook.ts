@@ -29,10 +29,10 @@ async function processAutomaticPixAuthorization(event: {
   if (!event.providerSubscriptionId) return false;
   const subscription = await prisma.subscription.findUnique({
     where: { asaasPixAuthorizationId: event.providerSubscriptionId },
-    select: { id: true, userId: true, nextBillingAt: true, status: true, billingPeriod: true, manualMonthlyBilling: true },
+    select: { id: true, userId: true, nextBillingAt: true, status: true, billingPeriod: true, manualMonthlyBilling: true, isCourtesy: true },
   });
   if (!subscription) return false;
-  if (subscription.manualMonthlyBilling) {
+  if (subscription.manualMonthlyBilling || subscription.isCourtesy) {
     await cancelAsaasAutomaticPixAuthorization(event.providerSubscriptionId).catch(() => undefined);
     await prisma.subscription.update({ where: { id: subscription.id }, data: { automaticPixEnabled: false, asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } });
     return true;

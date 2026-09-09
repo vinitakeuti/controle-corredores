@@ -204,6 +204,9 @@ export async function createPayment(input: CreatePaymentInput) {
   if (!account.subscription.planId) {
     throw new PaymentServiceError("Escolha um plano antes de gerar o pagamento.", 409);
   }
+  if (account.subscription.isCourtesy) {
+    throw new PaymentServiceError("Esta assinatura possui uma cortesia ativa e não precisa de pagamento.", 409);
+  }
   if (!account.subscription.allowedMethods.includes(prismaMethod) && !(input.automaticPix && account.subscription.automaticPixEnabled)) {
     throw new PaymentServiceError("Este método de pagamento não está disponível para esta assinatura.", 403);
   }
@@ -648,17 +651,19 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true } });
-      await transaction.subscription.update({
-        where: { id: current.subscriptionId },
-        data: {
-          status: SubscriptionStatus.ACTIVE,
-          nextBillingAt: addMonths(paidAt, subscriptionCycleMonths(subscription?.billingPeriod ?? "MONTHLY", subscription?.manualMonthlyBilling)),
-          providerCustomerId: snapshot.customerId ?? undefined,
-          recurringEnabled: current.recurringRequested,
-          recurringMethod: current.recurringRequested ? current.method : undefined,
-        },
-      });
+      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true, isCourtesy: true } });
+      if (!subscription?.isCourtesy) {
+        await transaction.subscription.update({
+          where: { id: current.subscriptionId },
+          data: {
+            status: SubscriptionStatus.ACTIVE,
+            nextBillingAt: addMonths(paidAt, subscriptionCycleMonths(subscription?.billingPeriod ?? "MONTHLY", subscription?.manualMonthlyBilling)),
+            providerCustomerId: snapshot.customerId ?? undefined,
+            recurringEnabled: current.recurringRequested,
+            recurringMethod: current.recurringRequested ? current.method : undefined,
+          },
+        });
+      }
       if (current.paymentLinkId) {
         await transaction.paymentLink.update({
           where: { id: current.paymentLinkId },
@@ -748,16 +753,18 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true } });
-      await transaction.subscription.update({
-        where: { id: current.subscriptionId },
-        data: {
-          status: SubscriptionStatus.ACTIVE,
-          nextBillingAt: addMonths(paidAt, subscriptionCycleMonths(subscription?.billingPeriod ?? "MONTHLY", subscription?.manualMonthlyBilling)),
-          recurringEnabled: current.recurringRequested,
-          recurringMethod: current.recurringRequested ? current.method : null,
-        },
-      });
+      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true, isCourtesy: true } });
+      if (!subscription?.isCourtesy) {
+        await transaction.subscription.update({
+          where: { id: current.subscriptionId },
+          data: {
+            status: SubscriptionStatus.ACTIVE,
+            nextBillingAt: addMonths(paidAt, subscriptionCycleMonths(subscription?.billingPeriod ?? "MONTHLY", subscription?.manualMonthlyBilling)),
+            recurringEnabled: current.recurringRequested,
+            recurringMethod: current.recurringRequested ? current.method : null,
+          },
+        });
+      }
       if (current.paymentLinkId) {
         await transaction.paymentLink.update({
           where: { id: current.paymentLinkId },

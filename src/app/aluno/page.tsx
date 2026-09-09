@@ -33,24 +33,24 @@ export default async function StudentPage() {
   return (
     <AppShell user={user} current="student">
       <header className="page-heading student-page-heading" data-tutorial-anchor="student-heading">
-        <div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>Veja sua assinatura e escolha como pagar.</p></div>
+        <div><p className="eyebrow">Área do aluno</p><h1>Olá, {user.name.split(" ")[0]}.</h1><p>{subscription.isCourtesy ? "Sua cortesia está ativa. Bons treinos!" : "Veja sua assinatura e escolha como pagar."}</p></div>
       </header>
 
       <section className="subscription-card">
         <div><p className="eyebrow">Minha assinatura</p><h2>{subscription?.planName ?? "Assinatura ainda não configurada"}</h2></div>
         <div className="subscription-meta">
           <div><small>Status</small><strong>{subscriptionLabel(subscription?.status ?? "INCOMPLETE")}</strong></div>
-          <div><small>Próxima cobrança</small><strong>{formatDate(subscription?.nextBillingAt)}</strong></div>
-          <div><small>{subscription.hasCustomPrice ? "Valor exclusivo por mês" : "Valor por mês"}</small><strong>{subscription ? formatCurrency(subscription.priceCents) : "—"}</strong></div>
-          <div><small>{subscription.manualMonthlyBilling ? "Cobrança mensal manual" : "Valor total do plano"}</small><strong>{subscription ? formatCurrency(subscriptionChargeCents(subscription.priceCents, subscription.billingPeriod, subscription.manualMonthlyBilling)) : "—"}</strong></div>
+          <div><small>{subscription.isCourtesy ? "Condição" : "Próxima cobrança"}</small><strong>{subscription.isCourtesy ? "Cortesia ativa" : formatDate(subscription?.nextBillingAt)}</strong></div>
+          <div><small>{subscription.isCourtesy ? "Plano" : subscription.hasCustomPrice ? "Valor exclusivo por mês" : "Valor por mês"}</small><strong>{subscription.isCourtesy ? subscription.planName : subscription ? formatCurrency(subscription.priceCents) : "—"}</strong></div>
+          <div><small>{subscription.isCourtesy ? "Pagamento" : subscription.manualMonthlyBilling ? "Cobrança mensal manual" : "Valor total do plano"}</small><strong>{subscription.isCourtesy ? "Isento" : subscription ? formatCurrency(subscriptionChargeCents(subscription.priceCents, subscription.billingPeriod, subscription.manualMonthlyBilling)) : "—"}</strong></div>
         </div>
       </section>
 
-      {subscription.hasCustomPrice || subscription.manualMonthlyBilling ? <p className="student-exclusive-price">{subscription.manualMonthlyBilling ? "Sua cobrança é manual e mensal. A cada mês, gere o pagamento do valor indicado acima." : "Sua assinatura possui um valor exclusivo definido pela Pace Lab."}</p> : null}
+      {subscription.isCourtesy || subscription.hasCustomPrice || subscription.manualMonthlyBilling ? <p className="student-exclusive-price">{subscription.isCourtesy ? "Você recebeu uma cortesia da Pace Lab. Não há pagamento pendente para esta assinatura." : subscription.manualMonthlyBilling ? "Sua cobrança é manual e mensal. A cada mês, gere o pagamento do valor indicado acima." : "Sua assinatura possui um valor exclusivo definido pela Pace Lab."}</p> : null}
 
-      {plans.length && !subscription.hasCustomPrice && !subscription.manualMonthlyBilling ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}
+      {plans.length && !subscription.isCourtesy && !subscription.hasCustomPrice && !subscription.manualMonthlyBilling ? <section className="panel student-plan-panel"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></section> : null}
 
-      <section className="panel student-payment-panel" data-tutorial-anchor="student-payment">
+      {!subscription.isCourtesy ? <section className="panel student-payment-panel" data-tutorial-anchor="student-payment">
         <CheckoutPayment
           name={account?.name ?? user.name}
           cpf={account?.cpf ?? ""}
@@ -64,7 +64,7 @@ export default async function StudentPage() {
           installmentLimit={subscription.manualMonthlyBilling ? 1 : periodMonths[subscription.billingPeriod]}
           embedded
         />
-      </section>
+      </section> : null}
 
       <section className="panel" style={{ marginTop: 18 }}>
         <div className="panel-heading"><div><h2>Histórico de pagamentos</h2><p>Seus últimos lançamentos.</p></div></div>

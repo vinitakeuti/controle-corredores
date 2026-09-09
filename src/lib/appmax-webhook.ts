@@ -66,6 +66,13 @@ export async function processAppmaxGatewayEvent(eventId: string) {
       });
       return;
     }
+    if (subscription.isCourtesy) {
+      await prisma.gatewayEvent.update({
+        where: { id: event.id },
+        data: { status: GatewayEventStatus.IGNORED, processedAt: new Date(), error: "Assinatura em cortesia" },
+      });
+      return;
+    }
 
     const occurredAt = event.occurredAt ?? new Date();
     if (event.eventName === "subscription_created") {

@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     });
     if (!student || !student.liabilityTermRequiredAt) return NextResponse.json({ error: "Este termo não está pendente para este acesso." }, { status: 409, headers: noStoreHeaders() });
     if (student.liabilityTermAcceptedAt) return NextResponse.json({ accepted: true, alreadyAccepted: true }, { headers: noStoreHeaders() });
-    if (student.subscription?.status !== SubscriptionStatus.ACTIVE || student.payments.length === 0) return NextResponse.json({ error: "O termo estará disponível após a confirmação do pagamento." }, { status: 409, headers: noStoreHeaders() });
+    if (student.subscription?.status !== SubscriptionStatus.ACTIVE || (student.payments.length === 0 && !student.subscription.isCourtesy)) return NextResponse.json({ error: "O termo estará disponível após a confirmação do pagamento ou a concessão de uma cortesia." }, { status: 409, headers: noStoreHeaders() });
     if (comparableName(signature) !== comparableName(student.name)) return NextResponse.json({ error: "A assinatura deve corresponder ao seu nome completo cadastrado." }, { status: 400, headers: noStoreHeaders() });
 
     const acceptedAt = new Date();
