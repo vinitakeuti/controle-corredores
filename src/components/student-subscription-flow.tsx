@@ -12,6 +12,7 @@ type Plan = {
   priceCents: number;
   allowedMethods: Method[];
   automaticPixEnabled: boolean;
+  isFeatured: boolean;
   service: { name: string };
 };
 

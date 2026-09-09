@@ -22,6 +22,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const active = body.active === undefined ? current.active : body.active === true;
     const allowedMethods = body.allowedMethods === undefined ? current.allowedMethods : parseAllowedMethods(body.allowedMethods);
     const automaticPixEnabled = body.automaticPixEnabled === undefined ? current.automaticPixEnabled : body.automaticPixEnabled === true;
+    const isFeatured = body.isFeatured === undefined ? current.isFeatured : body.isFeatured === true;
     if (!priceCents || !period || !allowedMethods) return NextResponse.json({ error: "Informe período, valor e pelo menos um método de pagamento." }, { status: 400, headers: noStoreHeaders() });
     const priceChanged = priceCents !== current.priceCents;
     const periodChanged = period !== current.period;
@@ -38,7 +39,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const authorizations = pixTermsChanged ? subscriptions.flatMap((subscription) => subscription.recurringEnabled && subscription.asaasPixAuthorizationId ? [subscription.asaasPixAuthorizationId] : []) : [];
     await Promise.all(authorizations.map((authorizationId) => cancelAsaasAutomaticPixAuthorization(authorizationId)));
     const plan = await prisma.$transaction(async (transaction) => {
-      const updated = await transaction.plan.update({ where: { id }, data: { priceCents, period, active, allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled }, include: { service: true } });
+      if (isFeatured) await transaction.plan.updateMany({ where: { serviceId: current.serviceId, id: { not: id }, isFeatured: true }, data: { isFeatured: false } });
+      const updated = await transaction.plan.update({ where: { id }, data: { priceCents, period, active, allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled, isFeatured }, include: { service: true } });
       if (subscriptions.length) {
         await transaction.subscription.updateMany({ where: { id: { in: subscriptions.map((subscription) => subscription.id) } }, data: { billingPeriod: period, ...(authorizations.length ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
         await transaction.subscription.updateMany({ where: { id: { in: subscriptions.filter((subscription) => !subscription.manualMonthlyBilling).map((subscription) => subscription.id) } }, data: { allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled } });

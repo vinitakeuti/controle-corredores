@@ -24,13 +24,17 @@ export async function POST(request: Request) {
     const priceCents = parseAmountCents(body.priceCents);
     const allowedMethods = body.allowedMethods === undefined ? [...DEFAULT_ALLOWED_METHODS] : parseAllowedMethods(body.allowedMethods);
     const automaticPixEnabled = body.automaticPixEnabled === undefined ? true : body.automaticPixEnabled === true;
+    const isFeatured = body.isFeatured === true;
     if ((!serviceId && (serviceName.length < 2 || serviceName.length > 80)) || !period || !priceCents || !allowedMethods) return NextResponse.json({ error: "Informe serviço, período, valor e pelo menos um método de pagamento." }, { status: 400, headers: noStoreHeaders() });
 
     const service = serviceId
       ? await prisma.service.findUnique({ where: { id: serviceId } })
       : await prisma.service.upsert({ where: { name: serviceName }, update: { active: true }, create: { name: serviceName } });
     if (!service) return NextResponse.json({ error: "Serviço não encontrado." }, { status: 404, headers: noStoreHeaders() });
-    const plan = await prisma.plan.create({ data: { serviceId: service.id, period, priceCents, allowedMethods, automaticPixEnabled }, include: { service: true } });
+    const plan = await prisma.$transaction(async (transaction) => {
+      if (isFeatured) await transaction.plan.updateMany({ where: { serviceId: service.id, isFeatured: true }, data: { isFeatured: false } });
+      return transaction.plan.create({ data: { serviceId: service.id, period, priceCents, allowedMethods, automaticPixEnabled, isFeatured }, include: { service: true } });
+    });
     return NextResponse.json({ plan: { ...plan, label: planDisplayName(plan) } }, { headers: noStoreHeaders() });
   } catch (error) {
     const message = error instanceof Error && /Unique constraint/.test(error.message) ? "Esse serviço já possui um plano para esse período." : "Não foi possível criar o plano.";
