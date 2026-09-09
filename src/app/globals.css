@@ -1496,3 +1496,36 @@ body.tutorial-open { overflow: hidden; }
   .tutorial-actions { flex-wrap: wrap; }
   .tutorial-actions .tutorial-button:last-child { margin-left: auto; }
 }
+
+/* Análise de dados: status, condições comerciais e validação em camadas. */
+.analysis-tab-groups { display: grid; gap: 20px; padding: 18px 0 2px; }
+.analysis-tab-group > p { margin: 0 0 8px; color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.analysis-tab-group .analysis-tabs { gap: 20px; padding: 0 0 11px; }
+.analysis-condition-tabs { border-bottom-style: dashed; }
+.analysis-table { min-width: 980px; }
+.analysis-table th:nth-child(1) { min-width: 180px; }
+.analysis-table th:nth-child(2) { min-width: 170px; }
+.analysis-table th:nth-child(3) { min-width: 160px; }
+.analysis-table th:nth-child(4) { min-width: 105px; }
+.analysis-table th:nth-child(5) { min-width: 135px; }
+.analysis-table th:nth-child(6) { min-width: 160px; }
+.student-profile-link { color: var(--text); text-decoration: none; }
+.student-profile-link:hover { color: var(--accent-bright); text-decoration: underline; text-underline-offset: 3px; }
+.analysis-plan-name { max-width: 190px; overflow: hidden; color: var(--text); font-size: 12px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.analysis-condition-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.analysis-condition-pills .pill { font-size: 10px; }
+.pill-manual { color: #5c4722; border-color: rgba(164, 122, 39, .45); background: rgba(240, 219, 176, .34); }
+.pill-muted { color: var(--muted); border-color: var(--line); }
+.analysis-price { color: var(--text); font-size: 12px; white-space: nowrap; }
+.verification-pill { font-size: 10px; white-space: nowrap; }
+.verification-pending { color: #8b3d26; border-color: rgba(225, 93, 55, .5); background: rgba(225, 93, 55, .1); }
+.verification-ok { color: #31523e; border-color: rgba(49, 82, 62, .34); background: rgba(49, 82, 62, .08); }
+.verification-alert { color: var(--accent-bright); border-color: rgba(225, 93, 55, .5); background: rgba(225, 93, 55, .08); }
+.verification-muted { color: var(--muted); border-color: var(--line); }
+
+@media (max-width: 560px) {
+  .analysis-tab-groups { gap: 16px; }
+  .analysis-tab-group .analysis-tabs { display: flex; gap: 16px; overflow-x: auto; }
+  .analysis-tab-group .analysis-tab { flex: 0 0 auto; display: inline-flex; gap: 7px; justify-content: flex-start; padding: 0 0 10px; font-size: 11px; text-align: left; white-space: nowrap; }
+  .analysis-table { min-width: 980px; }
+}
