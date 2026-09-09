@@ -7,7 +7,7 @@ type Plan = { id: string; period: "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNU
 const periodLabels = { MONTHLY: "Mensal", QUARTERLY: "Trimestral", SEMIANNUAL: "Semestral", ANNUAL: "Anual" };
 const periodMonths = { MONTHLY: 1, QUARTERLY: 3, SEMIANNUAL: 6, ANNUAL: 12 };
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
-const paymentSummary = (plan: Plan) => plan.period === "MONTHLY" ? `${money(plan.priceCents)} à vista` : `${money(plan.priceCents * periodMonths[plan.period])} no período · até ${periodMonths[plan.period]}x de ${money(plan.priceCents)} no cartão`;
+const paymentSummary = (plan: Plan) => `${money(plan.priceCents)} por mês · ${periodMonths[plan.period]}x no cartão`;
 
 export function StudentPlanPicker({ plans, currentPlanId, compact = false, confirmLabel, onPlanSelected }: { plans: Plan[]; currentPlanId: string | null; compact?: boolean; confirmLabel?: string; onPlanSelected?: (plan: Plan) => void }) {
   const router = useRouter();

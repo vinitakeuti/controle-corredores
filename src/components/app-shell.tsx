@@ -10,7 +10,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
   return (
     <div className="app-shell">
       <MobileNav user={user} current={current} />
-      <aside className="sidebar">
+      <aside className={`sidebar sidebar-${user.role.toLowerCase()}`}>
         <Brand href={user.role === UserRole.STUDENT ? "/aluno" : user.role === UserRole.OPERATOR ? "/admin/alunos" : "/admin"} />
         <nav aria-label="Navegação principal">
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "admin" ? "active" : ""}`} href="/admin">Visão geral</Link> : null}
