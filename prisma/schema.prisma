@@ -85,6 +85,13 @@ model User {
   liabilityTermAcceptedCpf  String?
   liabilityTermVersion      String?
   liabilityTermDocument     String?
+  liabilityTermStatus       String               @default("PENDING")
+  liabilityTermSignedPdf    Bytes?
+  liabilityTermFileName     String?
+  liabilityTermSubmittedAt  DateTime?
+  liabilityTermReviewedAt   DateTime?
+  liabilityTermReviewedById String?
+  liabilityTermReviewNote   String?
   createdAt                 DateTime             @default(now())
   updatedAt                 DateTime             @updatedAt
   session                   Session[]

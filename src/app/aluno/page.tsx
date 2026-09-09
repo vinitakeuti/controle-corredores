@@ -22,8 +22,9 @@ export default async function StudentPage() {
   const gateway = await getPaymentCheckoutConfig();
   const plans = await getActivePlans();
 
-  if (subscription?.status === "ACTIVE" && account?.liabilityTermRequiredAt && !account.liabilityTermAcceptedAt) {
-    return <AppShell user={user} current="student"><LiabilityTermAcceptance name={account.name} cpf={account.cpf} birthDate={formatDate(account.birthDate)} phone={account.phone} email={account.email} joinedAt={formatDate(account.joinedAt)} planName={subscription.planName} /></AppShell>;
+  if (subscription?.status === "ACTIVE" && account?.liabilityTermRequiredAt && account.liabilityTermStatus !== "APPROVED") {
+    const termStatus = account.liabilityTermStatus === "SUBMITTED" || account.liabilityTermStatus === "REJECTED" ? account.liabilityTermStatus : "PENDING";
+    return <AppShell user={user} current="student"><LiabilityTermAcceptance status={termStatus} reviewNote={account.liabilityTermReviewNote} /></AppShell>;
   }
 
   if (!subscription || !subscription.planId || subscription.status !== "ACTIVE") {

@@ -198,6 +198,24 @@
 .liability-term-data dt { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
 .liability-term-data dd { margin: 5px 0 0; color: var(--text); font-size: 12px; overflow-wrap: anywhere; }
 .liability-term-signature { display: grid; gap: 15px; max-width: 570px; margin-top: 20px; padding: 22px 0 8px; }
+.term-signing-steps { display: grid; gap: 0; margin: 24px 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.term-signing-steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.term-signing-steps > li > span { display: grid; width: 28px; height: 28px; place-items: center; color: var(--text); border: 1px solid var(--text); border-radius: 50%; font-size: 12px; font-weight: 800; }
+.term-signing-steps li > div { display: grid; justify-items: start; gap: 7px; }
+.term-signing-steps strong { color: var(--text); font-size: 15px; }
+.term-signing-steps small, .term-signing-steps em { color: var(--muted); font-size: 12px; font-style: normal; line-height: 1.5; }
+.term-signing-steps .button { margin-top: 4px; }
+.term-file-input { width: min(100%, 430px); margin-top: 5px; color: var(--muted-strong); font: inherit; font-size: 12px; }
+.term-waiting-panel { max-width: 620px; margin-top: 24px; }
+.term-waiting-panel p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+.term-rejected-notice { margin-top: 22px; }
+.liability-term-review { margin-top: 18px; }
+.term-review-file { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+.term-review-file > div { display: grid; gap: 5px; min-width: 0; }
+.term-review-file strong { overflow-wrap: anywhere; color: var(--text); font-size: 13px; }
+.term-review-file small, .term-review-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.term-review-actions { display: grid; gap: 14px; margin-top: 18px; }
+.term-validator-link { justify-self: start; color: var(--text); font-size: 12px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
 .term-confirmation { display: flex; align-items: flex-start; gap: 10px; color: var(--text); font-size: 13px; font-weight: 700; line-height: 1.45; }
 .term-confirmation input { width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--accent); }
 .signed-term-document { white-space: pre-wrap; }
@@ -240,6 +258,7 @@
   .subscription-method-options { grid-template-columns: 1fr; }
   .liability-term-document { max-height: none; padding: 18px; }
   .liability-term-data { grid-template-columns: 1fr; }
+  .term-review-file { align-items: flex-start; flex-direction: column; }
   .subscription-flow-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .subscription-flow-actions .button { width: 100%; min-width: 0; }
   .subscription-flow-stage { padding-top: 24px; }
