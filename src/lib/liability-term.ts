@@ -1,6 +1,6 @@
 export const LIABILITY_TERM_VERSION = "PACELAB-2026";
 export const LIABILITY_TERM_PDF_PATH = "/termos/PACELAB_Termo_Responsabilidade_2026.pdf";
-export const LIABILITY_TERM_PDF_SHA256 = "dfa0817848c0fe7b17eafb97a9b948d0687bfdab5a59c45d98ef07f012ba47a0";
+export const LIABILITY_TERM_PDF_SHA256 = "4e8ebf6d17740be2d6e0131773bdcdb628afd988cdb2d0ecdda148f6251dceec";
 
 type LiabilityTermSection = {
   title: string;

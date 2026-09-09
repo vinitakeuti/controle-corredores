@@ -147,7 +147,7 @@
 .billing-plans-empty { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .billing-method-options { max-width: 430px; margin-top: 20px; }
 .student-plan-panel { margin-top: 18px; }
-.student-exclusive-price { margin: -3px 0 18px; color: var(--accent); font-size: 12px; font-weight: 750; }
+.student-exclusive-price { margin: 22px 0 18px; color: var(--accent); font-size: 12px; font-weight: 750; }
 .student-subscription-flow { max-width: 760px; border-top: 1px solid var(--line); }
 .subscription-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 17px 0; list-style: none; border-bottom: 1px solid var(--line); }
 .subscription-steps li { display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
@@ -201,21 +201,66 @@
 .term-signing-steps { display: grid; gap: 0; margin: 24px 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
 .term-signing-steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--line); }
 .term-signing-steps > li > span { display: grid; width: 28px; height: 28px; place-items: center; color: var(--text); border: 1px solid var(--text); border-radius: 50%; font-size: 12px; font-weight: 800; }
-.term-signing-steps li > div { display: grid; justify-items: start; gap: 7px; }
+.term-signing-steps li > div { display: grid; width: 100%; justify-items: start; gap: 7px; }
 .term-signing-steps strong { color: var(--text); font-size: 15px; }
 .term-signing-steps small, .term-signing-steps em { color: var(--muted); font-size: 12px; font-style: normal; line-height: 1.5; }
-.term-signing-steps .button { margin-top: 4px; }
-.term-file-input { width: min(100%, 430px); margin-top: 5px; color: var(--muted-strong); font: inherit; font-size: 12px; }
+.term-step-action {
+  display: flex;
+  width: min(100%, 360px);
+  min-height: 46px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 5px;
+  padding: 0 14px 0 15px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+.term-step-action:hover { color: #ffffff; background: var(--text); border-color: var(--text); transform: translateY(-1px); }
+.term-step-action b { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-size: 14px; font-weight: 500; line-height: 1; }
+.term-gov-action { color: #ffffff; background: #1b2420; border-color: #1b2420; }
+.term-gov-action:hover { color: #ffffff; background: #2b3731; border-color: #2b3731; }
+.term-upload-action { border-style: dashed; }
+.term-file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.term-file-name { max-width: min(100%, 360px); padding-left: 2px; color: var(--text) !important; font-weight: 700; overflow-wrap: anywhere; }
+.term-file-hint { padding-left: 2px; }
+.term-submit-action { width: min(100%, 360px); margin-top: 2px; }
+.term-submit-action:disabled { color: #6f7873; background: #aeb5b0; border-color: #aeb5b0; cursor: not-allowed; opacity: 1; }
 .term-waiting-panel { max-width: 620px; margin-top: 24px; }
 .term-waiting-panel p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
 .term-rejected-notice { margin-top: 22px; }
 .liability-term-review { margin-top: 18px; }
+.liability-term-review-submitted { position: relative; padding: 27px 22px 24px; background: rgba(255, 255, 255, 0.44); border-top: 3px solid var(--accent); }
+.liability-term-review-submitted .panel-heading { margin-bottom: 18px; }
+.liability-term-review-submitted .panel-heading h2 { margin-bottom: 5px; }
 .term-review-file { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
 .term-review-file > div { display: grid; gap: 5px; min-width: 0; }
 .term-review-file strong { overflow-wrap: anywhere; color: var(--text); font-size: 13px; }
 .term-review-file small, .term-review-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.term-review-actions { display: grid; gap: 14px; margin-top: 18px; }
-.term-validator-link { justify-self: start; color: var(--text); font-size: 12px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.term-review-open-file { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; flex: 0 0 auto; padding: 0 12px; color: var(--text); border: 1px solid var(--line); font-size: 12px; font-weight: 800; text-decoration: none; }
+.term-review-open-file:hover { color: #ffffff; background: var(--text); border-color: var(--text); }
+.term-review-actions { display: grid; gap: 16px; margin-top: 18px; }
+.term-validation-callout { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px; background: rgba(225, 93, 55, 0.08); border-left: 3px solid var(--accent); }
+.term-validation-callout > div { display: flex; align-items: flex-start; gap: 11px; }
+.term-validation-callout > div > span { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; color: var(--accent); border: 1px solid currentColor; border-radius: 50%; font-size: 11px; font-weight: 800; }
+.term-validation-callout strong { display: block; color: var(--text); font-size: 13px; }
+.term-validation-callout p { max-width: 540px; margin: 4px 0 0; color: var(--muted-strong); font-size: 12px; line-height: 1.45; }
+.term-validation-callout > a { display: inline-flex; min-height: 38px; align-items: center; gap: 8px; flex: 0 0 auto; padding: 0 12px; color: #ffffff; background: var(--text); border: 1px solid var(--text); font-size: 12px; font-weight: 800; text-decoration: none; }
+.term-validation-callout > a:hover { background: #2b3731; border-color: #2b3731; }
+.term-validation-callout b { font-size: 14px; font-weight: 500; }
+.term-review-note-field { margin: 0; }
+.term-review-decision-actions { display: flex; flex-wrap: wrap; gap: 9px; padding-top: 2px; }
+.term-review-decision-actions .button { min-width: 190px; }
+.term-review-reject { color: var(--accent-bright); background: transparent; border-color: rgba(225, 93, 55, 0.45); }
+.term-review-reject:hover { color: #ffffff; background: var(--accent); border-color: var(--accent); }
 .term-confirmation { display: flex; align-items: flex-start; gap: 10px; color: var(--text); font-size: 13px; font-weight: 700; line-height: 1.45; }
 .term-confirmation input { width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--accent); }
 .signed-term-document { white-space: pre-wrap; }
@@ -259,6 +304,9 @@
   .liability-term-document { max-height: none; padding: 18px; }
   .liability-term-data { grid-template-columns: 1fr; }
   .term-review-file { align-items: flex-start; flex-direction: column; }
+  .liability-term-review-submitted { padding: 23px 16px 20px; }
+  .term-validation-callout { align-items: stretch; flex-direction: column; }
+  .term-validation-callout > a, .term-review-decision-actions .button { width: 100%; justify-content: center; }
   .subscription-flow-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .subscription-flow-actions .button { width: 100%; min-width: 0; }
   .subscription-flow-stage { padding-top: 24px; }

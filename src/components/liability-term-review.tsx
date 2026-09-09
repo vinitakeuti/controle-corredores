@@ -36,5 +36,40 @@ export function LiabilityTermReview({ studentId, status, fileName, submittedAt, 
     }
   }
 
-  return <section className="panel profile-payments liability-term-review"><div className="panel-heading"><div><p className="eyebrow">Termo de responsabilidade</p><h2>{statusLabel[status]}</h2><p>{status === "SUBMITTED" ? "Confira a assinatura no VALIDAR do ITI antes de aprovar." : status === "APPROVED" ? "Documento assinado digitalmente e validado pela administração." : status === "REJECTED" ? "O aluno pode enviar um novo PDF assinado." : "O aluno ainda não enviou o PDF assinado."}</p></div><span className={`pill ${status === "REJECTED" ? "pill-coral" : ""}`}>{statusLabel[status]}</span></div>{hasSignedPdf ? <div className="term-review-file"><div><strong>{fileName || "Termo assinado em PDF"}</strong><small>{submittedAt ? `Enviado em ${submittedAt}` : "PDF enviado pelo aluno"}{reviewedAt ? ` · Revisado em ${reviewedAt}` : ""}</small></div><a className="button button-quiet" href={`/api/admin/students/${encodeURIComponent(studentId)}/liability-term`} target="_blank" rel="noreferrer">Abrir PDF</a></div> : null}{status === "SUBMITTED" ? <div className="term-review-actions"><a className="term-validator-link" href="https://validar.iti.gov.br" target="_blank" rel="noreferrer">Validar assinatura no ITI ↗</a><div className="field"><label htmlFor="term-review-note">Observação da validação</label><textarea id="term-review-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Opcional ao aprovar; obrigatório se solicitar novo envio." rows={3} /></div>{error ? <p className="error-message">{error}</p> : null}<div className="creation-actions"><button className="button button-dark" type="button" disabled={pending} onClick={() => review("APPROVE")}>{pending ? "Salvando..." : "Aprovar termo"}</button><button className="button button-danger-quiet" type="button" disabled={pending} onClick={() => review("REJECT")}>Solicitar novo envio</button></div></div> : reviewNote ? <p className="term-review-note"><strong>Observação:</strong> {reviewNote}</p> : null}</section>;
+  return (
+    <section className={`panel profile-payments liability-term-review liability-term-review-${status.toLowerCase()}`}>
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Termo de responsabilidade</p>
+          <h2>{statusLabel[status]}</h2>
+          <p>{status === "SUBMITTED" ? "Confira a assinatura no VALIDAR do ITI antes de aprovar." : status === "APPROVED" ? "Documento assinado digitalmente e validado pela administração." : status === "REJECTED" ? "O aluno pode enviar um novo PDF assinado." : "O aluno ainda não enviou o PDF assinado."}</p>
+        </div>
+        <span className={`pill ${status === "REJECTED" ? "pill-coral" : ""}`}>{statusLabel[status]}</span>
+      </div>
+
+      {hasSignedPdf ? <div className="term-review-file">
+        <div>
+          <strong>{fileName || "Termo assinado em PDF"}</strong>
+          <small>{submittedAt ? `Enviado em ${submittedAt}` : "PDF enviado pelo aluno"}{reviewedAt ? ` · Revisado em ${reviewedAt}` : ""}</small>
+        </div>
+        <a className="term-review-open-file" href={`/api/admin/students/${encodeURIComponent(studentId)}/liability-term`} target="_blank" rel="noreferrer">Abrir PDF <span aria-hidden="true">↗</span></a>
+      </div> : null}
+
+      {status === "SUBMITTED" ? <div className="term-review-actions">
+        <div className="term-validation-callout">
+          <div><span aria-hidden="true">1</span><div><strong>Valide a assinatura digital</strong><p>Abra o arquivo, envie-o ao VALIDAR do ITI e confirme a validade antes de liberar o aluno.</p></div></div>
+          <a href="https://validar.iti.gov.br" target="_blank" rel="noreferrer">Validar no ITI <b aria-hidden="true">↗</b></a>
+        </div>
+        <div className="field term-review-note-field">
+          <label htmlFor="term-review-note">Observação da validação</label>
+          <textarea id="term-review-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Opcional ao aprovar; obrigatória se solicitar novo envio." rows={3} />
+        </div>
+        {error ? <p className="error-message">{error}</p> : null}
+        <div className="term-review-decision-actions">
+          <button className="button button-dark" type="button" disabled={pending} onClick={() => review("APPROVE")}>{pending ? "Salvando..." : "Aprovar e liberar aluno"}</button>
+          <button className="button term-review-reject" type="button" disabled={pending} onClick={() => review("REJECT")}>Solicitar novo envio</button>
+        </div>
+      </div> : reviewNote ? <p className="term-review-note"><strong>Observação:</strong> {reviewNote}</p> : null}
+    </section>
+  );
 }
