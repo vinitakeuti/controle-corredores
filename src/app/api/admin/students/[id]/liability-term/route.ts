@@ -5,15 +5,15 @@ import { LIABILITY_TERM_PDF_SHA256, LIABILITY_TERM_VERSION } from "@/lib/liabili
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 
-async function adminUser(request: Request) {
+async function staffUser(request: Request) {
   if (!isSameOrigin(request)) return null;
   const user = await getCurrentUser();
-  return user?.role === UserRole.ADMIN ? user : null;
+  return user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR ? user : null;
 }
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
-  const admin = await adminUser(request);
-  if (!admin) return NextResponse.json({ error: "Apenas administradores podem consultar o termo." }, { status: 403, headers: noStoreHeaders() });
+  const staff = await staffUser(request);
+  if (!staff) return NextResponse.json({ error: "Apenas colaboradores podem consultar o termo." }, { status: 403, headers: noStoreHeaders() });
   const { id } = await context.params;
   const student = await prisma.user.findFirst({ where: { id, role: UserRole.STUDENT }, select: { name: true, liabilityTermSignedPdf: true, liabilityTermFileName: true } });
   if (!student?.liabilityTermSignedPdf) return NextResponse.json({ error: "Nenhum PDF assinado foi enviado." }, { status: 404, headers: noStoreHeaders() });
@@ -30,8 +30,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const admin = await adminUser(request);
-    if (!admin) return NextResponse.json({ error: "Apenas administradores podem validar o termo." }, { status: 403, headers: noStoreHeaders() });
+    const staff = await staffUser(request);
+    if (!staff) return NextResponse.json({ error: "Apenas colaboradores podem validar o termo." }, { status: 403, headers: noStoreHeaders() });
     if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") return NextResponse.json({ error: "Formato inválido" }, { status: 415, headers: noStoreHeaders() });
     const { id } = await context.params;
     const body = await request.json() as Record<string, unknown>;
@@ -54,12 +54,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         liabilityTermVersion: LIABILITY_TERM_VERSION,
         liabilityTermDocument: `Documento-base ${LIABILITY_TERM_VERSION}; SHA-256 ${LIABILITY_TERM_PDF_SHA256}. PDF assinado eletronicamente via GOV.BR e validado pela administração da Pace Lab.`,
         liabilityTermReviewedAt: reviewedAt,
-        liabilityTermReviewedById: admin.id,
+        liabilityTermReviewedById: staff.id,
         liabilityTermReviewNote: note || null,
       } : {
         liabilityTermStatus: "REJECTED",
         liabilityTermReviewedAt: reviewedAt,
-        liabilityTermReviewedById: admin.id,
+        liabilityTermReviewedById: staff.id,
         liabilityTermReviewNote: note,
       },
     });

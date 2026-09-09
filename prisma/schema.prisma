@@ -108,6 +108,7 @@ model User {
   saleOwnerId               String?
   saleOwner                 User?                @relation("SaleOwner", fields: [saleOwnerId], references: [id], onDelete: SetNull)
   sales                     User[]               @relation("SaleOwner")
+  commissionRateBps         Int                  @default(0)
 
   @@index([role])
   @@index([joinedAt])

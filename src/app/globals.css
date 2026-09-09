@@ -435,6 +435,12 @@
 .collaborator-row strong { color: var(--text); font-size: 13px; }
 .collaborator-row span { margin-top: 4px; color: var(--muted); font-size: 11px; }
 .collaborator-row em { flex: 0 0 auto; color: var(--muted-strong); font-size: 10px; font-style: normal; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.collaborator-commission { flex: 0 0 auto; display: grid; gap: 5px; }
+.collaborator-commission label { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.collaborator-commission > div { display: flex; align-items: center; gap: 5px; }
+.collaborator-commission input { width: 58px; min-height: 31px; padding: 0 6px; text-align: right; font-size: 11px; }
+.collaborator-commission span { margin: 0; color: var(--muted); font-size: 11px; }
+.collaborator-commission .button { min-height: 31px; padding: 0 9px; font-size: 10px; }
 .collaborator-created { padding: 20px 0 28px; border-top: 1px solid var(--line); }
 .collaborator-created .success-message { margin: 0 0 14px; }
 .collaborator-created > div { display: grid; gap: 7px; width: min(100%, 420px); padding: 16px; background: rgba(255,255,255,.5); border-left: 3px solid var(--accent); }
@@ -1465,6 +1471,8 @@ body.tutorial-open { overflow: hidden; }
 .member-editor-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .member-editor-list small { grid-column: 3; color: var(--muted); font-size: 10px; }
 .sales-heading { align-items: flex-start; }
+.sales-analysis-link { display: inline-flex; align-items: center; gap: 7px; }
+.sales-analysis-link > span { color: var(--accent); font-size: 15px; }
 .sales-seller-filter { position: relative; flex: 0 0 auto; }
 .sales-seller-filter summary { list-style: none; cursor: pointer; }
 .sales-seller-filter summary::-webkit-details-marker { display: none; }
@@ -1487,7 +1495,30 @@ body.tutorial-open { overflow: hidden; }
 .sales-performance strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .sales-performance span { color: var(--muted); font-size: 11px; }
 .sales-performance b { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 12px; }
-@media (max-width: 760px) { .work-area-grid { grid-template-columns: 1fr; } .demands-page-heading { position: relative; } .demands-page-heading .work-area-create-trigger { position: absolute; top: -2px; right: 0; width: 38px; height: 38px; font-size: 25px; } .demands-page-heading .eyebrow { padding-right: 52px; } .demand-board-head { align-items: flex-start; flex-direction: column; } .demand-board-actions { width: 100%; justify-content: flex-end; } .demand-board-actions .button { flex: 1; } .demand-columns { grid-auto-columns: minmax(78vw, 1fr); } .demand-column { min-height: 410px; } .demand-editor, .work-area-editor { padding: 20px; } .demand-editor-grid { grid-template-columns: 1fr; } .column-editor-list > div { flex-wrap: wrap; } .column-editor-list input { width: 100%; flex-basis: 100%; } .demand-view-actions .button { flex: 1 1 calc(50% - 8px); } .demand-folder-create { grid-template-columns: 1fr; } .selected-plan-summary { align-items: flex-start; flex-direction: column; } .selected-plan-summary > b { text-align: left; } .sales-heading { display: flex; align-items: flex-start; } .sales-seller-filter { margin-left: auto; } .sales-seller-filter form { right: 0; width: min(270px, calc(100vw - 32px)); } .sales-filter, .sales-layout { grid-template-columns: 1fr; } .sales-filter .button { width: 100%; } .sales-table { min-width: 710px; } }
+.sales-analysis-heading { align-items: flex-start; }
+.sales-period-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; padding: 0 0 18px; border-bottom: 1px solid var(--line); }
+.sales-period-tabs a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 13px; color: var(--muted); background: rgba(255,255,255,.35); border: 1px solid var(--line); font-size: 11px; font-weight: 750; }
+.sales-period-tabs a:hover { color: var(--text); border-color: var(--muted); }
+.sales-period-tabs a.active { color: #fff; background: var(--text); border-color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
+.sales-range-label { margin: 0 0 23px; color: var(--muted); font-size: 11px; }
+.sales-analysis-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sales-analysis-panel { max-width: 1040px; }
+.sales-analysis-panel .panel-heading { padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.sales-analysis-list { display: grid; }
+.sales-analysis-row { display: grid; grid-template-columns: 42px minmax(190px, .75fr) minmax(440px, 1.25fr); gap: 16px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--line-soft); }
+.sales-rank { display: grid; width: 31px; height: 31px; place-items: center; color: var(--muted); background: rgba(255,255,255,.45); border: 1px solid var(--line); border-radius: 50%; font-size: 10px; font-weight: 850; letter-spacing: .04em; }
+.sales-person { min-width: 0; display: grid; gap: 3px; }
+.sales-person strong, .sales-person span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sales-person strong { color: var(--text); font-size: 13px; }
+.sales-person span, .sales-person small { color: var(--muted); font-size: 10px; }
+.sales-person small { margin-top: 4px; color: var(--muted-strong); }
+.sales-analysis-row dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.sales-analysis-row dl > div { min-width: 0; padding-left: 13px; border-left: 1px solid var(--line); }
+.sales-analysis-row dt { margin-bottom: 5px; color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.sales-analysis-row dd { margin: 0; color: var(--text); font-size: 12px; font-weight: 750; }
+.sales-analysis-row dd span { color: var(--muted); font-size: 10px; font-weight: 500; white-space: nowrap; }
+.sales-analysis-row .sales-commission-value dd { color: var(--accent); }
+@media (max-width: 760px) { .work-area-grid { grid-template-columns: 1fr; } .demands-page-heading { position: relative; } .demands-page-heading .work-area-create-trigger { position: absolute; top: -2px; right: 0; width: 38px; height: 38px; font-size: 25px; } .demands-page-heading .eyebrow { padding-right: 52px; } .demand-board-head { align-items: flex-start; flex-direction: column; } .demand-board-actions { width: 100%; justify-content: flex-end; } .demand-board-actions .button { flex: 1; } .demand-columns { grid-auto-columns: minmax(78vw, 1fr); } .demand-column { min-height: 410px; } .demand-editor, .work-area-editor { padding: 20px; } .demand-editor-grid { grid-template-columns: 1fr; } .column-editor-list > div { flex-wrap: wrap; } .column-editor-list input { width: 100%; flex-basis: 100%; } .demand-view-actions .button { flex: 1 1 calc(50% - 8px); } .demand-folder-create { grid-template-columns: 1fr; } .selected-plan-summary { align-items: flex-start; flex-direction: column; } .selected-plan-summary > b { text-align: left; } .sales-heading { display: flex; align-items: flex-start; } .sales-filter, .sales-layout { grid-template-columns: 1fr; } .sales-filter .button { width: 100%; } .sales-table { min-width: 710px; } .sales-period-tabs { flex-wrap: nowrap; padding-bottom: 14px; overflow-x: auto; } .sales-period-tabs a { flex: 0 0 auto; } .sales-analysis-metrics { grid-template-columns: 1fr; } .sales-analysis-row { grid-template-columns: 32px minmax(0, 1fr); gap: 8px 10px; } .sales-analysis-row dl { grid-column: 1 / -1; grid-template-columns: 1fr; gap: 0; } .sales-analysis-row dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line-soft); border-left: 0; } .sales-analysis-row dt { margin: 0; } .sales-analysis-row dd { text-align: right; } .collaborator-row { align-items: flex-start; flex-wrap: wrap; gap: 9px 12px; } .collaborator-commission { width: 100%; } }
 
 @media (max-width: 760px) {
   .tutorial-card { right: 16px; bottom: 16px; left: 16px; width: auto; padding: 23px 21px 20px; }
