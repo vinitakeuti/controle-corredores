@@ -8,8 +8,44 @@ export function LiabilityTermAcceptance({ status, reviewNote }: { status: TermSt
   const fileInputId = useId();
   const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [submitted, setSubmitted] = useState(status === "SUBMITTED");
   const [error, setError] = useState("");
+
+  async function download() {
+    setDownloading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/student/liability-term/download", { cache: "no-store", credentials: "same-origin" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null) as { error?: string } | null;
+        setError(data?.error ?? "Não foi possível preparar o termo para download.");
+        return;
+      }
+      if (!response.headers.get("content-type")?.includes("application/pdf")) {
+        setError("O arquivo preparado não é um PDF válido. Tente novamente em alguns instantes.");
+        return;
+      }
+      const fileBlob = await response.blob();
+      if (!fileBlob.size) {
+        setError("O PDF foi gerado vazio. Tente novamente em alguns instantes.");
+        return;
+      }
+      const url = URL.createObjectURL(fileBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "termo-pace-lab-preenchido.pdf";
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 2_000);
+    } catch {
+      setError("Não foi possível iniciar o download. Verifique sua conexão e tente novamente.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   async function upload() {
     if (!file) {
@@ -41,7 +77,7 @@ export function LiabilityTermAcceptance({ status, reviewNote }: { status: TermSt
     <header className="liability-term-heading"><p className="eyebrow">Termo obrigatório</p><h1>Assine seu termo digitalmente.</h1><p>Baixe o documento, assine gratuitamente com sua conta GOV.BR e envie o PDF assinado para validação da Pace Lab.</p></header>
     {status === "REJECTED" ? <div className="notice term-rejected-notice"><strong>Precisamos de um novo envio</strong><p>{reviewNote || "O documento não pôde ser validado. Confira a assinatura e envie novamente."}</p></div> : null}
     <ol className="term-signing-steps">
-      <li><span>1</span><div><strong>Baixe o termo</strong><small>O PDF já vem preenchido com seus dados. Confira as informações e guarde uma cópia.</small><a className="term-step-action term-download-action" href="/api/student/liability-term/download"><span>Baixar PDF preenchido</span><b aria-hidden="true">↓</b></a></div></li>
+      <li><span>1</span><div><strong>Baixe o termo</strong><small>O PDF já vem preenchido com seus dados. Confira as informações e guarde uma cópia.</small><button className="term-step-action term-download-action" type="button" onClick={() => void download()} disabled={downloading}><span>{downloading ? "Preparando PDF..." : "Baixar PDF preenchido"}</span><b aria-hidden="true">↓</b></button></div></li>
       <li><span>2</span><div><strong>Assine no GOV.BR</strong><small>Use sua conta GOV.BR nível prata ou ouro para assinar o PDF.</small><a className="term-step-action term-gov-action" href="https://assinador.iti.br" target="_blank" rel="noreferrer"><span>Abrir Assinador GOV.BR</span><b aria-hidden="true">↗</b></a></div></li>
       <li><span>3</span><div><strong>Envie o PDF assinado</strong><small>Envie o arquivo baixado após a assinatura. Aceitamos PDF de até 10 MB.</small><input id={fileInputId} className="term-file-input" type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /><label className="term-step-action term-upload-action" htmlFor={fileInputId}><span>{file ? "Trocar PDF assinado" : "Selecionar PDF assinado"}</span><b aria-hidden="true">↑</b></label>{file ? <em className="term-file-name">{file.name}</em> : <em className="term-file-hint">Nenhum PDF selecionado ainda.</em>}</div></li>
     </ol>
