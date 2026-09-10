@@ -16,7 +16,8 @@ export async function GET(request: Request) {
     }
     const pdf = await buildPersonalizedLiabilityTermPdf({ name: student.name, cpf: student.cpf, birthDate: student.birthDate, phone: student.phone, email: student.email, joinedAt: student.joinedAt, planName: student.subscription.planName });
     const name = student.name.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "aluno";
-    return new NextResponse(pdf, { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="termo-pace-lab-${name}.pdf"`, "Content-Length": String(pdf.byteLength), "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+    const fileName = `termo-pace-lab-${name}.pdf`;
+    return new NextResponse(pdf, { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${fileName}"; filename*=UTF-8''${fileName}`, "Content-Length": String(pdf.byteLength), "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
   } catch (error) {
     console.error("liability term download failed", error);
     return NextResponse.json({ error: "Não foi possível preparar o termo agora." }, { status: 502, headers: noStoreHeaders() });

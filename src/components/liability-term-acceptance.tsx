@@ -26,20 +26,11 @@ export function LiabilityTermAcceptance({ status, reviewNote }: { status: TermSt
         setError("O arquivo preparado não é um PDF válido. Tente novamente em alguns instantes.");
         return;
       }
-      const fileBlob = await response.blob();
-      if (!fileBlob.size) {
-        setError("O PDF foi gerado vazio. Tente novamente em alguns instantes.");
-        return;
-      }
-      const url = URL.createObjectURL(fileBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "termo-pace-lab-preenchido.pdf";
-      link.style.display = "none";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 2_000);
+      // Safari no iPhone não suporta abrir de forma confiável um blob: gerado
+      // pelo JavaScript. Depois de validar a resposta, delegamos o arquivo à
+      // URL real do servidor, preservando o download nativo do navegador.
+      await response.body?.cancel();
+      window.location.assign("/api/student/liability-term/download?download=1");
     } catch {
       setError("Não foi possível iniciar o download. Verifique sua conexão e tente novamente.");
     } finally {
