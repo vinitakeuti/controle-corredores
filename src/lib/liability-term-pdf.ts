@@ -31,7 +31,10 @@ function drawFittedText(page: PDFPage, font: PDFFont, value: string, x: number, 
 
 export async function buildPersonalizedLiabilityTermPdf(data: TermPdfData) {
   const source = await readFile(path.join(process.cwd(), "public", "termos", "PACELAB_Termo_Responsabilidade_2026.pdf"));
-  const document = await PDFDocument.load(source);
+  const template = await PDFDocument.load(source);
+  const document = await PDFDocument.create();
+  const pages = await document.copyPages(template, template.getPageIndices());
+  pages.forEach((templatePage) => document.addPage(templatePage));
   const font = await document.embedFont(StandardFonts.Helvetica);
   const page = document.getPage(0);
 
@@ -43,5 +46,12 @@ export async function buildPersonalizedLiabilityTermPdf(data: TermPdfData) {
   drawFittedText(page, font, formatDate(data.joinedAt), 149, 663, 135);
   drawFittedText(page, font, data.planName, 388, 663, 137);
 
-  return document.save();
+  // Rebuilding the page tree, instead of saving the parsed source directly,
+  // removes malformed cross-reference entries from the original template.
+  // Safari on iOS rejects those entries and renders a black document.
+  return document.save({
+    addDefaultPage: false,
+    updateFieldAppearances: false,
+    useObjectStreams: false,
+  });
 }

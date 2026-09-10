@@ -12,7 +12,8 @@ import { periodMonths, subscriptionChargeCents } from "@/lib/plan-billing";
 import { getActivePlans } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 
-export default async function StudentPage() {
+export default async function StudentPage({ searchParams }: { searchParams: Promise<{ termDownloadError?: string }> }) {
+  const { termDownloadError } = await searchParams;
   const user = await requireRole(UserRole.STUDENT);
   const account = await prisma.user.findUnique({
     where: { id: user.id },
@@ -25,7 +26,7 @@ export default async function StudentPage() {
 
   if (subscription?.status === "ACTIVE" && account?.liabilityTermRequiredAt && account.liabilityTermStatus !== "APPROVED") {
     const termStatus = account.liabilityTermStatus === "SUBMITTED" || account.liabilityTermStatus === "REJECTED" ? account.liabilityTermStatus : "PENDING";
-    return <AppShell user={user} current="student"><LiabilityTermAcceptance status={termStatus} reviewNote={account.liabilityTermReviewNote} /></AppShell>;
+    return <AppShell user={user} current="student"><LiabilityTermAcceptance status={termStatus} reviewNote={account.liabilityTermReviewNote} downloadError={termDownloadError === "1"} /></AppShell>;
   }
 
   if (!subscription || !subscription.planId || subscription.status !== "ACTIVE") {
