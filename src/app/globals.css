@@ -1602,4 +1602,18 @@ body.tutorial-open { overflow: hidden; }
   .analysis-filter-options section > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
   .analysis-filter-options a { justify-content: space-between; min-width: 0; padding: 0 10px; }
   .analysis-filter-options a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .analysis-table { min-width: 0; table-layout: auto; }
+  .analysis-table thead { display: none; }
+  .analysis-table tbody { display: grid; }
+  .analysis-table tr { display: block; padding: 9px 13px; border-bottom: 1px solid var(--line-soft); }
+  .analysis-table tr:last-child { border-bottom: 0; }
+  .analysis-table td { display: grid; grid-template-columns: minmax(86px, .7fr) minmax(0, 1fr); gap: 12px; align-items: center; padding: 9px 0; border: 0; text-align: right; }
+  .analysis-table td::before { content: attr(data-label); color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .09em; text-align: left; text-transform: uppercase; }
+  .analysis-table td:first-child { align-items: start; }
+  .analysis-table .student-primary, .analysis-table .student-secondary { display: block; text-align: right; }
+  .analysis-table .analysis-plan-name { max-width: none; margin-left: auto; }
+  .analysis-table .analysis-condition-pills { justify-content: flex-end; }
+  .analysis-table .pill { justify-self: end; max-width: 100%; }
+  .analysis-table .table-empty { display: block; padding: 28px 0 !important; text-align: center; }
+  .analysis-table .table-empty::before { content: none; }
 }
