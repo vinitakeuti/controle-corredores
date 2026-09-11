@@ -99,7 +99,7 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
 
       <div className="analysis-toolbar"><div><h2>{titles[status].title}</h2><p>{titles[status].description} Página {currentPage} de {totalPages}.</p></div><form className="student-search" method="get"><input type="hidden" name="status" value={status} /><label className="sr-only" htmlFor="student-search">Buscar aluno</label><input id="student-search" name="q" type="search" placeholder="Buscar nome ou e-mail" defaultValue={query} /><button className="button button-secondary" type="submit">Buscar</button></form></div>
 
-      <div className="students-table-shell"><table className="students-table analysis-table"><thead><tr><th>Aluno</th><th>Plano</th><th>Condição</th><th>Valor mensal</th><th>Pagamento</th><th>Verificação</th></tr></thead><tbody>
+      <div className="students-table-shell"><p className="analysis-table-hint">Deslize a tabela para ver todos os detalhes.</p><table className="students-table analysis-table"><thead><tr><th>Aluno</th><th>Plano</th><th>Condição</th><th>Valor mensal</th><th>Pagamento</th><th>Verificação</th></tr></thead><tbody>
         {students.length === 0 ? <tr><td className="table-empty" colSpan={6}>Nenhum aluno encontrado.</td></tr> : students.map((student) => {
           const subscription = student.subscription;
           const verification = verificationLabel(student.liabilityTermStatus, student.liabilityTermRequiredAt);
