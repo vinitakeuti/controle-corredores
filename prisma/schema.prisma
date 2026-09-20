@@ -64,6 +64,11 @@ enum WorkAreaType {
   SECTOR
 }
 
+enum FinancialEntryType {
+  REVENUE
+  EXPENSE
+}
+
 model User {
   id                        String               @id @default(cuid())
   name                      String
@@ -109,6 +114,7 @@ model User {
   saleOwner                 User?                @relation("SaleOwner", fields: [saleOwnerId], references: [id], onDelete: SetNull)
   sales                     User[]               @relation("SaleOwner")
   commissionRateBps         Int                  @default(0)
+  financialEntries          FinancialEntry[]     @relation("FinancialEntryCreator")
 
   @@index([role])
   @@index([joinedAt])
@@ -429,4 +435,22 @@ model PaymentIntegration {
   updatedAt             DateTime @updatedAt
 
   @@index([updatedAt])
+}
+
+model FinancialEntry {
+  id          String             @id @default(cuid())
+  type        FinancialEntryType
+  title       String
+  category    String?
+  description String?
+  isFixed     Boolean            @default(false)
+  amountCents Int
+  occurredAt  DateTime
+  createdById String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  createdBy   User               @relation("FinancialEntryCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([occurredAt, type])
+  @@index([createdById])
 }

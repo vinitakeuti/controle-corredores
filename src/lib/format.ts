@@ -24,6 +24,16 @@ export function greetingForDate(date = new Date()) {
   return "Boa noite";
 }
 
+export function currentMonthInMaceio(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Maceio", year: "numeric", month: "numeric" }).formatToParts(date);
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const name = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Maceio", month: "long" }).format(date);
+
+  // Maceió is UTC-03:00 and does not observe daylight saving time.
+  return { name, startsAt: new Date(Date.UTC(year, month - 1, 1, 3)) };
+}
+
 export function formatCpf(cpf: string | null | undefined) {
   if (!cpf) return "—";
   const digits = cpf.replace(/\D/g, "");
