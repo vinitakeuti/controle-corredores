@@ -1457,7 +1457,7 @@ body.tutorial-open { overflow: hidden; }
 .demand-columns-scroll { width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 20px; -webkit-overflow-scrolling: touch; scrollbar-color: rgba(29,42,35,.5) transparent; scrollbar-width: thin; }
 .demand-columns-scroll::-webkit-scrollbar { height: 8px; }
 .demand-columns-scroll::-webkit-scrollbar-thumb { background: rgba(29,42,35,.42); border-radius: 99px; }
-.demand-columns { display: grid; width: 100%; min-width: calc(var(--demand-column-count, 1) * 240px); grid-template-columns: repeat(var(--demand-column-count, 1), minmax(0, 1fr)); gap: 12px; }
+.demand-columns { display: grid; width: 100%; min-width: calc(var(--demand-column-count, 1) * 280px); grid-template-columns: repeat(var(--demand-column-count, 1), minmax(0, 1fr)); gap: 12px; }
 .demand-board-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .demand-settings { position: relative; }
 .demand-settings-trigger { display: grid; width: 36px; height: 42px; place-items: center; padding: 0; color: var(--text); background: transparent; border: 0; font-size: 25px; font-weight: 600; line-height: .7; cursor: pointer; }
