@@ -24,9 +24,9 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes">Integrações</Link> : null}
           {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" data-tutorial-anchor="nav-student">Minha assinatura</Link> : null}
           <button className="nav-link tutorial-launcher" type="button" data-open-tutorial>Tutorial</button>
-          {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja ↗</a> : null}
+          {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja</a> : null}
         </nav>
-        {user.role === UserRole.ADMIN ? <div className="sidebar-settings"><Link className={`nav-link ${current === "settings" ? "active" : ""}`} href="/admin/configuracoes">Configurações</Link><a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja ↗</a></div> : null}
+        {user.role === UserRole.ADMIN ? <div className="sidebar-settings"><Link className={`nav-link ${current === "settings" ? "active" : ""}`} href="/admin/configuracoes">Configurações</Link><a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja</a></div> : null}
         <div className="sidebar-footer" data-tutorial-anchor="account-menu">
           <strong>{user.name}</strong>
           <span>{user.role === UserRole.ADMIN ? "Administrador" : user.role === UserRole.OPERATOR ? "Operador" : "Aluno"}</span>
@@ -35,7 +35,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
           </form>
         </div>
       </aside>
-      <main className="main-content"><div className="content-wrap">{user.role === UserRole.STUDENT ? <a className="student-store-button" href={STORE_URL}>IR PARA A LOJA <span aria-hidden="true">↗</span></a> : null}{children}</div></main>
+      <main className="main-content"><div className="content-wrap">{user.role === UserRole.STUDENT ? <a className="student-store-button" href={STORE_URL}>IR PARA A LOJA</a> : null}{children}</div></main>
       <PlatformTutorial role={user.role} name={user.name} userId={user.id} initiallySeen={Boolean(user.tutorialSeenAt)} />
     </div>
   );

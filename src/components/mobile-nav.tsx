@@ -46,8 +46,8 @@ export function MobileNav({ user, current }: { user: SessionUser; current: "admi
             {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" onClick={close}>Minha assinatura</Link> : null}
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "settings" ? "active" : ""}`} href="/admin/configuracoes" onClick={close}>Configurações</Link> : null}
             <button className="nav-link tutorial-launcher" type="button" onClick={openTutorial}>Tutorial</button>
-            {user.role === UserRole.ADMIN ? <a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja ↗</a> : null}
-            {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja ↗</a> : null}
+            {user.role === UserRole.ADMIN ? <a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja</a> : null}
+            {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja</a> : null}
           </nav>
           <div className="sidebar-footer"><strong>{user.name}</strong><span>{user.role === UserRole.ADMIN ? "Administrador" : user.role === UserRole.OPERATOR ? "Operador" : "Aluno"}</span><form action="/api/auth/logout" method="post"><button className="logout-button" type="submit">Sair da conta</button></form></div>
         </aside>

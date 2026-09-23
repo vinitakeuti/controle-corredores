@@ -627,10 +627,8 @@ input[type="date"] { color-scheme: dark; }
 .nav-link.active, .nav-link:hover { color: var(--text); background: var(--surface-raised); border-color: var(--line); }
 .sidebar-footer { padding: 18px 10px 0; border-top: 0; }
 .sidebar-student .sidebar-footer, .sidebar-operator .sidebar-footer { margin-top: auto; }
-.student-store-button { width: fit-content; min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 auto 30px; padding: 0 18px; color: var(--text); background: rgba(255,255,255,.58); border: 1px solid var(--line); border-radius: 2px; font-size: 11px; font-weight: 800; letter-spacing: .09em; text-decoration: none; transition: color 140ms ease, background 140ms ease, border-color 140ms ease, transform 140ms ease; }
-.student-store-button span { color: var(--accent-bright); font-size: 17px; line-height: 1; }
+.student-store-button { width: fit-content; min-height: 42px; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px; padding: 0 18px; color: var(--text); background: rgba(255,255,255,.58); border: 1px solid var(--line); border-radius: 2px; font-size: 11px; font-weight: 800; letter-spacing: .09em; text-decoration: none; transition: color 140ms ease, background 140ms ease, border-color 140ms ease, transform 140ms ease; }
 .student-store-button:hover { color: #ffffff; background: var(--text); border-color: var(--text); transform: translateY(-1px); }
-.student-store-button:hover span { color: #ffffff; }
 .sidebar-footer strong { display: block; margin-bottom: 5px; font-size: 13px; }
 .sidebar-footer span { display: block; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .logout-button { margin-top: 18px; padding: 0; color: var(--muted); background: transparent; border: 0; font-size: 12px; }
