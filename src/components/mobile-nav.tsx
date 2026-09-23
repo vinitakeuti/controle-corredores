@@ -5,6 +5,7 @@ import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { Brand } from "@/components/brand";
+import { STORE_ADMIN_URL, STORE_URL } from "@/lib/store-url";
 
 
 export function MobileNav({ user, current }: { user: SessionUser; current: "admin" | "students" | "analysis" | "plans" | "integrations" | "settings" | "student" | "demands" | "sales" | "finance" }) {
@@ -43,6 +44,8 @@ export function MobileNav({ user, current }: { user: SessionUser; current: "admi
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos" onClick={close}>Planos</Link> : null}
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes" onClick={close}>Integrações</Link> : null}
             {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" onClick={close}>Minha assinatura</Link> : null}
+            {user.role === UserRole.ADMIN ? <a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja ↗</a> : null}
+            {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja ↗</a> : null}
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "settings" ? "active" : ""}`} href="/admin/configuracoes" onClick={close}>Configurações</Link> : null}
             <button className="nav-link tutorial-launcher" type="button" onClick={openTutorial}>Tutorial</button>
           </nav>
