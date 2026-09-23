@@ -23,11 +23,10 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos" data-tutorial-anchor="nav-plans">Planos</Link> : null}
           {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes">Integrações</Link> : null}
           {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" data-tutorial-anchor="nav-student">Minha assinatura</Link> : null}
-          {user.role === UserRole.ADMIN ? <a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja ↗</a> : null}
-          {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja ↗</a> : null}
           <button className="nav-link tutorial-launcher" type="button" data-open-tutorial>Tutorial</button>
+          {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja ↗</a> : null}
         </nav>
-        {user.role === UserRole.ADMIN ? <div className="sidebar-settings"><Link className={`nav-link ${current === "settings" ? "active" : ""}`} href="/admin/configuracoes">Configurações</Link></div> : null}
+        {user.role === UserRole.ADMIN ? <div className="sidebar-settings"><Link className={`nav-link ${current === "settings" ? "active" : ""}`} href="/admin/configuracoes">Configurações</Link><a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja ↗</a></div> : null}
         <div className="sidebar-footer" data-tutorial-anchor="account-menu">
           <strong>{user.name}</strong>
           <span>{user.role === UserRole.ADMIN ? "Administrador" : user.role === UserRole.OPERATOR ? "Operador" : "Aluno"}</span>
