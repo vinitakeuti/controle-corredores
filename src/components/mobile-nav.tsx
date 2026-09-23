@@ -31,7 +31,7 @@ export function MobileNav({ user, current }: { user: SessionUser; current: "admi
       </header>
       {open ? <div className="mobile-menu-layer">
         <button className="mobile-menu-overlay" type="button" aria-label="Fechar menu" onClick={close} />
-        <aside className="mobile-drawer" id="mobile-menu">
+        <aside className={`mobile-drawer mobile-drawer-${user.role.toLowerCase()}`} id="mobile-menu">
           <div className="mobile-drawer-header"><span className="eyebrow">Menu</span><button className="drawer-close" type="button" aria-label="Fechar menu" onClick={close}>×</button></div>
           <nav aria-label="Navegação mobile">
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "admin" ? "active" : ""}`} href="/admin" onClick={close}>Visão geral</Link> : null}
