@@ -6,10 +6,9 @@ import { requireFeature } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { recognizedRevenueCents } from "@/lib/revenue-recognition";
+import { getStoreSalesSummary } from "@/lib/store-finance";
 
 type SearchParams = { month?: string };
-type StoreSalesSummary = { count: number; totalCents: number };
-
 function monthRange(value?: string) {
   const match = value?.match(/^(\d{4})-(\d{2})$/); const now = new Date();
   const year = match ? Number(match[1]) : now.getFullYear(); const month = match ? Number(match[2]) - 1 : now.getMonth();
@@ -25,25 +24,6 @@ function salesLabel(count: number) {
 
 function LedgerRows({ entries, empty, kind }: { entries: Array<{ id: string; title: string; category: string | null; amountCents: number; occurredAt: Date; createdBy: { name: string } }>; empty: string; kind: "income" | "cost" }) {
   return entries.length ? <div className="finance-list">{entries.map((entry) => <div key={entry.id}><span className={`finance-entry-mark ${kind}`}>{kind === "income" ? "+" : "−"}</span><div><strong>{entry.title}</strong><small>{entry.category ? `${entry.category} · ` : ""}{formatDate(entry.occurredAt)} · {entry.createdBy.name}</small></div><b className={kind === "cost" ? "negative" : ""}>{kind === "cost" ? "−" : ""}{formatCurrency(entry.amountCents)}</b></div>)}</div> : <p className="finance-ledger-empty">{empty}</p>;
-}
-
-async function getStoreSalesSummary(month: string): Promise<StoreSalesSummary> {
-  const urlValue = process.env.STORE_FINANCE_SUMMARY_URL;
-  const sharedSecret = process.env.STORE_AUTH_SHARED_SECRET;
-  if (!urlValue || !sharedSecret) return { count: 0, totalCents: 0 };
-
-  try {
-    const url = new URL(urlValue);
-    url.searchParams.set("month", month);
-    const response = await fetch(url, { cache: "no-store", headers: { "x-store-auth-secret": sharedSecret }, signal: AbortSignal.timeout(5_000) });
-    const payload: unknown = response.ok ? await response.json() : null;
-    if (!payload || typeof payload !== "object") return { count: 0, totalCents: 0 };
-    const { count, totalCents } = payload as { count?: unknown; totalCents?: unknown };
-    if (typeof count !== "number" || typeof totalCents !== "number" || !Number.isInteger(count) || !Number.isInteger(totalCents) || count < 0 || totalCents < 0) return { count: 0, totalCents: 0 };
-    return { count, totalCents };
-  } catch {
-    return { count: 0, totalCents: 0 };
-  }
 }
 
 export default async function FinancePage({ searchParams }: { searchParams: Promise<SearchParams> }) {

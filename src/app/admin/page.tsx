@@ -1,17 +1,19 @@
-import { PaymentStatus, SubscriptionStatus, UserRole } from "@prisma/client";
+import { FinancialEntryType, PaymentStatus, SubscriptionStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { FinancialValues, FinancialVisibilityToggle } from "@/components/overview-financial-privacy";
 import { requireFeature } from "@/lib/auth";
 import { currentMonthInMaceio, formatCurrency, formatDate, formatTime, greetingForDate, paymentMethodLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { recognizedRevenueCents } from "@/lib/revenue-recognition";
+import { getStoreSalesSummary } from "@/lib/store-finance";
 
 export default async function AdminPage() {
   const user = await requireFeature("overview");
   const now = new Date();
   const { name: currentMonth, startsAt: monthStart } = currentMonthInMaceio(now);
+  const storeMonth = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}`;
   const recognitionStart = new Date(Date.UTC(monthStart.getUTCFullYear() - 1, monthStart.getUTCMonth(), 1, 3));
-  const [totalStudents, activeStudents, overdueStudents, pendingStudents, cashPayments, recognizedPayments, recentPayments, recentStudents, lifetimePayments] = await Promise.all([
+  const [totalStudents, activeStudents, overdueStudents, pendingStudents, cashPayments, recognizedPayments, recentPayments, recentStudents, manualRevenue, storeSales] = await Promise.all([
     prisma.user.count({ where: { role: UserRole.STUDENT } }),
     prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { status: SubscriptionStatus.ACTIVE } } } }),
     prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } } }),
@@ -20,9 +22,11 @@ export default async function AdminPage() {
     prisma.payment.findMany({ where: { status: PaymentStatus.PAID, paidAt: { gte: recognitionStart, lte: now } }, select: { amountCents: true, paidAt: true, subscription: { select: { billingPeriod: true, manualMonthlyBilling: true } } } }),
     prisma.payment.findMany({ where: { status: PaymentStatus.PAID, paidAt: { gte: monthStart, lte: now } }, include: { user: true }, orderBy: { paidAt: "desc" }, take: 8 }),
     prisma.user.findMany({ where: { role: UserRole.STUDENT, createdAt: { gte: monthStart, lte: now } }, include: { saleOwner: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
-    prisma.payment.aggregate({ where: { status: PaymentStatus.PAID }, _sum: { amountCents: true } }),
+    prisma.financialEntry.aggregate({ where: { type: FinancialEntryType.REVENUE, occurredAt: { gte: monthStart, lte: now } }, _sum: { amountCents: true } }),
+    getStoreSalesSummary(storeMonth),
   ]);
   const recognizedRevenue = recognizedRevenueCents(recognizedPayments, monthStart, now);
+  const receivedCents = (cashPayments._sum.amountCents ?? 0) + (manualRevenue._sum.amountCents ?? 0) + storeSales.totalCents;
 
   return (
     <AppShell user={user} current="admin">
@@ -35,9 +39,8 @@ export default async function AdminPage() {
         <section className="overview-financial">
           <div className="overview-financial-heading"><div><p className="eyebrow">Resultados de {currentMonth}</p><p>Compare o que entrou no caixa com o valor mensal dos contratos ativos no período.</p></div></div>
           <div className="overview-financial-grid">
-            {user.role === UserRole.ADMIN ? <article className="metric-card"><p>Recebido em {currentMonth}</p><strong className="money-value">{formatCurrency(cashPayments._sum.amountCents ?? 0)}</strong><small>{cashPayments._count} pagamento(s) confirmado(s) · valor efetivamente recebido</small></article> : null}
+            {user.role === UserRole.ADMIN ? <article className="metric-card"><p>Recebido em {currentMonth}</p><strong className="money-value">{formatCurrency(receivedCents)}</strong><small>Planos, loja e lançamentos manuais confirmados no mês</small></article> : null}
             <article className="metric-card"><p>Receita de {currentMonth}</p><strong className="money-value">{formatCurrency(recognizedRevenue)}</strong><small>parcela correspondente a este mês, sem antecipações</small></article>
-            {user.role === UserRole.ADMIN ? <article className="metric-card"><p>Faturamento total</p><strong className="money-value">{formatCurrency(lifetimePayments._sum.amountCents ?? 0)}</strong><small>todos os pagamentos confirmados</small></article> : null}
           </div>
         </section>
 
