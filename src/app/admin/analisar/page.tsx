@@ -1,7 +1,7 @@
 import { Prisma, SubscriptionStatus, UserRole } from "@prisma/client";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { requireStaff } from "@/lib/auth";
+import { requireFeature } from "@/lib/auth";
 import { formatCurrency, formatDate, subscriptionLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -45,7 +45,7 @@ function verificationLabel(status: string, requiredAt: Date | null) {
 }
 
 export default async function AnalyzePage({ searchParams }: { searchParams: Promise<AnalyzeSearchParams> }) {
-  const user = await requireStaff();
+  const user = await requireFeature("analysis");
   const params = await searchParams;
   const now = new Date();
   const status = getListStatus(params.status);

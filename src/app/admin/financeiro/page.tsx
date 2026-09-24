@@ -2,7 +2,7 @@ import { FinancialEntryType, PaymentStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { FinancialEntryManager, FinancialMobileActions } from "@/components/financial-entry-manager";
 import { FinanceMonthPicker } from "@/components/finance-month-picker";
-import { requireRole } from "@/lib/auth";
+import { requireFeature } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { recognizedRevenueCents } from "@/lib/revenue-recognition";
@@ -47,7 +47,7 @@ async function getStoreSalesSummary(month: string): Promise<StoreSalesSummary> {
 }
 
 export default async function FinancePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const user = await requireRole(UserRole.ADMIN);
+  const user = await requireFeature("finance");
   const range = monthRange((await searchParams).month);
   const [payments, financialEntries, storeSales] = await Promise.all([
     prisma.payment.findMany({ where: { status: PaymentStatus.PAID }, select: { id: true, amountCents: true, paidAt: true, subscription: { select: { billingPeriod: true, manualMonthlyBilling: true } } } }),

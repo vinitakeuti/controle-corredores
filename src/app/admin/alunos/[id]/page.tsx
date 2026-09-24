@@ -4,13 +4,13 @@ import { PaymentStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { StudentBillingControls } from "@/components/student-billing-controls";
 import { LiabilityTermReview } from "@/components/liability-term-review";
-import { requireStaff } from "@/lib/auth";
+import { requireFeature } from "@/lib/auth";
 import { calculateAge, formatCpf, formatCurrency, formatDate, formatPhone, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getActivePlans } from "@/lib/plans";
 
 export default async function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireStaff();
+  const user = await requireFeature("students");
   const { id } = await params;
   const [student, plans] = await Promise.all([
     prisma.user.findUnique({ where: { id }, include: { subscription: { include: { plan: { include: { service: true } } } }, payments: { where: { status: PaymentStatus.PAID }, orderBy: { paidAt: "asc" } } } }),

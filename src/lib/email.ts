@@ -66,10 +66,10 @@ export function passwordResetMessage(name: string, resetUrl: string): Message {
   return { subject: "Redefina sua senha · Pace Lab", html: emailLayout({ eyebrow: "Segurança da conta", title: `Olá, ${greeting}.`, intro: "Recebemos um pedido para redefinir a senha da sua conta Pace Lab.", action: { label: "Redefinir minha senha", href: resetUrl }, note: "Este link é válido por uma hora. Se você não solicitou a alteração, pode ignorar esta mensagem." }), text: `Olá, ${greeting}.\n\nRedefina sua senha da Pace Lab: ${resetUrl}\n\nO link é válido por uma hora.` };
 }
 
-export function collaboratorWelcomeMessage({ name, email, temporaryPassword, role }: { name: string; email: string; temporaryPassword: string; role: "ADMIN" | "OPERATOR" }): Message {
+export function collaboratorWelcomeMessage({ name, email, temporaryPassword, role }: { name: string; email: string; temporaryPassword: string; role: "ADMIN" | "MANAGER" | "OPERATOR" }): Message {
   const appUrl = managementAppUrl();
   const loginUrl = `${appUrl}/login`;
-  const roleLabel = role === "ADMIN" ? "Administrador" : "Operador";
+  const roleLabel = role === "ADMIN" ? "Administrador" : role === "MANAGER" ? "Gerente" : "Operador";
   const greeting = firstName(name);
   return {
     subject: "Seu acesso à Pace Lab está pronto",

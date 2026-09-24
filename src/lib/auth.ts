@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
+import { canAccessFeature, type ManagerFeature } from "@/lib/access-control";
 import { prisma } from "@/lib/prisma";
 import { hashOpaqueToken } from "@/lib/tokens";
 
@@ -17,14 +18,18 @@ export type SessionUser = {
   email: string;
   role: UserRole;
   tutorialSeenAt: Date | null;
+  managerPermissions: unknown;
 };
 
+export { canAccessFeature, type ManagerFeature } from "@/lib/access-control";
+
 export function isStaffRole(role: UserRole) {
-  return role === UserRole.ADMIN || role === UserRole.OPERATOR;
+  return role === UserRole.ADMIN || role === UserRole.MANAGER || role === UserRole.OPERATOR;
 }
 
 export function defaultPathForRole(role: UserRole) {
   if (role === UserRole.ADMIN) return "/admin";
+  if (role === UserRole.MANAGER) return "/admin";
   if (role === UserRole.OPERATOR) return "/admin/alunos";
   return "/aluno";
 }
@@ -95,6 +100,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     email: session.user.email,
     role: session.user.role,
     tutorialSeenAt: session.user.tutorialSeenAt,
+    managerPermissions: session.user.managerPermissions,
   };
 }
 
@@ -113,5 +119,11 @@ export async function requireRole(role: UserRole) {
 export async function requireStaff() {
   const user = await requireUser();
   if (!isStaffRole(user.role)) redirect(defaultPathForRole(user.role));
+  return user;
+}
+
+export async function requireFeature(feature: ManagerFeature) {
+  const user = await requireStaff();
+  if (!canAccessFeature(user, feature)) redirect("/admin/sem-acesso");
   return user;
 }

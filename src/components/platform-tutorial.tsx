@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Role = "ADMIN" | "OPERATOR" | "STUDENT";
+type Role = "ADMIN" | "MANAGER" | "OPERATOR" | "STUDENT";
 type FocusRect = { top: number; left: number; width: number; height: number };
 type TutorialStep = { label: string; title: string; text: string; anchors?: string[] };
 
@@ -42,7 +42,7 @@ function findFocus(anchors?: string[]) {
 }
 
 export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: Role; name: string; userId: string; initiallySeen: boolean }) {
-  const steps = role === "ADMIN" ? adminSteps : role === "OPERATOR" ? operatorSteps : studentSteps;
+  const steps = role === "ADMIN" ? adminSteps : role === "MANAGER" || role === "OPERATOR" ? operatorSteps : studentSteps;
   const storageKey = `pace-lab:tutorial-seen:v1:${role}:${userId}`;
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);

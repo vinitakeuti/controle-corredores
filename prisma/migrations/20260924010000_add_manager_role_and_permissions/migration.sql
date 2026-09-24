@@ -1,0 +1,3 @@
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'MANAGER';
+
+ALTER TABLE "User" ADD COLUMN "managerPermissions" JSONB;

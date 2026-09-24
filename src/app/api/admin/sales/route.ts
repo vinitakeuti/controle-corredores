@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
-import { getCurrentUser, isStaffRole } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccessFeature } from "@/lib/access-control";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 
 export async function PATCH(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
   const user = await getCurrentUser();
-  if (!user || !isStaffRole(user.role)) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
+  if (!user || !canAccessFeature(user, "sales")) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
   const body = await request.json() as { studentId?: unknown; saleOwnerId?: unknown };
   const studentId = typeof body.studentId === "string" ? body.studentId : "";
   const saleOwnerId = typeof body.saleOwnerId === "string" && body.saleOwnerId ? body.saleOwnerId : null;
