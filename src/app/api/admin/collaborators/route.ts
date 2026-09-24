@@ -80,3 +80,30 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Não foi possível atualizar a comissão." }, { status: 400, headers: noStoreHeaders() });
   }
 }
+
+export async function DELETE(request: Request) {
+  if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== UserRole.ADMIN) return NextResponse.json({ error: "Apenas administradores podem excluir colaboradores" }, { status: 403, headers: noStoreHeaders() });
+
+  try {
+    const body = await request.json() as { collaboratorId?: unknown };
+    const collaboratorId = typeof body.collaboratorId === "string" ? body.collaboratorId : "";
+    if (!collaboratorId) return NextResponse.json({ error: "Colaborador inválido." }, { status: 400, headers: noStoreHeaders() });
+    if (collaboratorId === admin.id) return NextResponse.json({ error: "Sua própria conta não pode ser excluída aqui." }, { status: 400, headers: noStoreHeaders() });
+
+    const collaborator = await prisma.user.findFirst({ where: { id: collaboratorId, role: { in: [...staffRoles] } }, select: { id: true, role: true } });
+    if (!collaborator) return NextResponse.json({ error: "Colaborador não encontrado." }, { status: 404, headers: noStoreHeaders() });
+    if (collaborator.role === UserRole.ADMIN && await prisma.user.count({ where: { role: UserRole.ADMIN } }) < 2) return NextResponse.json({ error: "Mantenha ao menos um administrador ativo." }, { status: 400, headers: noStoreHeaders() });
+
+    await prisma.$transaction([
+      prisma.demand.updateMany({ where: { createdById: collaboratorId }, data: { createdById: admin.id } }),
+      prisma.paymentLink.updateMany({ where: { createdById: collaboratorId }, data: { createdById: admin.id } }),
+      prisma.financialEntry.updateMany({ where: { createdById: collaboratorId }, data: { createdById: admin.id } }),
+      prisma.user.delete({ where: { id: collaboratorId } }),
+    ]);
+    return NextResponse.json({ deletedId: collaboratorId }, { headers: noStoreHeaders() });
+  } catch {
+    return NextResponse.json({ error: "Não foi possível excluir o colaborador." }, { status: 400, headers: noStoreHeaders() });
+  }
+}
