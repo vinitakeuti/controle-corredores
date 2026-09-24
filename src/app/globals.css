@@ -635,10 +635,10 @@ input[type="date"] { color-scheme: dark; }
 .sidebar-settings { margin-top: auto; padding: 16px 0 14px; border-bottom: 1px solid var(--line-soft); }
 .sidebar-settings .nav-link { display: block; }
 .nav-link { padding: 12px 13px; color: var(--muted); border: 1px solid transparent; border-radius: 6px; font-size: 13px; transition: background 140ms ease, color 140ms ease, border-color 140ms ease; }
-.sidebar-admin .nav-link, .sidebar-operator .nav-link, .sidebar-student .nav-link, .mobile-drawer-admin .nav-link, .mobile-drawer-operator .nav-link, .mobile-drawer-student .nav-link { font-size: 13px; line-height: normal; }
+.sidebar-admin .nav-link, .sidebar-manager .nav-link, .sidebar-operator .nav-link, .sidebar-student .nav-link, .mobile-drawer-admin .nav-link, .mobile-drawer-manager .nav-link, .mobile-drawer-operator .nav-link, .mobile-drawer-student .nav-link { font-size: 13px; line-height: normal; }
 .nav-link.active, .nav-link:hover { color: var(--text); background: var(--surface-raised); border-color: var(--line); }
 .sidebar-footer { padding: 18px 10px 0; border-top: 0; }
-.sidebar-student .sidebar-footer, .sidebar-operator .sidebar-footer { margin-top: auto; }
+.sidebar-student .sidebar-footer, .sidebar-manager .sidebar-footer, .sidebar-operator .sidebar-footer { margin-top: auto; }
 .student-store-button { width: fit-content; min-height: 42px; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px; padding: 0 18px; color: var(--text); background: rgba(255,255,255,.58); border: 1px solid var(--line); border-radius: 2px; font-size: 11px; font-weight: 800; letter-spacing: .09em; text-decoration: none; transition: color 140ms ease, background 140ms ease, border-color 140ms ease, transform 140ms ease; }
 .student-store-button:hover { color: #ffffff; background: var(--text); border-color: var(--text); transform: translateY(-1px); }
 .sidebar-footer strong { display: block; margin-bottom: 5px; font-size: 13px; }

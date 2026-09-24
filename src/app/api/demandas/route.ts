@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     }
     const [area, column, assignees, last] = await Promise.all([
       prisma.workArea.findUnique({ where: { id: workAreaId } }), prisma.workAreaColumn.findUnique({ where: { id: columnId } }),
-      prisma.user.findMany({ where: { id: { in: assigneeIds }, active: true, role: { in: [UserRole.ADMIN, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true } }),
+      prisma.user.findMany({ where: { id: { in: assigneeIds }, active: true, role: { in: [UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true } }),
       prisma.demand.aggregate({ where: { workAreaId, columnId }, _max: { position: true } }),
     ]);
     if (!area || !column || column.workAreaId !== workAreaId || assignees.length !== assigneeIds.length) return NextResponse.json({ error: "Área, coluna ou responsáveis inválidos" }, { status: 400, headers: noStoreHeaders() });
@@ -84,7 +84,7 @@ export async function PATCH(request: Request) {
     const folderId = body.folderId === undefined ? undefined : typeof body.folderId === "string" && body.folderId ? body.folderId : null;
     const [column, assignees] = await Promise.all([
       columnId ? prisma.workAreaColumn.findUnique({ where: { id: columnId } }) : null,
-      assigneeIds ? prisma.user.findMany({ where: { id: { in: assigneeIds }, active: true, role: { in: [UserRole.ADMIN, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true } }) : [],
+      assigneeIds ? prisma.user.findMany({ where: { id: { in: assigneeIds }, active: true, role: { in: [UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true } }) : [],
     ]);
     if (columnId && (!column || column.workAreaId !== existing.workAreaId)) return NextResponse.json({ error: "Coluna inválida" }, { status: 400, headers: noStoreHeaders() });
     if (assigneeIds && assignees.length !== assigneeIds.length) return NextResponse.json({ error: "Responsável inválido" }, { status: 400, headers: noStoreHeaders() });
