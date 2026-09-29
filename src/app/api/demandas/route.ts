@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
+import { canAccessFeature } from "@/lib/access-control";
 import { demandAssignmentMessage, sendMessage } from "@/lib/email";
 import { managementAppUrl } from "@/lib/portal";
 import { prisma } from "@/lib/prisma";
@@ -8,7 +9,7 @@ import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
-async function staff() { const user = await getCurrentUser(); return user && (user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR) ? user : null; }
+async function staff() { const user = await getCurrentUser(); return user && canAccessFeature(user, "demands") ? user : null; }
 function ids(value: unknown) { return Array.isArray(value) ? [...new Set(value.filter((item): item is string => typeof item === "string" && item.length > 0))].slice(0, 30) : []; }
 function scheduled(value: unknown) { if (typeof value !== "string" || !value) return null; const date = new Date(value); return Number.isNaN(date.getTime()) ? undefined : date; }
 const demandInclude = { assignees: { include: { user: { select: { id: true, name: true, email: true } } } } } as const;

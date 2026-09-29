@@ -1536,6 +1536,10 @@ body.tutorial-open { overflow: hidden; }
 .demand-folder-create-dialog { margin-top: 20px; }
 .demand-folder-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .demand-folder-list span { padding: 7px 10px; background: rgba(235,240,235,.72); border: 1px solid var(--line); font-size: 12px; }
+.demand-folder-help { margin: 12px 0 0; font-size: 11px; line-height: 1.45; }
+.demand-folder-item { min-width: min(100%, 220px); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 7px 5px 10px; background: rgba(235,240,235,.72); border: 1px solid var(--line); }
+.demand-folder-item span { min-width: 0; overflow: hidden; padding: 0; background: transparent; border: 0; text-overflow: ellipsis; white-space: nowrap; }
+.demand-folder-item .button { min-height: 32px; padding: 0 7px; font-size: 10px; }
 .demand-archive-list { display: grid; gap: 10px; margin-top: 20px; }
 .demand-archive-list article { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .demand-archive-list strong, .demand-archive-list small { display: block; }
