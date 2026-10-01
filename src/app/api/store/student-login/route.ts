@@ -27,5 +27,5 @@ export async function POST(request: Request) {
   const user = await verifyCredentials(email, password);
   if (!user || user.role !== UserRole.STUDENT) return NextResponse.json({ error: "Use uma conta ativa de aluno." }, { status: 401 });
 
-  return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone ?? "" } }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone ?? "", cpf: user.cpf ?? "" } }, { headers: { "Cache-Control": "no-store" } });
 }
