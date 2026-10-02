@@ -1,10 +1,9 @@
 import { FinancialEntryType, PaymentStatus, PlanPeriod, SubscriptionStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
-import { FinancialEntryDeleteButton } from "@/components/financial-entry-delete-button";
-import { FinancialEntryManager, FinancialMobileActions } from "@/components/financial-entry-manager";
+import { FinancialEntryManager, FinancialEntryRow, FinancialMobileActions } from "@/components/financial-entry-manager";
 import { FinanceMonthPicker } from "@/components/finance-month-picker";
 import { requireFeature } from "@/lib/auth";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { contractedMonthlyRevenueCents } from "@/lib/revenue-recognition";
 import { getStoreSalesSummary } from "@/lib/store-finance";
@@ -14,6 +13,7 @@ type FinancialLedgerEntry = {
   id: string;
   title: string;
   category: string | null;
+  description: string | null;
   amountCents: number;
   occurredAt: Date;
   isFixed: boolean;
@@ -51,14 +51,24 @@ function salesLabel(count: number) {
 }
 
 function LedgerRows({ entries, empty, kind, canDelete }: { entries: FinancialLedgerEntry[]; empty: string; kind: "income" | "cost"; canDelete: boolean }) {
-  return entries.length ? <div className="finance-list finance-manual-list">{entries.map((entry) => <div key={entry.id}>
-    <span className={`finance-entry-mark ${kind}`}>{kind === "income" ? "+" : "−"}</span>
-    <div><strong>{entry.title}</strong><small>{entry.category ? `${entry.category} · ` : ""}{formatDate(entry.occurredAt)} · {entry.createdBy.name}</small></div>
-    <div className="finance-entry-actions"><b className={kind === "cost" ? "negative" : ""}>{kind === "cost" ? "−" : ""}{formatCurrency(entry.amountCents)}</b>{canDelete ? <FinancialEntryDeleteButton entryId={entry.id} title={entry.title} isFixed={entry.isFixed} /> : null}</div>
-  </div>)}</div> : <p className="finance-ledger-empty">{empty}</p>;
+  return entries.length ? <div className="finance-list finance-manual-list">{entries.map((entry) => <FinancialEntryRow
+    key={entry.id}
+    editable={canDelete}
+    kind={kind}
+    entry={{
+      id: entry.id,
+      title: entry.title,
+      category: entry.category,
+      description: entry.description,
+      amountCents: entry.amountCents,
+      occurredAt: entry.occurredAt.toISOString(),
+      isFixed: entry.isFixed,
+      createdByName: entry.createdBy.name,
+    }}
+  />)}</div> : <p className="finance-ledger-empty">{empty}</p>;
 }
 
-function ContractRevenueBreakdown({ contracts, totalCents, monthLabel }: { contracts: ActiveContract[]; totalCents: number; monthLabel: string }) {
+function PlanRevenueSummary({ contracts, totalCents, planCash, paymentCount, monthLabel }: { contracts: ActiveContract[]; totalCents: number; planCash: number; paymentCount: number; monthLabel: string }) {
   const groups = Array.from(contracts.reduce((items, contract) => {
     const key = `${contract.planName}:${contract.priceCents}:${contract.billingPeriod}:${contract.manualMonthlyBilling}`;
     const current = items.get(key) ?? { ...contract, count: 0, totalCents: 0 };
@@ -68,13 +78,15 @@ function ContractRevenueBreakdown({ contracts, totalCents, monthLabel }: { contr
     return items;
   }, new Map<string, ActiveContract & { count: number; totalCents: number }>()).values()).sort((left, right) => right.totalCents - left.totalCents || left.planName.localeCompare(right.planName, "pt-BR"));
 
-  return <details className="finance-contract-revenue">
+  return <details className="finance-plan-revenue">
     <summary>
-      <span><strong>Receita de planos em {monthLabel}</strong><small>{contracts.length} contrato{contracts.length === 1 ? "" : "s"} ativo{contracts.length === 1 ? "" : "s"} · mês inteiro, sem esperar vencimentos</small></span>
-      <b>{formatCurrency(totalCents)}</b>
+      <span className="finance-entry-mark income">+</span>
+      <span className="finance-plan-revenue-copy"><strong>Planos</strong><small>{contracts.length} contrato{contracts.length === 1 ? "" : "s"} ativo{contracts.length === 1 ? "" : "s"} · receita do mês inteiro</small></span>
+      <span className="finance-plan-revenue-total"><b>{formatCurrency(totalCents)}</b><small>previsto em {monthLabel}</small></span>
     </summary>
-    <div className="finance-contract-revenue-body">
-      <p>Composição mensal contratada. Cada contrato ativo entra uma vez no mês pelo seu valor mensal.</p>
+    <div className="finance-plan-revenue-body">
+      <div className="finance-plan-cash-summary"><span><strong>Recebido até agora</strong><small>{salesLabel(paymentCount)} · pagamentos confirmados</small></span><b>{formatCurrency(planCash)}</b></div>
+      <p>Composição da receita mensal contratada. Cada contrato ativo entra uma vez no mês, sem esperar o dia do vencimento.</p>
       {groups.length ? <div className="finance-contract-list">{groups.map((group) => <div key={`${group.planName}-${group.priceCents}-${group.billingPeriod}-${group.manualMonthlyBilling}`}>
         <span>{group.planName}</span>
         <small>{group.count} contrato{group.count === 1 ? "" : "s"} · {group.manualMonthlyBilling ? "cobrança mensal manual" : `plano ${periodLabels[group.billingPeriod]}`} · {formatCurrency(group.priceCents)}/mês cada</small>
@@ -124,9 +136,8 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
       <section className="finance-statement">
         <section className="panel finance-ledger finance-income-ledger">
           <div className="panel-heading"><div><p className="eyebrow">Ganhos</p><h2>Entradas recebidas</h2><p>Valores que entraram no caixa em {range.label}.</p></div><b className="finance-section-total">{formatCurrency(cashRevenue)}</b></div>
-          <ContractRevenueBreakdown contracts={activeContracts} totalCents={contractedPlanRevenue} monthLabel={range.label} />
           <div className="finance-list">
-            <div><span className="finance-entry-mark income">+</span><div><strong>Planos recebidos</strong><small>{salesLabel(monthPayments.length)} · Pagamentos confirmados</small></div><b>{formatCurrency(planCash)}</b></div>
+            <PlanRevenueSummary contracts={activeContracts} totalCents={contractedPlanRevenue} planCash={planCash} paymentCount={monthPayments.length} monthLabel={range.label} />
             <div><span className="finance-entry-mark income">+</span><div><strong>Loja</strong><small>{salesLabel(storeSales.count)} · Pedidos pagos</small></div><b>{formatCurrency(storeSales.totalCents)}</b></div>
           </div>
           <details className="finance-subsection finance-expandable"><summary>Outras entradas <b>{revenueEntries.length}</b></summary><LedgerRows entries={revenueEntries} kind="income" canDelete={canManageEntries} empty="Nenhuma outra entrada neste mês." /></details>

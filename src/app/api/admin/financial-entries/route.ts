@@ -23,23 +23,47 @@ async function admin() {
   return user?.role === UserRole.ADMIN ? user : null;
 }
 
+function entryData(body: Record<string, unknown>) {
+  const type = body.type === "EXPENSE" ? FinancialEntryType.EXPENSE : body.type === "REVENUE" ? FinancialEntryType.REVENUE : null;
+  const title = typeof body.title === "string" ? body.title.trim().slice(0, 120) : "";
+  const category = typeof body.category === "string" ? body.category.trim().slice(0, 60) : "";
+  const description = typeof body.description === "string" ? body.description.trim().slice(0, 1000) : "";
+  const cents = amountCents(body.amount);
+  const date = occurredAt(body.occurredAt);
+  if (!type || !title || !cents || !date) return null;
+  return { type, title, category: category || null, description: description || null, isFixed: body.isFixed === true, amountCents: cents, occurredAt: date };
+}
+
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
   const user = await admin();
   if (!user) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
   try {
     const body = await request.json() as Record<string, unknown>;
-    const type = body.type === "EXPENSE" ? FinancialEntryType.EXPENSE : body.type === "REVENUE" ? FinancialEntryType.REVENUE : null;
-    const title = typeof body.title === "string" ? body.title.trim().slice(0, 120) : "";
-    const category = typeof body.category === "string" ? body.category.trim().slice(0, 60) : "";
-    const description = typeof body.description === "string" ? body.description.trim().slice(0, 1000) : "";
-    const cents = amountCents(body.amount);
-    const date = occurredAt(body.occurredAt);
-    if (!type || !title || !cents || !date) return NextResponse.json({ error: "Preencha tipo, título, valor e data válidos." }, { status: 400, headers: noStoreHeaders() });
-    const entry = await prisma.financialEntry.create({ data: { type, title, category: category || null, description: description || null, isFixed: body.isFixed === true, amountCents: cents, occurredAt: date, createdById: user.id }, include: { createdBy: { select: { name: true } } } });
+    const data = entryData(body);
+    if (!data) return NextResponse.json({ error: "Preencha tipo, título, valor e data válidos." }, { status: 400, headers: noStoreHeaders() });
+    const entry = await prisma.financialEntry.create({ data: { ...data, createdById: user.id }, include: { createdBy: { select: { name: true } } } });
     return NextResponse.json({ entry }, { headers: noStoreHeaders() });
   } catch {
     return NextResponse.json({ error: "Não foi possível salvar o lançamento." }, { status: 400, headers: noStoreHeaders() });
+  }
+}
+
+export async function PATCH(request: Request) {
+  if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
+  if (!await admin()) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
+  try {
+    const body = await request.json() as Record<string, unknown>;
+    const id = typeof body.id === "string" ? body.id.trim() : "";
+    const data = entryData(body);
+    if (!id || !data) return NextResponse.json({ error: "Preencha tipo, título, valor e data válidos." }, { status: 400, headers: noStoreHeaders() });
+    const entry = await prisma.financialEntry.update({ where: { id }, data, include: { createdBy: { select: { name: true } } } });
+    return NextResponse.json({ entry }, { headers: noStoreHeaders() });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return NextResponse.json({ error: "Lançamento não encontrado ou já removido." }, { status: 404, headers: noStoreHeaders() });
+    }
+    return NextResponse.json({ error: "Não foi possível salvar as alterações." }, { status: 400, headers: noStoreHeaders() });
   }
 }
 
