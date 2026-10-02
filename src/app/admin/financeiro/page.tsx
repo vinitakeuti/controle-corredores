@@ -150,7 +150,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
           </div>
         </section>
       </section>
-    </div><aside className="finance-entry-panel"><p className="eyebrow">Novo lançamento</p><h2>Complete o financeiro</h2><p>Registre vendas fora dos planos e todos os custos do mês.</p><FinancialEntryManager month={range.key} /></aside></section>
+    </div><aside className="finance-entry-panel"><div className="finance-entry-intro"><p className="eyebrow">Novo lançamento</p><h2>Registrar no financeiro</h2><p>Inclua uma entrada ou saída avulsa para manter o resultado do mês atualizado.</p></div><FinancialEntryManager month={range.key} /></aside></section>
     <FinancialMobileActions month={range.key} />
   </AppShell>;
 }

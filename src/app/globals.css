@@ -1911,3 +1911,36 @@ button.finance-entry-row-content { cursor: pointer; }
   .financial-entry-modal .financial-title-field { grid-column: auto; }
   .financial-entry-modal .financial-fixed { grid-column: auto; }
 }
+
+/* Lançamento no desktop: formulário compacto, sem área vazia ou controles soltos. */
+@media (min-width: 641px) {
+  .finance-entry-panel { display: grid; grid-template-columns: minmax(230px, .27fr) minmax(0, .73fr); gap: 28px; align-items: stretch; margin: 0 0 26px; padding: 25px 24px; background: rgba(255,255,255,.7); }
+  .finance-entry-intro { display: grid; align-content: start; padding: 4px 26px 4px 1px; border-right: 1px solid var(--line); }
+  .finance-entry-intro .eyebrow { margin: 0 0 8px; }
+  .finance-entry-intro h2 { margin: 0; color: var(--text); font-size: 23px; letter-spacing: -.055em; }
+  .finance-entry-intro > p:not(.eyebrow) { max-width: 240px; margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .finance-entry-panel .financial-entry-form { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "type core" "notes action"; align-items: end; gap: 16px 18px; margin: 0; }
+  .finance-entry-panel .financial-entry-type { grid-area: type; align-self: end; margin: 0; }
+  .finance-entry-panel .financial-entry-type button { min-width: 94px; min-height: 42px; }
+  .finance-entry-panel .financial-entry-core { grid-area: core; grid-template-columns: minmax(175px, 1.48fr) minmax(122px, .92fr) minmax(110px, .78fr) minmax(138px, .95fr) minmax(142px, .98fr); align-items: end; gap: 12px; }
+  .finance-entry-panel .financial-entry-core input, .finance-entry-panel .financial-entry-core select { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; }
+  .finance-entry-panel .financial-fixed { align-self: end; box-sizing: border-box; height: 44px; min-height: 44px; padding: 0 11px; background: rgba(255,255,255,.5); }
+  .finance-entry-panel .financial-entry-notes { position: relative; grid-area: notes; align-self: center; margin: 0; padding: 0; }
+  .finance-entry-panel .financial-entry-notes[open] { padding: 0; }
+  .finance-entry-panel .financial-entry-notes summary { padding-bottom: 2px; }
+  .finance-entry-panel .financial-entry-notes .field { position: absolute; z-index: 3; width: min(360px, calc(100vw - 96px)); margin: 11px 0 0; padding: 13px; background: #f8f9f6; border: 1px solid var(--line); box-shadow: 0 14px 30px rgba(22,32,27,.12); }
+  .finance-entry-panel .financial-entry-notes textarea { min-height: 72px; }
+  .finance-entry-panel .financial-entry-submit { grid-area: action; justify-content: flex-end; min-height: 42px; }
+  .finance-entry-panel .financial-entry-submit .button { min-width: 174px; min-height: 44px; }
+}
+
+@media (min-width: 641px) and (max-width: 1100px) {
+  .finance-entry-panel { grid-template-columns: 1fr; gap: 20px; }
+  .finance-entry-intro { grid-template-columns: minmax(180px, .35fr) minmax(0, .65fr); column-gap: 18px; align-items: center; padding: 0 0 17px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .finance-entry-intro .eyebrow, .finance-entry-intro h2 { grid-column: 1; }
+  .finance-entry-intro > p:not(.eyebrow) { grid-column: 2; grid-row: 1 / span 2; max-width: 430px; margin: 0; }
+  .finance-entry-panel .financial-entry-form { grid-template-columns: 1fr; grid-template-areas: "type" "core" "notes" "action"; gap: 14px; }
+  .finance-entry-panel .financial-entry-core { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .finance-entry-panel .financial-title-field { grid-column: span 2; }
+  .finance-entry-panel .financial-entry-submit { justify-content: flex-start; }
+}
