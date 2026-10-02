@@ -3,6 +3,7 @@ import { subscriptionCycleMonths } from "@/lib/plan-billing";
 
 type SubscriptionCycle = { billingPeriod: PlanPeriod; manualMonthlyBilling: boolean } | null | undefined;
 type ContractPayment = { amountCents: number; paidAt: Date | null; subscription?: SubscriptionCycle };
+type ActiveContract = { priceCents: number; isCourtesy?: boolean };
 
 function addMonths(date: Date, count: number) {
   const result = new Date(date);
@@ -22,6 +23,15 @@ export function monthlyEquivalentCents(payment: ContractPayment) {
   if (!payment.subscription) return 0;
   const months = subscriptionCycleMonths(payment.subscription.billingPeriod, payment.subscription.manualMonthlyBilling);
   return allocationForMonth(payment.amountCents, months, 0);
+}
+
+/**
+ * Receita contratada de um mês-calendário. O preço da assinatura já é mensal,
+ * inclusive em planos trimestrais, semestrais e anuais; por isso o valor não
+ * depende do dia em que uma parcela é cobrada ou confirmada.
+ */
+export function contractedMonthlyRevenueCents(subscriptions: ActiveContract[]) {
+  return subscriptions.reduce((total, subscription) => total + (subscription.isCourtesy ? 0 : subscription.priceCents), 0);
 }
 
 /**

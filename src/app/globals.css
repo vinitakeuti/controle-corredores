@@ -1540,6 +1540,10 @@ body.tutorial-open { overflow: hidden; }
 .demand-folder-item { min-width: min(100%, 220px); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 7px 5px 10px; background: rgba(235,240,235,.72); border: 1px solid var(--line); }
 .demand-folder-item span { min-width: 0; overflow: hidden; padding: 0; background: transparent; border: 0; text-overflow: ellipsis; white-space: nowrap; }
 .demand-folder-item .button { min-height: 32px; padding: 0 7px; font-size: 10px; }
+.demand-folder-open { min-width: 0; display: grid; gap: 3px; padding: 4px 0; color: var(--text); background: transparent; border: 0; text-align: left; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.demand-folder-open small { color: var(--muted); font-size: 9px; font-weight: 650; }
+.demand-folder-open:hover small { color: var(--accent-bright); }
+.demand-folder-open:disabled { cursor: wait; opacity: .6; }
 .demand-archive-list { display: grid; gap: 10px; margin-top: 20px; }
 .demand-archive-list article { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .demand-archive-list strong, .demand-archive-list small { display: block; }
@@ -1784,4 +1788,64 @@ body.tutorial-open { overflow: hidden; }
   .financial-entry-modal .financial-entry-notes { grid-column: 1 / -1; }
   .financial-entry-modal .financial-entry-submit { justify-content: flex-start; }
   .finance-statement { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+}
+
+/* Receita contratada e lançamentos manuais do financeiro. */
+.finance-contract-revenue { margin: 18px 0 0; padding: 15px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.finance-contract-revenue summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; cursor: pointer; list-style: none; }
+.finance-contract-revenue summary::-webkit-details-marker { display: none; }
+.finance-contract-revenue summary::after { flex: 0 0 auto; content: "+"; color: var(--muted-strong); font-size: 17px; line-height: 1; }
+.finance-contract-revenue[open] summary::after { content: "−"; }
+.finance-contract-revenue summary > span { display: grid; gap: 4px; min-width: 0; }
+.finance-contract-revenue summary strong { color: var(--text); font-size: 12px; }
+.finance-contract-revenue summary small { color: var(--muted); font-size: 10px; line-height: 1.4; }
+.finance-contract-revenue summary > b { flex: 0 0 auto; color: #31523e; font-size: 15px; white-space: nowrap; }
+.finance-contract-revenue-body { margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--line-soft); }
+.finance-contract-revenue-body > p { margin: 0 0 10px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.finance-contract-list { border-top: 1px solid var(--line-soft); }
+.finance-contract-list > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 14px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line-soft); }
+.finance-contract-list span { min-width: 0; color: var(--text); font-size: 11px; font-weight: 750; }
+.finance-contract-list small { grid-column: 1; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.finance-contract-list b { grid-column: 2; grid-row: 1 / span 2; color: #31523e; font-size: 12px; white-space: nowrap; }
+.finance-entry-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
+.financial-entry-delete-control { display: grid; justify-items: end; gap: 4px; }
+.financial-entry-delete-control button { min-height: 28px; padding: 0 7px; color: var(--accent-bright); background: transparent; border: 1px solid rgba(225,93,55,.55); font: inherit; font-size: 9px; font-weight: 800; letter-spacing: .04em; cursor: pointer; }
+.financial-entry-delete-control button:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
+.financial-entry-delete-control button:disabled { opacity: .55; cursor: wait; }
+.financial-entry-delete-control small { max-width: 180px; color: var(--accent-bright); font-size: 9px; line-height: 1.25; text-align: right; }
+
+/* O formulário mobile mantém os controles alinhados mesmo em telas estreitas. */
+@media (max-width: 640px) {
+  .financial-entry-modal > section { max-height: calc(100dvh - 12px); padding: 20px 18px calc(24px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; }
+  .financial-entry-modal .financial-entry-form { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 20px; }
+  .financial-entry-modal .financial-entry-type { width: 100%; }
+  .financial-entry-modal .financial-entry-type button { min-width: 0; min-height: 42px; }
+  .financial-entry-modal .financial-entry-core { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 14px 12px; }
+  .financial-entry-modal .financial-entry-core .field { min-width: 0; }
+  .financial-entry-modal .financial-entry-core .field input,
+  .financial-entry-modal .financial-entry-core .field select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 46px; height: 46px; padding: 0 10px; background: rgba(255,255,255,.68); border: 1px solid var(--line); border-radius: 0; font: inherit; font-size: 13px; }
+  .financial-entry-modal .financial-title-field { grid-column: 1 / -1; }
+  .financial-entry-modal .financial-fixed { box-sizing: border-box; align-self: end; min-width: 0; min-height: 46px; height: 46px; padding: 0 9px; background: rgba(255,255,255,.55); }
+  .financial-entry-modal .financial-fixed small { display: none; }
+  .financial-entry-modal .financial-fixed strong { font-size: 10px; white-space: nowrap; }
+  .financial-entry-modal .financial-entry-notes { grid-column: auto; margin: 0; }
+  .financial-entry-modal .financial-entry-submit { display: grid; grid-template-columns: 1fr; gap: 10px; justify-content: stretch; }
+  .financial-entry-modal .financial-entry-submit .button { justify-self: stretch; width: 100%; min-height: 48px; margin: 0; }
+  .financial-entry-modal .financial-entry-submit .success-message,
+  .financial-entry-modal .financial-entry-submit .error-message { margin: 0; }
+  .finance-contract-revenue summary { align-items: flex-start; gap: 12px; }
+  .finance-contract-revenue summary > b { margin-top: 1px; font-size: 14px; }
+  .finance-contract-list > div { gap: 3px 10px; }
+  .finance-contract-list b { font-size: 11px; }
+  .finance-manual-list > div { grid-template-columns: 24px minmax(0, 1fr); align-items: start; }
+  .finance-manual-list .finance-entry-actions { grid-column: 2; justify-content: flex-start; margin-top: 7px; }
+  .financial-entry-delete-control { justify-items: start; }
+  .financial-entry-delete-control small { text-align: left; }
+}
+
+@media (max-width: 380px) {
+  .financial-entry-modal > section { padding-right: 15px; padding-left: 15px; }
+  .financial-entry-modal .financial-entry-core { grid-template-columns: 1fr; }
+  .financial-entry-modal .financial-title-field { grid-column: auto; }
+  .financial-entry-modal .financial-fixed { grid-column: auto; }
 }

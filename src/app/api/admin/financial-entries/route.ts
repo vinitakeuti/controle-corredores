@@ -1,4 +1,4 @@
-import { FinancialEntryType, UserRole } from "@prisma/client";
+import { FinancialEntryType, Prisma, UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -47,6 +47,15 @@ export async function DELETE(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Origem inválida" }, { status: 403, headers: noStoreHeaders() });
   if (!await admin()) return NextResponse.json({ error: "Sem permissão" }, { status: 403, headers: noStoreHeaders() });
   const id = new URL(request.url).searchParams.get("id") ?? "";
-  await prisma.financialEntry.delete({ where: { id } }).catch(() => null);
-  return NextResponse.json({ ok: true }, { headers: noStoreHeaders() });
+  if (!id) return NextResponse.json({ error: "Lançamento inválido." }, { status: 400, headers: noStoreHeaders() });
+  try {
+    await prisma.financialEntry.delete({ where: { id } });
+    return NextResponse.json({ ok: true }, { headers: noStoreHeaders() });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return NextResponse.json({ error: "Lançamento não encontrado ou já removido." }, { status: 404, headers: noStoreHeaders() });
+    }
+    console.error("Financial entry deletion failed", error);
+    return NextResponse.json({ error: "Não foi possível excluir o lançamento." }, { status: 500, headers: noStoreHeaders() });
+  }
 }
