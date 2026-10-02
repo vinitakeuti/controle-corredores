@@ -1923,7 +1923,7 @@ button.finance-entry-row-content { cursor: pointer; }
   .finance-entry-panel .financial-entry-type { grid-area: type; align-self: end; margin: 0; }
   .finance-entry-panel .financial-entry-type button { min-width: 94px; min-height: 42px; }
   .finance-entry-panel .financial-entry-core { grid-area: core; grid-template-columns: minmax(175px, 1.48fr) minmax(122px, .92fr) minmax(110px, .78fr) minmax(138px, .95fr) minmax(142px, .98fr); align-items: end; gap: 12px; }
-  .finance-entry-panel .financial-entry-core input, .finance-entry-panel .financial-entry-core select { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; }
+  .finance-entry-panel .financial-entry-core .field input, .finance-entry-panel .financial-entry-core .field select { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; }
   .finance-entry-panel .financial-fixed { align-self: end; box-sizing: border-box; height: 44px; min-height: 44px; padding: 0 11px; background: rgba(255,255,255,.5); }
   .finance-entry-panel .financial-entry-notes { position: relative; grid-area: notes; align-self: center; margin: 0; padding: 0; }
   .finance-entry-panel .financial-entry-notes[open] { padding: 0; }
