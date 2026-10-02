@@ -1758,6 +1758,32 @@ body.tutorial-open { overflow: hidden; }
   .analysis-results .analysis-toolbar { padding-top: 20px; }
 }
 
+/* Análise por vencimento: data específica sem perder a visão cronológica. */
+.analysis-toolbar-actions { display: flex; align-items: end; justify-content: flex-end; gap: 10px; }
+.analysis-due-date-filter { display: flex; align-items: end; gap: 8px; }
+.analysis-due-date-filter label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; font-weight: 750; }
+.analysis-due-date-filter input { box-sizing: border-box; min-height: 39px; padding: 0 10px; color: var(--text); background: rgba(255,255,255,.62); border: 1px solid var(--line); border-radius: 0; font: inherit; font-size: 11px; }
+.analysis-due-date-filter .button { min-height: 39px; padding: 0 12px; font-size: 10px; white-space: nowrap; }
+.analysis-due-date-clear { display: inline-flex; align-items: center; min-height: 39px; color: var(--muted-strong); border-bottom: 1px solid var(--line); font-size: 10px; font-weight: 750; text-decoration: none; white-space: nowrap; }
+.analysis-due-date-clear:hover { color: var(--accent); border-color: var(--accent); }
+.analysis-due-date { display: grid; gap: 3px; }
+.analysis-due-date strong { color: var(--text); font-size: 12px; white-space: nowrap; }
+.analysis-due-date small { color: var(--muted); font-size: 10px; }
+.analysis-table th:nth-child(7) { min-width: 156px; }
+
+@media (max-width: 1120px) {
+  .analysis-toolbar-actions { width: 100%; justify-content: flex-start; }
+}
+
+@media (max-width: 760px) {
+  .analysis-toolbar-actions { align-items: stretch; flex-direction: column; gap: 12px; }
+  .analysis-due-date-filter { width: 100%; align-items: end; flex-wrap: wrap; }
+  .analysis-due-date-filter label { flex: 1 1 145px; }
+  .analysis-due-date-filter input { width: 100%; }
+  .analysis-due-date-filter .button { flex: 1 1 auto; }
+  .analysis-due-date-clear { flex: 0 0 auto; }
+}
+
 /* Mantém os três cards de status da Visão Geral simétricos no celular. */
 @media (max-width: 640px) {
   .overview-status-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
