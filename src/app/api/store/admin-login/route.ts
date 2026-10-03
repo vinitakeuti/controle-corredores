@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   if (email.length > 254 || password.length > 128) return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 });
 
   const user = await verifyCredentials(email, password);
-  if (!user || user.role !== UserRole.ADMIN) return NextResponse.json({ error: "Use uma conta ativa de administrador." }, { status: 401 });
+  if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.MANAGER)) return NextResponse.json({ error: "Use uma conta ativa de administrador ou gerente." }, { status: 401 });
 
   return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email } }, { headers: { "Cache-Control": "no-store" } });
 }
