@@ -683,6 +683,7 @@ input[type="date"] { color-scheme: dark; }
 .overview-financial-heading .eyebrow { margin: 0 0 5px; }
 .overview-financial-heading p:last-child { margin: 0; color: var(--muted); font-size: 11px; }
 .overview-financial-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.overview-financial-grid-limited { grid-template-columns: minmax(0, 1fr); }
 .overview-page-heading { position: relative; padding-right: 64px; }
 .overview-page-actions { position: absolute; top: 0; right: 0; display: grid; justify-items: end; gap: 10px; }
 .overview-page-actions .date-now { margin: 0; }
@@ -1592,6 +1593,7 @@ body.tutorial-open { overflow: hidden; }
 .sales-filter .field { margin: 0; min-width: 0; }
 .sales-filter .button { min-height: 42px; white-space: nowrap; }
 .sales-metrics { margin-bottom: 28px; }
+.sales-metrics-without-revenue { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .sales-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, .5fr); gap: 18px; align-items: start; }
 .sales-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .sales-table th, .sales-table td { padding: 13px 10px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: middle; }
@@ -1611,6 +1613,8 @@ body.tutorial-open { overflow: hidden; }
 .sales-period-tabs a.active { color: #fff; background: var(--text); border-color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
 .sales-range-label { margin: 0 0 23px; color: var(--muted); font-size: 11px; }
 .sales-analysis-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.sales-analysis-metrics-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sales-analysis-metrics-one { grid-template-columns: minmax(0, 1fr); }
 .sales-analysis-panel { max-width: 1040px; }
 .sales-analysis-panel .panel-heading { padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .sales-analysis-list { display: grid; }

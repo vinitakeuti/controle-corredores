@@ -37,7 +37,7 @@ export default async function AdminPage() {
 
         <section className="overview-financial">
           <div className="overview-financial-heading"><div><p className="eyebrow">Resultados de {currentMonth}</p><p>Compare o que entrou no caixa com o valor mensal dos contratos ativos no período.</p></div></div>
-          <div className="overview-financial-grid">
+          <div className={`overview-financial-grid${user.role === UserRole.ADMIN ? "" : " overview-financial-grid-limited"}`}>
             {user.role === UserRole.ADMIN ? <article className="metric-card"><p>Recebido em {currentMonth}</p><strong className="money-value">{formatCurrency(receivedCents)}</strong><small>Planos, loja e lançamentos manuais confirmados no mês</small></article> : null}
             <article className="metric-card"><p>Receita contratada de {currentMonth}</p><strong className="money-value">{formatCurrency(contractedRevenue)}</strong><small>mensalidades de todos os contratos ativos, já consideradas no mês inteiro</small></article>
           </div>
