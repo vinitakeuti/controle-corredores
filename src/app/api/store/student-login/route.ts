@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
-import { verifyCredentials } from "@/lib/auth";
+import { verifyCredentialsIncludingInactive } from "@/lib/auth";
 
 const MAX_BODY_BYTES = 8_192;
 
@@ -24,8 +24,11 @@ export async function POST(request: Request) {
   const password = body && typeof body === "object" && typeof (body as Record<string, unknown>).password === "string" ? (body as Record<string, string>).password : "";
   if (email.length > 254 || password.length > 128) return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 });
 
-  const user = await verifyCredentials(email, password);
-  if (!user || user.role !== UserRole.STUDENT) return NextResponse.json({ error: "Use uma conta ativa de aluno." }, { status: 401 });
+  // A loja é um ambiente independente da assessoria: alunos inativos podem
+  // continuar acessando e comprando normalmente, sem recuperar o acesso ao
+  // portal de treinos ou às cobranças da assessoria.
+  const user = await verifyCredentialsIncludingInactive(email, password);
+  if (!user || user.role !== UserRole.STUDENT) return NextResponse.json({ error: "Use uma conta de aluno válida." }, { status: 401 });
 
   return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone ?? "", cpf: user.cpf ?? "" } }, { headers: { "Cache-Control": "no-store" } });
 }

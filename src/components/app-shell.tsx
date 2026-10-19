@@ -24,7 +24,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
           {canAccessFeature(user, "plans") ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos" data-tutorial-anchor="nav-plans">Planos</Link> : null}
           {canAccessFeature(user, "integrations") ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes">Integrações</Link> : null}
           {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" data-tutorial-anchor="nav-student">Minha assinatura</Link> : null}
-          <button className="nav-link tutorial-launcher" type="button" data-open-tutorial>Tutorial</button>
+          {user.active ? <button className="nav-link tutorial-launcher" type="button" data-open-tutorial>Tutorial</button> : null}
           {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja</a> : null}
         </nav>
         {user.role === UserRole.ADMIN ? <div className="sidebar-settings"><Link className={`nav-link ${current === "settings" ? "active" : ""}`} href="/admin/configuracoes">Configurações</Link><a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja</a></div> : null}
@@ -37,7 +37,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
         </div>
       </aside>
       <main className="main-content"><div className="content-wrap">{user.role === UserRole.STUDENT ? <a className="student-store-button" href={STORE_URL}>IR PARA A LOJA</a> : null}{children}</div></main>
-      <PlatformTutorial role={user.role} name={user.name} userId={user.id} initiallySeen={Boolean(user.tutorialSeenAt)} />
+      {user.active ? <PlatformTutorial role={user.role} name={user.name} userId={user.id} initiallySeen={Boolean(user.tutorialSeenAt)} /> : null}
     </div>
   );
 }

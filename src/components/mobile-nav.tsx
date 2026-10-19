@@ -46,7 +46,7 @@ export function MobileNav({ user, current }: { user: SessionUser; current: "admi
             {canAccessFeature(user, "integrations") ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes" onClick={close}>Integrações</Link> : null}
             {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" onClick={close}>Minha assinatura</Link> : null}
             {user.role === UserRole.ADMIN ? <Link className={`nav-link ${current === "settings" ? "active" : ""}`} href="/admin/configuracoes" onClick={close}>Configurações</Link> : null}
-            <button className="nav-link tutorial-launcher" type="button" onClick={openTutorial}>Tutorial</button>
+            {user.active ? <button className="nav-link tutorial-launcher" type="button" onClick={openTutorial}>Tutorial</button> : null}
             {user.role === UserRole.ADMIN ? <a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja</a> : null}
             {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja</a> : null}
           </nav>

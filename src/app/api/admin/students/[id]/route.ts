@@ -20,19 +20,70 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (!staff) return NextResponse.json({ error: "Sem permissão para editar a condição comercial" }, { status: 403, headers: noStoreHeaders() });
     if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") return NextResponse.json({ error: "Formato inválido" }, { status: 415, headers: noStoreHeaders() });
     const { id } = await context.params;
-    const body = await request.json() as Record<string, unknown>;
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "Dados inválidos." }, { status: 400, headers: noStoreHeaders() });
+    const input = body as Record<string, unknown>;
     const student = await prisma.user.findUnique({ where: { id }, include: { subscription: { include: { plan: true } } } });
-    if (!student || student.role !== UserRole.STUDENT || !student.subscription) return NextResponse.json({ error: "Aluno não encontrado" }, { status: 404, headers: noStoreHeaders() });
-    if (body.isCourtesy !== undefined && staff.role !== UserRole.ADMIN) {
+    if (!student || student.role !== UserRole.STUDENT) return NextResponse.json({ error: "Aluno não encontrado" }, { status: 404, headers: noStoreHeaders() });
+
+    if (input.action === "set-active") {
+      if (staff.role !== UserRole.ADMIN) return NextResponse.json({ error: "Apenas administradores podem inativar ou reativar alunos." }, { status: 403, headers: noStoreHeaders() });
+      const nextActive = input.active;
+      if (typeof nextActive !== "boolean") return NextResponse.json({ error: "Situação do aluno inválida." }, { status: 400, headers: noStoreHeaders() });
+      if (student.active === nextActive) return NextResponse.json({ active: student.active, unchanged: true }, { headers: noStoreHeaders() });
+
+      if (!nextActive && student.subscription?.asaasPixAuthorizationId && !["CANCELLED", "EXPIRED", "REFUSED"].includes(student.subscription.asaasPixAuthorizationStatus ?? "")) {
+        await cancelAsaasAutomaticPixAuthorization(student.subscription.asaasPixAuthorizationId);
+      }
+
+      const now = new Date();
+      await prisma.$transaction(async (transaction) => {
+        await transaction.user.update({ where: { id: student.id }, data: { active: nextActive, leftAt: nextActive ? null : now } });
+        await transaction.session.deleteMany({ where: { userId: student.id } });
+        if (!nextActive) {
+          await transaction.paymentLink.updateMany({ where: { userId: student.id, status: PaymentLinkStatus.OPEN }, data: { status: PaymentLinkStatus.REVOKED } });
+          if (student.subscription) {
+            await transaction.subscription.update({
+              where: { id: student.subscription.id },
+              data: {
+                status: SubscriptionStatus.CANCELED,
+                nextBillingAt: null,
+                recurringEnabled: false,
+                recurringMethod: null,
+                automaticPixEnabled: false,
+                asaasPixAuthorizationStatus: student.subscription.asaasPixAuthorizationId ? "CANCELLED" : student.subscription.asaasPixAuthorizationStatus,
+              },
+            });
+          }
+        } else if (student.subscription?.status === SubscriptionStatus.CANCELED) {
+          await transaction.subscription.update({
+            where: { id: student.subscription.id },
+            data: {
+              status: student.subscription.isCourtesy ? SubscriptionStatus.ACTIVE : SubscriptionStatus.INCOMPLETE,
+              nextBillingAt: null,
+              recurringEnabled: false,
+              recurringMethod: null,
+              automaticPixEnabled: !student.subscription.isCourtesy && !student.subscription.manualMonthlyBilling && Boolean(student.subscription.plan?.automaticPixEnabled),
+              asaasPixAuthorizationStatus: student.subscription.asaasPixAuthorizationId ? "CANCELLED" : student.subscription.asaasPixAuthorizationStatus,
+            },
+          });
+        }
+      });
+      return NextResponse.json({ active: nextActive }, { headers: noStoreHeaders() });
+    }
+
+    if (!student.active) return NextResponse.json({ error: "Reative o aluno antes de editar a condição comercial." }, { status: 409, headers: noStoreHeaders() });
+    if (!student.subscription) return NextResponse.json({ error: "Este aluno ainda não possui uma condição comercial." }, { status: 409, headers: noStoreHeaders() });
+    if (input.isCourtesy !== undefined && staff.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: "Apenas administradores podem conceder ou remover cortesias." }, { status: 403, headers: noStoreHeaders() });
     }
 
-    const planId = typeof body.planId === "string" ? body.planId : student.subscription.planId;
+    const planId = typeof input.planId === "string" ? input.planId : student.subscription.planId;
     const plan = planId ? await prisma.plan.findFirst({ where: { id: planId, active: true, service: { active: true } }, include: { service: true } }) : null;
     if (!plan) return NextResponse.json({ error: "Selecione um plano ativo para este aluno" }, { status: 400, headers: noStoreHeaders() });
-    const priceCents = body.priceCents === undefined ? (student.subscription.planId === plan.id ? student.subscription.priceCents : plan.priceCents) : parseAmountCents(body.priceCents);
-    const isCourtesy = body.isCourtesy === undefined ? student.subscription.isCourtesy : body.isCourtesy === true;
-    const manualMonthlyBilling = body.manualMonthlyBilling === undefined ? student.subscription.manualMonthlyBilling : body.manualMonthlyBilling === true;
+    const priceCents = input.priceCents === undefined ? (student.subscription.planId === plan.id ? student.subscription.priceCents : plan.priceCents) : parseAmountCents(input.priceCents);
+    const isCourtesy = input.isCourtesy === undefined ? student.subscription.isCourtesy : input.isCourtesy === true;
+    const manualMonthlyBilling = input.manualMonthlyBilling === undefined ? student.subscription.manualMonthlyBilling : input.manualMonthlyBilling === true;
     // Esta condição é uma exceção individual: ela sempre gera uma cobrança
     // avulsa em Pix, uma vez por mês, independentemente da duração do plano.
     if (manualMonthlyBilling && !plan.allowedMethods.includes(PaymentMethod.PIX)) {

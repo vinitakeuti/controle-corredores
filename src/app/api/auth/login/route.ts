@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSession, defaultPathForRole, isStaffRole, verifyCredentials } from "@/lib/auth";
+import { createSession, defaultPathForRole, isStaffRole, verifyCredentialsIncludingInactive } from "@/lib/auth";
 import { isStudentPortalEnabled, portalForHost, portalUrlForRole } from "@/lib/portal";
 import { checkLoginRateLimit, clearLoginFailures, loginRateLimitKeys, registerLoginFailure } from "@/lib/rate-limit";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
@@ -27,11 +27,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401, headers: noStoreHeaders() });
     }
 
-    const user = await verifyCredentials(email, password);
+    const user = await verifyCredentialsIncludingInactive(email, password);
 
     if (!user) {
       registerLoginFailure(keys);
       return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401, headers: noStoreHeaders() });
+    }
+
+    if (!user.active && isStaffRole(user.role)) {
+      clearLoginFailures(keys);
+      return NextResponse.json({ error: "Esta conta está inativa. Entre em contato com o suporte da Pace Lab.", inactive: true }, { status: 403, headers: noStoreHeaders() });
     }
 
     if (isStudentPortalEnabled()) {

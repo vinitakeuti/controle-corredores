@@ -878,6 +878,15 @@ input[type="date"] { color-scheme: dark; }
 .profile-details dd { margin: 0; overflow-wrap: anywhere; color: var(--text); font-size: 13px; }
 .profile-payments { margin-top: 18px; }
 .profile-enrollment { margin-top: 18px; }
+.student-account-status-control { margin-top: 18px; }
+.inactive-student-notice h1 { margin: 8px 0 18px; font-size: clamp(28px, 5vw, 42px); line-height: 1.1; }
+.inactive-student-notice > p:not(.eyebrow) { color: var(--muted); line-height: 1.6; }
+.student-account-status-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+.student-account-status-actions .delete-warning { margin-right: auto; }
+.student-account-status-note { margin: 16px 0 0; color: var(--muted); font-size: 12px; }
+.login-status-message { display: grid; gap: 11px; margin: 0 0 16px; }
+.login-status-message .error-message { margin: 0; }
+.login-store-link { width: fit-content; }
 .enrollment-details { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line-soft); }
 .enrollment-details > div { display: grid; gap: 6px; min-width: 0; padding: 16px 18px 16px 0; border-right: 1px solid var(--line-soft); }
 .enrollment-details > div + div { padding-left: 18px; }

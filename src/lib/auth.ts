@@ -17,6 +17,7 @@ export type SessionUser = {
   name: string;
   email: string;
   role: UserRole;
+  active: boolean;
   tutorialSeenAt: Date | null;
   managerPermissions: unknown;
 };
@@ -44,14 +45,19 @@ function getSessionCookieValue(cookieStore: Awaited<ReturnType<typeof cookies>>)
   return cookieStore.get(SECURE_SESSION_COOKIE)?.value ?? cookieStore.get(SESSION_COOKIE)?.value;
 }
 
-export async function verifyCredentials(email: string, password: string) {
+export async function verifyCredentialsIncludingInactive(email: string, password: string) {
   const normalizedEmail = email.toLowerCase().trim();
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   const isValid = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
   if (!isValid) return null;
-  if (!user || !user.active) return null;
+  if (!user) return null;
 
   return user;
+}
+
+export async function verifyCredentials(email: string, password: string) {
+  const user = await verifyCredentialsIncludingInactive(email, password);
+  return user?.active ? user : null;
 }
 
 export async function createSession(userId: string, request?: Request) {
@@ -79,7 +85,9 @@ export async function destroySession() {
   cookieStore.delete(SESSION_COOKIE);
 }
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
+type SessionAccess = { allowInactiveStudent?: boolean };
+
+export async function getCurrentUser(options: SessionAccess = {}): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const token = getSessionCookieValue(cookieStore);
   if (!token) return null;
@@ -89,29 +97,34 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     include: { user: true },
   });
 
-  if (!session || session.expiresAt < new Date() || !session.user.active) {
+  if (!session || session.expiresAt < new Date() || (!session.user.active && session.user.role !== UserRole.STUDENT)) {
     if (session) await prisma.session.delete({ where: { id: session.id } });
     return null;
   }
+
+  // Only the account-status screen can opt into this limited session.
+  // Payment, plan and management APIs continue requiring an active account.
+  if (!session.user.active && !options.allowInactiveStudent) return null;
 
   return {
     id: session.user.id,
     name: session.user.name,
     email: session.user.email,
     role: session.user.role,
+    active: session.user.active,
     tutorialSeenAt: session.user.tutorialSeenAt,
     managerPermissions: session.user.managerPermissions,
   };
 }
 
-export async function requireUser() {
-  const user = await getCurrentUser();
+export async function requireUser(options: SessionAccess = {}) {
+  const user = await getCurrentUser(options);
   if (!user) redirect("/login");
   return user;
 }
 
-export async function requireRole(role: UserRole) {
-  const user = await requireUser();
+export async function requireRole(role: UserRole, options: SessionAccess = {}) {
+  const user = await requireUser(options);
   if (user.role !== role) redirect(defaultPathForRole(user.role));
   return user;
 }

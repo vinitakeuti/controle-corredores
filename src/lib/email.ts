@@ -170,7 +170,7 @@ export async function sendDueTomorrowReminders() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const dateKey = dateInMaceio(tomorrow);
   const scheduledFor = new Date(`${dateKey}T12:00:00.000Z`);
-  const subscriptions = await prisma.subscription.findMany({ where: { status: SubscriptionStatus.ACTIVE, nextBillingAt: { not: null } }, include: { user: { select: { id: true, name: true, email: true } } } });
+  const subscriptions = await prisma.subscription.findMany({ where: { status: SubscriptionStatus.ACTIVE, nextBillingAt: { not: null }, user: { is: { active: true } } }, include: { user: { select: { id: true, name: true, email: true } } } });
   let sent = 0;
   for (const subscription of subscriptions) {
     if (!subscription.nextBillingAt || dateInMaceio(subscription.nextBillingAt) !== dateKey) continue;

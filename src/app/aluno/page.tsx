@@ -14,7 +14,10 @@ import { prisma } from "@/lib/prisma";
 
 export default async function StudentPage({ searchParams }: { searchParams: Promise<{ termDownloadError?: string }> }) {
   const { termDownloadError } = await searchParams;
-  const user = await requireRole(UserRole.STUDENT);
+  const user = await requireRole(UserRole.STUDENT, { allowInactiveStudent: true });
+  if (!user.active) {
+    return <AppShell user={user} current="student"><section className="panel inactive-student-notice" role="status"><p className="eyebrow">Área do aluno</p><h1>Sua conta está inativa.</h1><p>Entre em contato com o suporte da Pace Lab para regularizar seu acesso à assessoria.</p><p>Você pode continuar acessando a loja pelo menu.</p></section></AppShell>;
+  }
   const account = await prisma.user.findUnique({
     where: { id: user.id },
     include: { subscription: true, payments: { orderBy: { createdAt: "desc" }, take: 6 } },

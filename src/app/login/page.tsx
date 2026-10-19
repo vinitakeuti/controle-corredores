@@ -6,7 +6,7 @@ import { defaultPathForRole, getCurrentUser, isStaffRole } from "@/lib/auth";
 import { isStudentPortalEnabled, portalForHost, portalUrlForRole } from "@/lib/portal";
 
 export default async function LoginPage() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser({ allowInactiveStudent: true });
   const requestHeaders = await headers();
   const portal = portalForHost(requestHeaders.get("host"));
   if (user) {

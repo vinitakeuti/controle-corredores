@@ -228,7 +228,7 @@ export async function cancelAsaasAutomaticPixAuthorization(authorizationId: stri
   try {
     await asaasRequest(`/pix/automatic/authorizations/${encodeURIComponent(authorizationId)}`, {
       method: "DELETE",
-    });
+    }, false);
   } catch (error) {
     if (error instanceof AsaasError && error.status === 404) return;
     throw error;

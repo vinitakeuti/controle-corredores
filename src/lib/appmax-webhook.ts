@@ -76,8 +76,8 @@ export async function processAppmaxGatewayEvent(eventId: string) {
 
     const occurredAt = event.occurredAt ?? new Date();
     if (event.eventName === "subscription_created") {
-      await prisma.subscription.update({
-        where: { id: subscription.id },
+      await prisma.subscription.updateMany({
+        where: { id: subscription.id, status: { not: SubscriptionStatus.CANCELED }, user: { is: { active: true } } },
         data: {
           providerSubscriptionId: event.providerSubscriptionId ?? subscription.providerSubscriptionId,
           providerCustomerId: event.providerCustomerId ?? subscription.providerCustomerId,
@@ -110,8 +110,8 @@ export async function processAppmaxGatewayEvent(eventId: string) {
             providerStatus: event.eventName,
           },
         });
-        await transaction.subscription.update({
-          where: { id: subscription.id },
+        await transaction.subscription.updateMany({
+          where: { id: subscription.id, status: { not: SubscriptionStatus.CANCELED }, user: { is: { active: true } } },
           data: {
             status: SubscriptionStatus.ACTIVE,
             nextBillingAt: addMonths(occurredAt, subscriptionCycleMonths(subscription.billingPeriod, subscription.manualMonthlyBilling)),
@@ -122,8 +122,8 @@ export async function processAppmaxGatewayEvent(eventId: string) {
         });
       });
     } else if (event.eventName === "subscription_charge_failed" || event.eventName === "subscription_delayed") {
-      await prisma.subscription.update({
-        where: { id: subscription.id },
+      await prisma.subscription.updateMany({
+        where: { id: subscription.id, status: { not: SubscriptionStatus.CANCELED }, user: { is: { active: true } } },
         data: {
           status: SubscriptionStatus.PAST_DUE,
           nextBillingAt: occurredAt,

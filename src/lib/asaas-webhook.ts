@@ -29,10 +29,10 @@ async function processAutomaticPixAuthorization(event: {
   if (!event.providerSubscriptionId) return false;
   const subscription = await prisma.subscription.findUnique({
     where: { asaasPixAuthorizationId: event.providerSubscriptionId },
-    select: { id: true, userId: true, nextBillingAt: true, status: true, billingPeriod: true, manualMonthlyBilling: true, isCourtesy: true },
+    select: { id: true, userId: true, nextBillingAt: true, status: true, billingPeriod: true, manualMonthlyBilling: true, isCourtesy: true, user: { select: { active: true } } },
   });
   if (!subscription) return false;
-  if (subscription.manualMonthlyBilling || subscription.isCourtesy) {
+  if (!subscription.user.active || subscription.status === SubscriptionStatus.CANCELED || subscription.manualMonthlyBilling || subscription.isCourtesy) {
     await cancelAsaasAutomaticPixAuthorization(event.providerSubscriptionId).catch(() => undefined);
     await prisma.subscription.update({ where: { id: subscription.id }, data: { automaticPixEnabled: false, asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } });
     return true;
@@ -45,8 +45,8 @@ async function processAutomaticPixAuthorization(event: {
   await prisma.$transaction(async (transaction) => {
     if (activated) {
       const paidAt = event.occurredAt ?? new Date();
-      await transaction.subscription.update({
-        where: { id: subscription.id },
+      const activatedSubscription = await transaction.subscription.updateMany({
+        where: { id: subscription.id, status: { not: SubscriptionStatus.CANCELED }, user: { is: { active: true } } },
         data: {
           status: SubscriptionStatus.ACTIVE,
           nextBillingAt: addMonths(subscription.nextBillingAt && subscription.nextBillingAt > paidAt
@@ -57,6 +57,7 @@ async function processAutomaticPixAuthorization(event: {
           recurringMethod: PaymentMethod.PIX,
         },
       });
+      if (!activatedSubscription.count) return;
       const initialPayment = await transaction.payment.findFirst({
         where: {
           subscriptionId: subscription.id,

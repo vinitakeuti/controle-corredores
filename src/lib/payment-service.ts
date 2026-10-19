@@ -651,10 +651,10 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true, isCourtesy: true } });
-      if (!subscription?.isCourtesy) {
-        await transaction.subscription.update({
-          where: { id: current.subscriptionId },
+      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true, isCourtesy: true, status: true, user: { select: { active: true } } } });
+      if (!subscription?.isCourtesy && subscription?.user.active && subscription.status !== SubscriptionStatus.CANCELED) {
+        await transaction.subscription.updateMany({
+          where: { id: current.subscriptionId, status: { not: SubscriptionStatus.CANCELED }, user: { is: { active: true } } },
           data: {
             status: SubscriptionStatus.ACTIVE,
             nextBillingAt: addMonths(paidAt, subscriptionCycleMonths(subscription?.billingPeriod ?? "MONTHLY", subscription?.manualMonthlyBilling)),
@@ -675,8 +675,8 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
       const shouldMarkPastDue = subscription?.status === SubscriptionStatus.ACTIVE
         && (refunded || Boolean(subscription.nextBillingAt && subscription.nextBillingAt <= new Date()));
       if (shouldMarkPastDue) {
-        await transaction.subscription.update({
-          where: { id: current.subscriptionId },
+        await transaction.subscription.updateMany({
+          where: { id: current.subscriptionId, status: { not: SubscriptionStatus.CANCELED }, user: { is: { active: true } } },
           data: { status: SubscriptionStatus.PAST_DUE },
         });
       }
@@ -753,10 +753,10 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
     if (becamePaid) notification = "paid";
     else if (current.status !== PaymentStatus.FAILED && nextStatus === PaymentStatus.FAILED) notification = "failed";
     if (current.subscriptionId && becamePaid) {
-      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true, isCourtesy: true } });
-      if (!subscription?.isCourtesy) {
-        await transaction.subscription.update({
-          where: { id: current.subscriptionId },
+      const subscription = await transaction.subscription.findUnique({ where: { id: current.subscriptionId }, select: { billingPeriod: true, manualMonthlyBilling: true, isCourtesy: true, status: true, user: { select: { active: true } } } });
+      if (!subscription?.isCourtesy && subscription?.user.active && subscription.status !== SubscriptionStatus.CANCELED) {
+        await transaction.subscription.updateMany({
+          where: { id: current.subscriptionId, status: { not: SubscriptionStatus.CANCELED }, user: { is: { active: true } } },
           data: {
             status: SubscriptionStatus.ACTIVE,
             nextBillingAt: addMonths(paidAt, subscriptionCycleMonths(subscription?.billingPeriod ?? "MONTHLY", subscription?.manualMonthlyBilling)),
@@ -776,8 +776,8 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
       const shouldMarkPastDue = subscription?.status === SubscriptionStatus.ACTIVE
         && (refunded || Boolean(subscription.nextBillingAt && subscription.nextBillingAt <= new Date()));
       if (shouldMarkPastDue) {
-        await transaction.subscription.update({
-          where: { id: current.subscriptionId },
+        await transaction.subscription.updateMany({
+          where: { id: current.subscriptionId, status: { not: SubscriptionStatus.CANCELED }, user: { is: { active: true } } },
           data: { status: SubscriptionStatus.PAST_DUE },
         });
       }
