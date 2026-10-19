@@ -70,6 +70,11 @@ enum FinancialEntryType {
   EXPENSE
 }
 
+enum EmailLogStatus {
+  SENT
+  FAILED
+}
+
 model User {
   id                        String               @id @default(cuid())
   name                      String
@@ -341,6 +346,22 @@ model PasswordResetToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
+}
+
+model EmailLog {
+  id        String         @id @default(cuid())
+  type      String
+  subject   String
+  recipient String
+  isTest    Boolean        @default(false)
+  status    EmailLogStatus
+  error     String?
+  detail    String?
+  createdAt DateTime       @default(now())
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([type, createdAt])
 }
 
 model EmailDelivery {

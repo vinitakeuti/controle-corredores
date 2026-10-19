@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       await transaction.passwordResetToken.deleteMany({ where: { userId: user.id, usedAt: null } });
       await transaction.passwordResetToken.create({ data: { tokenHash: hashOpaqueToken(rawToken), userId: user.id, expiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
     });
-    await sendMessage(user.email, passwordResetMessage(user.name, portalUrlForRole(user.role, `/redefinir-senha/${rawToken}`)));
+    await sendMessage(user.email, passwordResetMessage(user.name, portalUrlForRole(user.role, `/redefinir-senha/${rawToken}`)), { type: "PASSWORD_RESET" });
     return NextResponse.json({ ok: true, message: responseMessage }, { headers: noStoreHeaders() });
   } catch (error) {
     console.error("password reset request failed", error);

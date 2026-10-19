@@ -476,6 +476,55 @@
 .email-reminder-run div { display: grid; gap: 5px; }
 .email-reminder-run strong { color: var(--text); font-size: 13px; }
 .email-reminder-run span { color: var(--muted); font-size: 11px; }
+.settings-tabs { display: flex; gap: 4px; margin: -12px 0 6px; border-bottom: 1px solid var(--line); }
+.settings-tabs a { padding: 11px 14px; color: var(--muted); border-bottom: 2px solid transparent; font-size: 12px; font-weight: 800; letter-spacing: .02em; text-decoration: none; }
+.settings-tabs a:hover { color: var(--text); }
+.settings-tabs a.active { color: var(--text); border-bottom-color: var(--accent); }
+.settings-tabs + .email-testing-panel { margin-top: 0; border-top: 0; }
+.email-log-panel { display: grid; gap: 18px; margin-top: 34px; padding: 24px 0 0; border-top: 1px solid var(--line); scroll-margin-top: 20px; }
+.email-log-heading { display: grid; gap: 18px; }
+.email-log-heading h2 { margin: 5px 0 6px; color: var(--text); font-size: 20px; letter-spacing: -.04em; }
+.email-log-heading p:last-child { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.email-log-filters { display: grid; grid-template-columns: minmax(140px, .8fr) minmax(130px, .7fr) minmax(180px, 1fr) auto; gap: 12px; align-items: end; }
+.email-log-filters label { display: grid; gap: 5px; min-width: 0; }
+.email-log-filters label span { color: var(--muted); font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.email-log-filters input, .email-log-filters select { min-width: 0; min-height: 40px; padding: 0 9px; color: var(--text); background: rgba(255,255,255,.6); border: 1px solid var(--line); font: inherit; font-size: 12px; }
+.email-log-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.email-log-metrics article { display: grid; gap: 6px; padding: 16px; background: rgba(255,255,255,.62); border: 1px solid var(--line); border-top: 3px solid var(--text); }
+.email-log-metrics article.sent { border-top-color: #31523e; }
+.email-log-metrics article.failed { border-top-color: var(--accent); }
+.email-log-metrics p { margin: 0; color: var(--muted-strong); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.email-log-metrics strong { color: var(--text); font-size: 30px; letter-spacing: -.05em; line-height: 1; }
+.email-log-metrics .sent strong { color: #31523e; }
+.email-log-metrics .failed strong { color: var(--accent-bright); }
+.email-log-metrics small { color: var(--muted); font-size: 11px; }
+.email-log-types { display: grid; padding: 4px 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+.email-log-types > p { margin: 10px 0 4px; color: var(--muted-strong); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.email-log-types > div { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line-soft); font-size: 12px; }
+.email-log-types > div:first-of-type { border-top: 0; }
+.email-log-types span { color: var(--text); font-weight: 700; }
+.email-log-types b { font-size: 11px; white-space: nowrap; }
+.email-log-types b.sent { color: #31523e; }
+.email-log-types b.failed { color: var(--accent-bright); }
+.email-log-types b.muted { color: var(--muted); font-weight: 600; }
+.email-log-results-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 11px; }
+.email-log-results-heading p { margin: 0; color: var(--text); font-weight: 750; }
+.email-log-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.email-log-list li { display: grid; gap: 6px; min-width: 0; padding: 13px 15px; background: rgba(255,255,255,.55); border: 1px solid var(--line); border-left: 3px solid #31523e; }
+.email-log-list li.is-failed { background: rgba(225,93,55,.05); border-left-color: var(--accent); }
+.email-log-row-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.email-log-row-top strong { color: var(--text); font-size: 13px; }
+.email-log-row-top em { padding: 3px 6px; color: var(--muted-strong); background: var(--surface-raised); border: 1px solid var(--line); font-size: 9px; font-style: normal; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.email-log-row-top time { margin-left: auto; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.email-log-status { padding: 4px 7px; font-size: 9px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+.email-log-status.sent { color: #31523e; background: rgba(49,82,62,.1); }
+.email-log-status.failed { color: var(--accent-bright); background: var(--accent-soft); }
+.email-log-recipient { margin: 0; overflow-wrap: anywhere; color: var(--muted); font-size: 12px; }
+.email-log-recipient b { color: var(--muted-strong); }
+.email-log-error { margin: 0; color: var(--accent-bright); font-size: 12px; }
+.email-log-detail { margin: 0; overflow-wrap: anywhere; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; line-height: 1.5; }
+.email-log-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 11px; }
+.email-log-pagination div { display: flex; gap: 8px; }
 .collaborators-manager { position: relative; border-top: 1px solid var(--line); }
 .collaborators-layout { display: grid; grid-template-columns: minmax(280px, .38fr) minmax(0, .62fr); gap: 34px; padding: 30px 0; }
 .collaborator-add-trigger { display: none; }
@@ -536,6 +585,15 @@
   .email-testing-heading, .email-reminder-run { display: grid; }
   .email-test-form { grid-template-columns: 1fr; }
   .email-test-form .button, .email-reminder-run .button { width: 100%; }
+  .email-log-filters { grid-template-columns: 1fr 1fr; }
+  .email-log-filters .button { grid-column: 1 / -1; width: 100%; }
+  .email-log-metrics { gap: 8px; }
+  .email-log-metrics article { padding: 12px 10px; }
+  .email-log-metrics p { font-size: 9px; line-height: 1.2; }
+  .email-log-metrics strong { font-size: 24px; }
+  .email-log-types > div { grid-template-columns: 1fr auto; gap: 4px 12px; }
+  .email-log-types span { grid-column: 1 / -1; }
+  .email-log-row-top time { width: 100%; margin-left: 0; }
   .collaborator-add-trigger { display: inline-flex; width: 100%; margin-top: 18px; }
   .collaborators-layout { grid-template-columns: 1fr; gap: 20px; padding-top: 16px; }
   .collaborator-form { display: none; padding: 20px 0 24px; border-right: 0; border-bottom: 1px solid var(--line); }

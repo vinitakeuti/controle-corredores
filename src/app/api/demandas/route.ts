@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       }
       throw error;
     }
-    await Promise.all(assignees.map((assignee) => sendMessage(assignee.email, demandAssignmentMessage({ recipientName: assignee.name, title, workAreaName: area.name, scheduledAt: demand.scheduledAt, demandUrl: `${managementAppUrl()}/admin/demandas/${area.id}` })).catch(() => undefined)));
+    await Promise.all(assignees.map((assignee) => sendMessage(assignee.email, demandAssignmentMessage({ recipientName: assignee.name, title, workAreaName: area.name, scheduledAt: demand.scheduledAt, demandUrl: `${managementAppUrl()}/admin/demandas/${area.id}` }), { type: "DEMAND_ASSIGNMENT" }).catch(() => undefined)));
     return NextResponse.json({ demand }, { headers: noStoreHeaders() });
   } catch (error) { console.error("demand creation failed", error); return NextResponse.json({ error: "Não foi possível criar a demanda" }, { status: 502, headers: noStoreHeaders() }); }
 }
@@ -96,7 +96,7 @@ export async function PATCH(request: Request) {
     const position = columnId && columnId !== existing.columnId ? (await prisma.demand.aggregate({ where: { workAreaId: existing.workAreaId, columnId }, _max: { position: true } }))._max.position ?? -1 : undefined;
     const updated = await prisma.demand.update({ where: { id }, data: { ...(title ? { title } : {}), ...(description !== undefined ? { description: description || null } : {}), ...(columnId ? { columnId, position: position === undefined ? undefined : position + 1 } : {}), ...(scheduledAt !== undefined ? { scheduledAt } : {}), ...(completedAt !== undefined ? { completedAt } : {}), ...(folderId !== undefined ? { folderId, archivedAt: folderId ? new Date() : null } : {}), ...(assigneeIds !== null ? { assignees: { deleteMany: {}, createMany: { data: assigneeIds.map((userId) => ({ userId })) } } } : {}) }, include: demandInclude });
     const oldIds = new Set(existing.assignees.map((item) => item.userId));
-    await Promise.all(assignees.filter((assignee) => !oldIds.has(assignee.id)).map((assignee) => sendMessage(assignee.email, demandAssignmentMessage({ recipientName: assignee.name, title: updated.title, workAreaName: existing.workArea.name, scheduledAt: updated.scheduledAt, demandUrl: `${managementAppUrl()}/admin/demandas/${existing.workAreaId}` })).catch(() => undefined)));
+    await Promise.all(assignees.filter((assignee) => !oldIds.has(assignee.id)).map((assignee) => sendMessage(assignee.email, demandAssignmentMessage({ recipientName: assignee.name, title: updated.title, workAreaName: existing.workArea.name, scheduledAt: updated.scheduledAt, demandUrl: `${managementAppUrl()}/admin/demandas/${existing.workAreaId}` }), { type: "DEMAND_ASSIGNMENT" }).catch(() => undefined)));
     return NextResponse.json({ demand: updated }, { headers: noStoreHeaders() });
   } catch (error) { console.error("demand update failed", error); return NextResponse.json({ error: "Não foi possível atualizar a demanda" }, { status: 502, headers: noStoreHeaders() }); }
 }

@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const collaborator = await prisma.user.create({ data: { name, email, role, managerPermissions: role === UserRole.MANAGER ? managerPermissions(body.managerPermissions) : undefined, commissionRateBps: rateBps, passwordHash: await bcrypt.hash(temporaryPassword, 12), passwordIsTemporary: true }, select: { id: true, name: true, email: true, role: true, active: true, joinedAt: true, commissionRateBps: true, managerPermissions: true } });
     let emailSent = false;
     try {
-      await sendMessage(collaborator.email, collaboratorWelcomeMessage({ name: collaborator.name, email: collaborator.email, temporaryPassword, role }));
+      await sendMessage(collaborator.email, collaboratorWelcomeMessage({ name: collaborator.name, email: collaborator.email, temporaryPassword, role }), { type: "COLLABORATOR_WELCOME" });
       emailSent = true;
     } catch (error) {
       console.error("Failed to send collaborator welcome email", { collaboratorId: collaborator.id, error });

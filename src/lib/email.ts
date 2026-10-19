@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
-import { Prisma, SubscriptionStatus } from "@prisma/client";
+import { EmailLogStatus, Prisma, SubscriptionStatus } from "@prisma/client";
+import { describeEmailFailure, recordEmailLog, type EmailType } from "@/lib/email-log";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
 import { canonicalStudentAppUrl, managementAppUrl } from "@/lib/portal";
 import { subscriptionChargeCents } from "@/lib/plan-billing";
@@ -7,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 
 type EmailTemplate = "password-reset" | "payment-failed" | "payment-paid" | "due-tomorrow";
 type Message = { subject: string; html: string; text: string };
+type EmailLogContext = { type: EmailType; isTest?: boolean };
 
 const timeZone = "America/Maceio";
 
@@ -45,14 +47,24 @@ export function getEmailConfiguration() {
 function mailer() {
   const config = getEmailConfiguration();
   if (!config.configured || !config.host || !config.user || !process.env.SMTP_PASSWORD || !config.from) {
-    throw new Error("O e-mail SMTP ainda não está configurado nas variáveis de ambiente.");
+    throw Object.assign(new Error("O e-mail SMTP ainda não está configurado nas variáveis de ambiente."), { code: "SMTP_NOT_CONFIGURED" });
   }
   return { from: config.from, transport: nodemailer.createTransport({ host: config.host, port: config.port, secure: config.secure, auth: { user: config.user, pass: process.env.SMTP_PASSWORD } }) };
 }
 
-export async function sendMessage(to: string, message: Message) {
-  const { from, transport } = mailer();
-  await transport.sendMail({ from, to, subject: message.subject, html: message.html, text: message.text });
+export async function sendMessage(to: string, message: Message, log: EmailLogContext) {
+  try {
+    const { from, transport } = mailer();
+    const result = await transport.sendMail({ from, to, subject: message.subject, html: message.html, text: message.text });
+    if (result.rejected.length > 0) {
+      throw Object.assign(new Error("O servidor SMTP não aceitou o destinatário."), { code: "EENVELOPE", response: typeof result.response === "string" ? result.response : "" });
+    }
+    await recordEmailLog({ ...log, subject: message.subject, recipient: to, status: EmailLogStatus.SENT, detail: typeof result.response === "string" ? result.response : null });
+  } catch (error) {
+    const failure = describeEmailFailure(error);
+    await recordEmailLog({ ...log, subject: message.subject, recipient: to, status: EmailLogStatus.FAILED, error: failure.reason, detail: failure.detail });
+    throw error;
+  }
 }
 
 export function demandAssignmentMessage({ recipientName, title, workAreaName, scheduledAt, demandUrl }: { recipientName: string; title: string; workAreaName: string; scheduledAt: Date | null; demandUrl: string }): Message {
@@ -119,7 +131,7 @@ function dueTomorrowMessage(name: string, amountCents: number, planName: string,
   return { subject: "Sua mensalidade vence amanhã · Pace Lab", html: emailLayout({ eyebrow: "Lembrete de mensalidade", title: `Seu próximo passo, ${greeting}.`, intro: "Sua mensalidade vence amanhã. Deixe o pagamento preparado para seguir treinando sem interrupções.", details, action: { label: "Abrir pagamentos", href: studentUrl } }), text: `Sua mensalidade vence amanhã.\nPlano: ${planName}\nVencimento: Amanhã, ${textDate(dueAt)}\nValor da mensalidade: ${formatCurrency(amountCents)}\nPagamentos: ${studentUrl}` };
 }
 
-async function sendTracked({ dedupeKey, type, userId, recipient, message }: { dedupeKey: string; type: string; userId: string; recipient: string; message: Message }) {
+async function sendTracked({ dedupeKey, type, userId, recipient, message }: { dedupeKey: string; type: EmailType; userId: string; recipient: string; message: Message }) {
   let delivery = await prisma.emailDelivery.findUnique({ where: { dedupeKey } });
   if (!delivery) {
     try {
@@ -131,7 +143,7 @@ async function sendTracked({ dedupeKey, type, userId, recipient, message }: { de
   }
   if (!delivery || delivery.sentAt) return false;
   try {
-    await sendMessage(recipient, message);
+    await sendMessage(recipient, message, { type });
     await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { sentAt: new Date(), lastError: null } });
     return true;
   } catch (error) {
@@ -165,7 +177,7 @@ export async function sendDueTomorrowReminders() {
     const reminder = await prisma.renewalReminder.upsert({ where: { userId_type_scheduledFor: { userId: subscription.userId, type: "UPCOMING", scheduledFor } }, update: {}, create: { userId: subscription.userId, type: "UPCOMING", scheduledFor } });
     if (reminder.sentAt) continue;
     try {
-      await sendMessage(subscription.user.email, dueTomorrowMessage(subscription.user.name, subscriptionChargeCents(subscription.priceCents, subscription.billingPeriod, subscription.manualMonthlyBilling), subscription.planName, subscription.nextBillingAt));
+      await sendMessage(subscription.user.email, dueTomorrowMessage(subscription.user.name, subscriptionChargeCents(subscription.priceCents, subscription.billingPeriod, subscription.manualMonthlyBilling), subscription.planName, subscription.nextBillingAt), { type: "DUE_TOMORROW" });
       await prisma.renewalReminder.update({ where: { id: reminder.id }, data: { sentAt: new Date() } });
       sent += 1;
     } catch (error) {
@@ -175,8 +187,10 @@ export async function sendDueTomorrowReminders() {
   return { checked: subscriptions.length, sent };
 }
 
+const previewTypes: Record<EmailTemplate, EmailType> = { "password-reset": "PASSWORD_RESET", "payment-failed": "PAYMENT_FAILED", "payment-paid": "PAYMENT_PAID", "due-tomorrow": "DUE_TOMORROW" };
+
 export async function sendEmailPreview(type: EmailTemplate, recipient: string) {
   const appUrl = managementAppUrl();
   const message = type === "password-reset" ? passwordResetMessage("Maria Corredora", `${appUrl}/redefinir-senha/visualizacao`) : type === "payment-paid" ? paymentPaidMessage("Maria Corredora", 15000, "Fortalecimento · Trimestral", new Date()) : type === "payment-failed" ? paymentFailedMessage("Maria Corredora", 15000, "Fortalecimento · Trimestral") : dueTomorrowMessage("Maria Corredora", 15000, "Fortalecimento · Trimestral", new Date(Date.now() + 24 * 60 * 60 * 1000));
-  await sendMessage(recipient, message);
+  await sendMessage(recipient, message, { type: previewTypes[type], isTest: true });
 }
