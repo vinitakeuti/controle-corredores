@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function PasswordResetConfirmForm({ token }: { token: string }) {
+export function PasswordResetConfirmForm({ token, email }: { token: string; email: string }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -20,5 +20,5 @@ export function PasswordResetConfirmForm({ token }: { token: string }) {
       router.replace("/login?password=updated");
     } catch { setError("Não foi possível conectar ao servidor."); } finally { setLoading(false); }
   }
-  return <form onSubmit={submit}><div className="field"><label htmlFor="new-password">Nova senha</label><input id="new-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} required /></div><div className="field"><label htmlFor="confirm-password">Confirme a nova senha</label><input id="confirm-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required /></div>{error ? <p className="error-message">{error}</p> : null}<button className="button button-primary" type="submit" disabled={loading}>{loading ? "Salvando..." : "Redefinir senha"}</button></form>;
+  return <form onSubmit={submit}><input type="email" name="username" autoComplete="username" value={email} readOnly hidden /><div className="field"><label htmlFor="new-password">Nova senha</label><input id="new-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} required /></div><div className="field"><label htmlFor="confirm-password">Confirme a nova senha</label><input id="confirm-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required /></div>{error ? <p className="error-message">{error}</p> : null}<button className="button button-primary" type="submit" disabled={loading}>{loading ? "Salvando..." : "Redefinir senha"}</button></form>;
 }

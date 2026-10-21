@@ -1378,6 +1378,13 @@ input[type="date"] { width: 100%; min-width: 0; max-width: 100%; min-height: 46p
 .login-helper { margin: 16px 0 0; font-size: 12px; }
 .login-helper a { color: var(--accent); font-weight: 750; text-decoration: none; }
 .login-helper a:hover { text-decoration: underline; }
+.reset-account { display: flex; align-items: center; gap: 13px; margin: 0 0 26px; padding: 14px 16px; background: var(--surface-raised); border: 1px solid var(--line); border-left: 3px solid var(--accent); }
+.reset-unavailable-action { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.reset-account-avatar { flex: 0 0 auto; display: grid; width: 42px; height: 42px; place-items: center; color: #ffffff; background: var(--text); border-radius: 50%; font-size: 14px; font-weight: 800; letter-spacing: .03em; }
+.reset-account > div { display: grid; gap: 2px; min-width: 0; }
+.reset-account small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.reset-account strong { overflow: hidden; color: var(--text); font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.reset-account > div > span { overflow-wrap: anywhere; color: var(--muted-strong); font-size: 12px; }
 .checkout-methods { gap: 0; }
 .checkout-methods button { border-radius: 0; }
 .checkout-methods button.active { background: #e9ede7; border-color: var(--line); box-shadow: inset 0 -2px 0 var(--accent); }
