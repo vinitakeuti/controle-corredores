@@ -20,6 +20,7 @@ export type SessionUser = {
   active: boolean;
   tutorialSeenAt: Date | null;
   managerPermissions: unknown;
+  passwordResetLinkAccess: boolean;
 };
 
 export { canAccessFeature, type ManagerFeature } from "@/lib/access-control";
@@ -114,6 +115,7 @@ export async function getCurrentUser(options: SessionAccess = {}): Promise<Sessi
     active: session.user.active,
     tutorialSeenAt: session.user.tutorialSeenAt,
     managerPermissions: session.user.managerPermissions,
+    passwordResetLinkAccess: session.user.passwordResetLinkAccess,
   };
 }
 

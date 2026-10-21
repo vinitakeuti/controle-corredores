@@ -560,6 +560,12 @@
 .manager-permissions label { display: flex; align-items: center; gap: 7px; min-height: 37px; padding: 0 12px; color: var(--text); background: rgba(255,255,255,.5); font-size: 10px; }
 .manager-permissions input { width: 14px; height: 14px; accent-color: var(--accent); }
 .collaborator-self-note { display: block; margin-top: 12px; color: var(--muted); font-size: 10px; }
+.reset-link-access { display: flex; align-items: flex-start; gap: 9px; margin: 12px 0 0; padding: 11px 12px; background: rgba(255,255,255,.32); border: 1px solid var(--line-soft); cursor: pointer; }
+.reset-link-access input { flex: 0 0 auto; width: 14px; height: 14px; margin: 1px 0 0; accent-color: var(--accent); }
+.reset-link-access span { display: grid; gap: 3px; }
+.reset-link-access strong { color: var(--text); font-size: 11px; }
+.reset-link-access small { color: var(--muted); font-size: 10px; line-height: 1.45; }
+.reset-link-access.is-admin { display: block; color: var(--muted); font-size: 10px; cursor: default; }
 .collaborator-created { padding: 20px 0 28px; border-top: 1px solid var(--line); }
 .collaborator-created .success-message { margin: 0 0 14px; }
 .collaborator-created > div { display: grid; gap: 7px; width: min(100%, 420px); padding: 16px; background: rgba(255,255,255,.5); border-left: 3px solid var(--accent); }
@@ -884,6 +890,15 @@ input[type="date"] { color-scheme: dark; }
 .student-account-status-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
 .student-account-status-actions .delete-warning { margin-right: auto; }
 .student-account-status-note { margin: 16px 0 0; color: var(--muted); font-size: 12px; }
+.student-reset-link { margin-top: 18px; }
+.student-reset-link-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+.student-reset-link-result { display: grid; gap: 8px; margin-top: 16px; padding: 14px; background: var(--surface-raised); border: 1px solid var(--line); border-left: 3px solid var(--accent); }
+.student-reset-link-result label { color: var(--muted-strong); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.student-reset-link-result > div { display: flex; gap: 8px; }
+.student-reset-link-result input { flex: 1; min-width: 0; min-height: 40px; padding: 0 10px; color: var(--text); background: var(--surface); border: 1px solid var(--line); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.student-reset-link-result small { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.student-reset-link-result .success-message, .student-reset-link-result .error-message { margin: 0; }
+@media (max-width: 640px) { .student-reset-link-actions .button { flex: 1 1 100%; }.student-reset-link-result > div { flex-direction: column; } }
 .login-status-message { display: grid; gap: 11px; margin: 0 0 16px; }
 .login-status-message .error-message { margin: 0; }
 .login-store-link { width: fit-content; }

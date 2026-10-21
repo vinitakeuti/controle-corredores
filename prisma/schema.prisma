@@ -121,6 +121,7 @@ model User {
   sales                     User[]               @relation("SaleOwner")
   commissionRateBps         Int                  @default(0)
   managerPermissions        Json?
+  passwordResetLinkAccess   Boolean              @default(false)
   financialEntries          FinancialEntry[]     @relation("FinancialEntryCreator")
 
   @@index([role])

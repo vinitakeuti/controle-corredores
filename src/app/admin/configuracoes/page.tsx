@@ -25,6 +25,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     return <AppShell user={user} current="settings"><header className="page-heading"><div><p className="eyebrow">Administração</p><h1>Configurações.</h1><p>Teste os modelos e acompanhe cada e-mail disparado pela Pace Lab.</p></div></header>{tabs}<EmailTestingPanel initialRecipient={user.email} configured={email.configured} host={email.host} /><EmailLogPanel report={report} /></AppShell>;
   }
 
-  const collaborators = await prisma.user.findMany({ where: { role: { in: [UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true, role: true, active: true, joinedAt: true, commissionRateBps: true, managerPermissions: true }, orderBy: [{ role: "asc" }, { name: "asc" }] });
+  const collaborators = await prisma.user.findMany({ where: { role: { in: [UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true, role: true, active: true, joinedAt: true, commissionRateBps: true, managerPermissions: true, passwordResetLinkAccess: true }, orderBy: [{ role: "asc" }, { name: "asc" }] });
   return <AppShell user={user} current="settings"><header className="page-heading"><div><p className="eyebrow">Administração</p><h1>Configurações.</h1><p>Gerencie os acessos da equipe Pace Lab.</p></div></header>{tabs}<CollaboratorsManager currentAdminId={user.id} initialCollaborators={collaborators.map((collaborator) => ({ ...collaborator, role: collaborator.role as "ADMIN" | "MANAGER" | "OPERATOR" }))} /></AppShell>;
 }

@@ -7,3 +7,10 @@ export function canAccessFeature(user: { role: string; managerPermissions: unkno
   if (user.role !== "MANAGER") return false;
   return Boolean(user.managerPermissions && typeof user.managerPermissions === "object" && !Array.isArray(user.managerPermissions) && (user.managerPermissions as Record<string, unknown>)[feature] === true);
 }
+
+// Administradores sempre podem; os demais precisam da permissão definida em
+// Configurações e de acesso à área de alunos, onde o link é gerado.
+export function canGeneratePasswordResetLink(user: { role: string; managerPermissions: unknown; passwordResetLinkAccess: boolean }) {
+  if (!canAccessFeature(user, "students")) return false;
+  return user.role === "ADMIN" || user.passwordResetLinkAccess;
+}

@@ -73,9 +73,9 @@ export function demandAssignmentMessage({ recipientName, title, workAreaName, sc
   return { subject: `Nova demanda para você · ${title}`, html: emailLayout({ eyebrow: "Nova demanda", title: `Olá, ${firstName(recipientName)}.`, intro: `Você foi atribuído à atividade “${title}”.`, details, action: { label: "Abrir demanda", href: demandUrl } }), text: `Olá, ${firstName(recipientName)}.\n\nVocê foi atribuído à atividade: ${title}\nÁrea: ${workAreaName}${dateTime ? `\nData e horário: ${dateTime}` : ""}\n\nAbrir demanda: ${demandUrl}` };
 }
 
-export function passwordResetMessage(name: string, resetUrl: string): Message {
+export function passwordResetMessage(name: string, resetUrl: string, validity = "uma hora"): Message {
   const greeting = firstName(name);
-  return { subject: "Redefina sua senha · Pace Lab", html: emailLayout({ eyebrow: "Segurança da conta", title: `Olá, ${greeting}.`, intro: "Recebemos um pedido para redefinir a senha da sua conta Pace Lab.", action: { label: "Redefinir minha senha", href: resetUrl }, note: "Este link é válido por uma hora. Se você não solicitou a alteração, pode ignorar esta mensagem." }), text: `Olá, ${greeting}.\n\nRedefina sua senha da Pace Lab: ${resetUrl}\n\nO link é válido por uma hora.` };
+  return { subject: "Redefina sua senha · Pace Lab", html: emailLayout({ eyebrow: "Segurança da conta", title: `Olá, ${greeting}.`, intro: "Recebemos um pedido para redefinir a senha da sua conta Pace Lab.", action: { label: "Redefinir minha senha", href: resetUrl }, note: `Este link é válido por ${validity}. Se você não solicitou a alteração, pode ignorar esta mensagem.` }), text: `Olá, ${greeting}.\n\nRedefina sua senha da Pace Lab: ${resetUrl}\n\nO link é válido por ${validity}.` };
 }
 
 export function collaboratorWelcomeMessage({ name, email, temporaryPassword, role }: { name: string; email: string; temporaryPassword: string; role: "ADMIN" | "MANAGER" | "OPERATOR" }): Message {

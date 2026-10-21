@@ -4,7 +4,9 @@ import { PaymentStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { StudentBillingControls } from "@/components/student-billing-controls";
 import { StudentAccountStatusControl } from "@/components/student-account-status-control";
+import { StudentPasswordResetLink } from "@/components/student-password-reset-link";
 import { LiabilityTermReview } from "@/components/liability-term-review";
+import { canGeneratePasswordResetLink } from "@/lib/access-control";
 import { requireFeature } from "@/lib/auth";
 import { calculateAge, formatCpf, formatCurrency, formatDate, formatPhone, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -45,6 +47,8 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
       </section>
 
       <StudentAccountStatusControl studentId={student.id} initialActive={student.active} canManage={user.role === UserRole.ADMIN} />
+
+      {canGeneratePasswordResetLink(user) ? <StudentPasswordResetLink studentId={student.id} studentEmail={student.email} active={student.active} /> : null}
 
       <LiabilityTermReview studentId={student.id} status={termStatus} fileName={student.liabilityTermFileName} submittedAt={student.liabilityTermSubmittedAt ? formatDate(student.liabilityTermSubmittedAt) : null} reviewedAt={student.liabilityTermReviewedAt ? formatDate(student.liabilityTermReviewedAt) : null} reviewNote={student.liabilityTermReviewNote} hasSignedPdf={Boolean(student.liabilityTermSignedPdf)} />
 
