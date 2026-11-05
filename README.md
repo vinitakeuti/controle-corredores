@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/assets/banner.png" alt="Pace Lab — Sistema de gestão" width="100%"></p>
+
 # Pace Lab — Controle de assinaturas
 
 Base inicial em Next.js, Prisma e PostgreSQL para uma equipe de corredores e atletas.
