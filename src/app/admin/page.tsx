@@ -6,12 +6,25 @@ import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 import { canAccessFeature } from "@/lib/access-control";
 import { requireFeature } from "@/lib/auth";
-import { currentMonthInMaceio, formatCurrency, formatDate, formatTime, greetingForDate, paymentMethodLabel } from "@/lib/format";
+import { currentMonthInMaceio, formatCurrency, formatDate, formatTime, greetingForDate, maceioDateParts, paymentMethodLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { contractedMonthlyRevenueCents } from "@/lib/revenue-recognition";
 import { getStoreSalesSummary } from "@/lib/store-finance";
 
 const numberFormat = new Intl.NumberFormat("pt-BR");
+const UPCOMING_LIMIT = 6;
+const weekdayFormat = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Maceio", weekday: "short" });
+const monthShortFormat = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Maceio", month: "short" });
+const dayKey = (date: Date) => { const { year, month, day } = maceioDateParts(date); return Date.UTC(year, month - 1, day); };
+const firstName = (name: string) => name.split(" ")[0];
+const joinNames = (names: string[]) => names.length > 1 ? `${names.slice(0, -1).join(", ")} e ${names.at(-1)}` : names[0] ?? "";
+
+// Bloco de data do compromisso: Hoje / Amanhã / dia da semana, no calendário de Maceió.
+function upcomingDay(date: Date, now: Date) {
+  const diff = Math.round((dayKey(date) - dayKey(now)) / 86_400_000);
+  const label = diff === 0 ? "Hoje" : diff === 1 ? "Amanhã" : weekdayFormat.format(date).replace(".", "");
+  return { label, day: maceioDateParts(date).day, month: monthShortFormat.format(date).replace(".", ""), today: diff === 0 };
+}
 
 function Metric({ label, value, note, href, tone }: { label: string; value: React.ReactNode; note: string; href?: string; tone?: "danger" | "positive" }) {
   const content = <>
@@ -27,7 +40,10 @@ export default async function AdminPage() {
   const now = new Date();
   const { name: currentMonth, startsAt: monthStart } = currentMonthInMaceio(now);
   const storeMonth = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}`;
-  const [totalStudents, activeStudents, overdueStudents, pendingStudents, cashPayments, activeSubscriptions, recentPayments, recentStudents, manualRevenue, storeSales] = await Promise.all([
+  // Próximos compromissos: mesma regra de visibilidade da agenda de Demandas (só áreas de que a pessoa participa).
+  const canSeeDemands = canAccessFeature(user, "demands");
+  const upcomingWhere = { archivedAt: null, completedAt: null, scheduledAt: { gte: now }, workArea: { members: { some: { userId: user.id } } } };
+  const [totalStudents, activeStudents, overdueStudents, pendingStudents, cashPayments, activeSubscriptions, recentPayments, recentStudents, manualRevenue, storeSales, upcoming, upcomingWeek] = await Promise.all([
     prisma.user.count({ where: { role: UserRole.STUDENT } }),
     prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { status: SubscriptionStatus.ACTIVE } } } }),
     prisma.user.count({ where: { role: UserRole.STUDENT, active: true, subscription: { is: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } } }),
@@ -38,6 +54,8 @@ export default async function AdminPage() {
     prisma.user.findMany({ where: { role: UserRole.STUDENT, createdAt: { gte: monthStart, lte: now } }, include: { saleOwner: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
     prisma.financialEntry.aggregate({ where: { type: FinancialEntryType.REVENUE, occurredAt: { gte: monthStart, lte: now } }, _sum: { amountCents: true } }),
     getStoreSalesSummary(storeMonth),
+    canSeeDemands ? prisma.demand.findMany({ where: upcomingWhere, select: { id: true, title: true, scheduledAt: true, workArea: { select: { id: true, name: true } }, assignees: { select: { user: { select: { name: true } } }, orderBy: { createdAt: "asc" } } }, orderBy: { scheduledAt: "asc" }, take: UPCOMING_LIMIT }) : Promise.resolve([]),
+    canSeeDemands ? prisma.demand.count({ where: { ...upcomingWhere, scheduledAt: { gte: now, lt: new Date(now.getTime() + 7 * 86_400_000) } } }) : Promise.resolve(0),
   ]);
   const contractedRevenue = contractedMonthlyRevenueCents(activeSubscriptions);
   const receivedCents = (cashPayments._sum.amountCents ?? 0) + (manualRevenue._sum.amountCents ?? 0) + storeSales.totalCents;
@@ -73,6 +91,23 @@ export default async function AdminPage() {
             <Metric label="Aguardando pagamento" value={numberFormat.format(pendingStudents)} note="Possíveis vendas em aberto" href={canSeeStudents ? "/admin/alunos?status=pendentes" : undefined} />
           </div>
         </section>
+
+        {canSeeDemands ? <section className="section-block overview-upcoming" aria-labelledby="overview-upcoming-title">
+          <div className="section-head">
+            <div><h2 className="section-title" id="overview-upcoming-title">Próximos compromissos</h2><p className="section-lead">{upcomingWeek ? `${numberFormat.format(upcomingWeek)} ${upcomingWeek === 1 ? "demanda agendada" : "demandas agendadas"} nos próximos 7 dias nas suas áreas.` : "Nenhuma demanda agendada nos próximos 7 dias nas suas áreas."}</p></div>
+            <Link className="btn btn-secondary" href="/admin/demandas"><Icon name="calendar" />Ver agenda</Link>
+          </div>
+          {upcoming.length ? <ol className="upcoming-list" style={{ "--upcoming-rows": Math.ceil(upcoming.length / 2) } as React.CSSProperties}>{upcoming.map((demand) => {
+            const when = demand.scheduledAt ?? now;
+            const day = upcomingDay(when, now);
+            const people = joinNames(demand.assignees.map((assignee) => firstName(assignee.user.name)));
+            return <li key={demand.id}><Link className="upcoming-item" href={`/admin/demandas/${demand.workArea.id}`}>
+              <span className="upcoming-date" data-today={day.today || undefined}><span>{day.label}</span><strong>{day.day}</strong><span>{day.month}</span></span>
+              <span className="upcoming-copy"><strong>{demand.title}</strong><span>{demand.workArea.name}{people ? ` · com ${people}` : ""}</span></span>
+              <time className="upcoming-time" dateTime={when.toISOString()}>{formatTime(when)}</time>
+            </Link></li>;
+          })}</ol> : <div className="state-empty"><p>Nada agendado a partir de agora. As demandas com data e horário aparecem aqui.</p></div>}
+        </section> : null}
 
         <div className="overview-columns">
           {isAdmin ? <section className="section-block" aria-labelledby="overview-payments-title">
