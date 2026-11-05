@@ -12,7 +12,7 @@ import { contractedMonthlyRevenueCents } from "@/lib/revenue-recognition";
 import { getStoreSalesSummary } from "@/lib/store-finance";
 
 const numberFormat = new Intl.NumberFormat("pt-BR");
-const UPCOMING_LIMIT = 5;
+const UPCOMING_LIMIT = 3;
 const upcomingDateFormat = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Maceio", weekday: "short", day: "numeric", month: "short" });
 const dayKey = (date: Date) => { const { year, month, day } = maceioDateParts(date); return Date.UTC(year, month - 1, day); };
 
@@ -25,13 +25,14 @@ function upcomingDay(date: Date, now: Date) {
   return { label: text.charAt(0).toUpperCase() + text.slice(1), today: false };
 }
 
-function Metric({ label, value, note, href, tone }: { label: string; value: React.ReactNode; note: string; href?: string; tone?: "danger" | "positive" }) {
+function Metric({ label, value, note, href, tone, money = false }: { label: string; value: React.ReactNode; note: string; href?: string; tone?: "danger" | "positive"; money?: boolean }) {
   const content = <>
     <span className="metric-label">{label}</span>
     <strong className="metric-value">{value}</strong>
     <span className="metric-note">{note}{href ? <Icon name="chevronRight" className="icon-sm" /> : null}</span>
   </>;
-  return href ? <Link className="metric" data-tone={tone} href={href}>{content}</Link> : <div className="metric" data-tone={tone}>{content}</div>;
+  const size = money ? "money" : undefined;
+  return href ? <Link className="metric" data-tone={tone} data-size={size} href={href}>{content}</Link> : <div className="metric" data-tone={tone} data-size={size}>{content}</div>;
 }
 
 export default async function AdminPage() {
@@ -64,47 +65,39 @@ export default async function AdminPage() {
   return (
     <AppShell user={user} current="admin">
       <FinancialValues>
-        <PageHeader
-          context={{ label: "Visão geral" }}
-          title={`${greetingForDate(now)}, ${user.name.split(" ")[0]}.`}
-          lead="Um retrato financeiro e operacional da Pace Lab."
-          actions={<><span className="overview-updated">Atualizado agora</span><FinancialVisibilityToggle /></>}
-        />
+        <PageHeader context={{ label: "Visão geral" }} title={`${greetingForDate(now)}, ${user.name.split(" ")[0]}.`} lead="Um retrato financeiro e operacional da Pace Lab." />
 
-        {canSeeDemands ? <section className="overview-upcoming" aria-labelledby="overview-upcoming-title">
+        {/* Números do mês num bloco só: dinheiro em cima, situação dos alunos embaixo. O olho fica junto dos valores que ele esconde. */}
+        <section className="section-block overview-quick" aria-labelledby="overview-quick-title">
+          <div className="section-head overview-quick-head">
+            <h2 className="section-title" id="overview-quick-title">Números de {currentMonth}</h2>
+            <div className="overview-quick-tools"><span className="overview-updated">Atualizado agora</span><FinancialVisibilityToggle /></div>
+          </div>
+          <div className="metric-strip overview-metrics" data-money={isAdmin ? 2 : 1}>
+            {isAdmin ? <Metric money label={`Recebido em ${currentMonth}`} value={<HideableMoney value={formatCurrency(receivedCents)} />} note="Planos, loja e lançamentos manuais confirmados no mês" /> : null}
+            <Metric money label={`Receita contratada de ${currentMonth}`} value={<HideableMoney value={formatCurrency(contractedRevenue)} />} note="Mensalidades de todos os contratos ativos, já consideradas no mês inteiro" tone="positive" />
+            <Metric label="Alunos ativos" value={numberFormat.format(activeStudents)} note={`${numberFormat.format(totalStudents)} cadastros no total`} href={canSeeStudents ? "/admin/alunos" : undefined} />
+            <Metric label="Em atraso" value={numberFormat.format(overdueStudents)} note="Precisam de atenção" href={canSeeAnalysis ? "/admin/analisar?status=overdue" : undefined} tone="danger" />
+            <Metric label="Aguardando pagamento" value={numberFormat.format(pendingStudents)} note="Possíveis vendas em aberto" href={canSeeStudents ? "/admin/alunos?status=pendentes" : undefined} />
+          </div>
+        </section>
+
+        {/* Prévia da agenda: só os 3 próximos, num cartão; a agenda completa fica em Demandas. */}
+        {canSeeDemands ? <section className="upcoming-card" aria-labelledby="overview-upcoming-title">
           <div className="upcoming-head">
-            <h2 className="section-title" id="overview-upcoming-title">Próximos compromissos</h2>
+            <h2 className="upcoming-heading" id="overview-upcoming-title">Próximos compromissos</h2>
             <Link className="upcoming-more" href="/admin/demandas">Ver agenda<Icon name="arrowRight" className="icon-sm" /></Link>
           </div>
           {upcoming.length ? <ol className="upcoming-list">{upcoming.map((demand) => {
             const when = demand.scheduledAt ?? now;
             const day = upcomingDay(when, now);
             return <li key={demand.id}><Link className="upcoming-item" href={`/admin/demandas/${demand.workArea.id}`}>
-              <span className="upcoming-when"><span className="upcoming-day" data-today={day.today || undefined}>{day.label}</span><time dateTime={when.toISOString()}>{formatTime(when)}</time></span>
+              <span className="upcoming-when"><span className="upcoming-day" data-today={day.today || undefined}>{day.label}</span> · <time dateTime={when.toISOString()}>{formatTime(when)}</time></span>
               <span className="upcoming-title">{demand.title}</span>
               <span className="upcoming-area">{demand.workArea.name}</span>
             </Link></li>;
           })}</ol> : <p className="upcoming-empty">Nada agendado a partir de agora.</p>}
         </section> : null}
-
-        <section className="section-block overview-results" aria-labelledby="overview-results-title">
-          <div className="section-head">
-            <div><h2 className="section-title" id="overview-results-title">Resultados de {currentMonth}</h2><p className="section-lead">Compare o que entrou no caixa com o valor mensal dos contratos ativos no período.</p></div>
-          </div>
-          <div className="metric-strip" data-count={isAdmin ? 2 : 1}>
-            {isAdmin ? <Metric label={`Recebido em ${currentMonth}`} value={<HideableMoney value={formatCurrency(receivedCents)} />} note="Planos, loja e lançamentos manuais confirmados no mês" /> : null}
-            <Metric label={`Receita contratada de ${currentMonth}`} value={<HideableMoney value={formatCurrency(contractedRevenue)} />} note="Mensalidades de todos os contratos ativos, já consideradas no mês inteiro" tone="positive" />
-          </div>
-        </section>
-
-        <section className="section-block overview-status" aria-labelledby="overview-status-title">
-          <div className="section-head"><div><h2 className="section-title" id="overview-status-title">Saúde da base</h2><p className="section-lead">Situação das assinaturas dos alunos ativos.</p></div></div>
-          <div className="metric-strip" data-count={3}>
-            <Metric label="Alunos ativos" value={numberFormat.format(activeStudents)} note={`${numberFormat.format(totalStudents)} cadastros no total`} href={canSeeStudents ? "/admin/alunos" : undefined} />
-            <Metric label="Em atraso" value={numberFormat.format(overdueStudents)} note="Precisam de atenção" href={canSeeAnalysis ? "/admin/analisar?status=overdue" : undefined} tone="danger" />
-            <Metric label="Aguardando pagamento" value={numberFormat.format(pendingStudents)} note="Possíveis vendas em aberto" href={canSeeStudents ? "/admin/alunos?status=pendentes" : undefined} />
-          </div>
-        </section>
 
         <div className="overview-columns">
           {isAdmin ? <section className="section-block" aria-labelledby="overview-payments-title">
