@@ -1,18 +1,48 @@
 @layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Planos (/admin/planos) e Integrações (/admin/integracoes) */
 @layer screens {
-  .plans { border-top: 0; padding-top: var(--space-2); }
-  .plan-group { padding: var(--space-5) 0; border-top: 1px solid var(--line); }
-  .plan-group-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
-  .plan-rows { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line-soft); }
-  .plan-row-item { display: grid; grid-template-columns: 150px minmax(240px, 300px) minmax(0, 1fr) auto; align-items: end; gap: var(--space-3) var(--space-5); padding: var(--space-4) 0; border-bottom: 1px solid var(--line-soft); }
-  .plan-row-name { display: grid; justify-items: start; gap: 6px; align-self: center; }
-  .plan-row-name strong { font-size: var(--text-md); }
-  .plan-row-price-field { display: grid; gap: 6px; }
-  .plan-row-price-field .control { min-width: 110px; }
-  .plan-row-options { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
-  .plan-row-tools { align-self: center; }
-  .plan-row-delete { color: var(--danger); }
+  /* Planos: cada categoria é uma tabela curta para ler; editar abre um painel. */
+  .plans-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-5); }
+  .plans-summary { margin: 0; color: var(--text-muted); font-size: var(--text-sm); font-weight: 600; }
+  .plan-group { padding: var(--space-5) 0 var(--space-6); }
+  .plan-group-head { align-items: center; margin-bottom: var(--space-4); }
+  .plan-group-actions { flex-wrap: nowrap; }
+  /* A tabela cabe sem rolar (a lista empilhada assume no celular), e o menu de ações não pode ser cortado. */
+  .plan-table-wrap { overflow: visible; }
+  .plan-table { table-layout: fixed; }
+  .plan-table th:nth-child(1) { width: 24%; }
+  .plan-table th:nth-child(2) { width: 15%; }
+  .plan-table th:nth-child(4) { width: 9%; }
+  .plan-table th:nth-child(5) { width: 14%; }
+  .plan-table th:nth-child(6) { width: 136px; }
+  .plan-table td { height: 60px; }
+  .plan-period { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-weight: 600; }
+  .plan-price { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .plan-table tr[data-paused] .plan-period,
+  .plan-table tr[data-paused] .plan-price,
+  .plan-table tr[data-paused] .plan-methods,
+  .plan-rows li[data-paused] .row-title { color: var(--text-muted); }
+  .plan-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); }
+  /* Na linha, o "mais ações" é discreto; o da categoria mantém a borda ao lado de "Adicionar plano". */
+  .plan-actions .menu-trigger-icon,
+  .plan-row-actions .menu-trigger-icon { background: transparent; border-color: transparent; }
+  .plan-actions .menu-trigger-icon:hover,
+  .plan-row-actions .menu-trigger-icon:hover,
+  .plan-actions .menu-trigger-icon[aria-expanded="true"],
+  .plan-row-actions .menu-trigger-icon[aria-expanded="true"] { background: var(--surface-hover); }
+  .plan-empty { margin: 0; padding: var(--space-4) 0; color: var(--text-muted); font-size: var(--text-sm); border-top: 1px solid var(--line); }
+  .plan-rows .row-meta .plan-price { color: var(--text); }
+  .plan-rows > li:last-child { border-bottom: 0; }
+  .plan-row-count { color: var(--text-muted); font-size: var(--text-sm); }
+  /* Ações na mesma linha da contagem de alunos: o alvo de 44px sangra para dentro do respiro da linha. */
+  .plan-row-actions { display: flex; justify-self: end; gap: var(--space-1); margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0; }
+
+  /* Painel do plano */
+  .plan-form-note { margin: calc(var(--space-2) * -1) 0 0; color: var(--text-muted); font-size: var(--text-sm); }
+  .plan-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+  .plan-fieldset legend { margin-bottom: var(--space-1); padding: 0; }
+  .plan-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-5); }
+  .plan-featured-check { padding-top: var(--space-3); border-top: 1px solid var(--line-soft); }
 
   .integrations .integration-active { margin-bottom: var(--space-2); }
   .integration-directory-block { border-top: 0; }
@@ -41,9 +71,10 @@
   .provider-short-field { max-width: 280px; }
   .provider-actions { margin-top: var(--space-2); }
 
-  @media (max-width: 1099px) {
-    .plan-row-item { grid-template-columns: 1fr; align-items: stretch; }
-    .plan-row-name { grid-auto-flow: column; justify-content: start; align-items: center; }
+  @media (max-width: 559px) {
+    .plan-checks { grid-template-columns: minmax(0, 1fr); }
+    .plan-group-head { align-items: flex-start; }
+    .plans-toolbar .btn { flex: 1; }
   }
   @media (max-width: 759px) {
     .provider-row { grid-template-columns: auto minmax(0, 1fr); }
