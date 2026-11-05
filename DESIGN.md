@@ -89,6 +89,11 @@ typography:
     fontWeight: 600
     lineHeight: 1
     letterSpacing: "0.14em"
+  mono:
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.5
 rounded:
   base: "2px"
   sheet: "12px"

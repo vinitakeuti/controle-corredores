@@ -626,6 +626,10 @@
         "displayName": "Label caps",
         "purpose": "Só a linha de contexto da página e os rótulos de grupo da navegação.",
         "cssVar": "--tracking-caps"
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Monoespaçada do sistema (--font-mono), só na caixa de código copiável e na senha gerada do novo aluno."
       }
     },
     "shapes": [

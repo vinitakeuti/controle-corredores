@@ -17,7 +17,7 @@
   .create-review dd { overflow-wrap: anywhere; }
   .create-credentials { margin-bottom: var(--space-4); }
   .create-credentials dd { overflow-wrap: anywhere; }
-  .create-password { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--text-lg); }
+  .create-password { font-family: var(--font-mono); font-size: var(--text-lg); }
 
   @media (max-width: 559px) {
     .create-fields { grid-template-columns: 1fr; }

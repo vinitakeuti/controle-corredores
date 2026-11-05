@@ -515,7 +515,7 @@
     background: var(--surface-raised);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: 1.5;
     overflow-wrap: anywhere;
