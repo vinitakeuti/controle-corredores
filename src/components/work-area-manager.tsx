@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
+import { Sheet } from "@/components/ui/sheet";
 
 export function WorkAreaManager() {
   const router = useRouter();
@@ -41,5 +44,16 @@ export function WorkAreaManager() {
     }
   }
 
-  return <><button className="work-area-create-trigger" type="button" onClick={() => setOpen(true)} aria-label="Criar nova área de trabalho" title="Criar nova área">+</button>{open ? <div className="work-area-editor-layer" role="dialog" aria-modal="true" aria-label="Criar área de trabalho"><button className="work-area-editor-backdrop" type="button" aria-label="Fechar" onClick={close} /><section className="work-area-editor"><div className="panel-heading"><div><p className="eyebrow">Nova área</p><h2>Organize o trabalho.</h2><p>Crie uma área geral ou uma área de um setor da equipe.</p></div><button className="button button-quiet" type="button" onClick={close}>Fechar</button></div><div className="field"><label htmlFor="work-area-name">Nome da área</label><input id="work-area-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex.: Treinadores" autoFocus /></div><div className="field"><label htmlFor="work-area-type">Tipo</label><select id="work-area-type" value={type} onChange={(event) => setType(event.target.value as "GENERAL" | "SECTOR")}><option value="GENERAL">Área geral</option><option value="SECTOR">Setor da equipe</option></select></div>{error ? <p className="error-message">{error}</p> : null}<div className="creation-actions"><button className="button button-dark" type="button" onClick={create} disabled={saving}>{saving ? "Criando..." : "Criar área"}</button></div></section></div> : null}</>;
+  return <>
+    <button className="btn btn-primary" type="button" onClick={() => setOpen(true)}><Icon name="plus" />Nova área</button>
+    {open ? <Sheet open onClose={close} title="Organize o trabalho.">
+      <form className="sheet-form" onSubmit={(event) => { event.preventDefault(); void create(); }}>
+        <p className="section-lead sheet-lead">Crie uma área geral ou uma área de um setor da equipe.</p>
+        <div className="form-field"><label htmlFor="work-area-name">Nome da área</label><input className="control" id="work-area-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex.: Treinadores" data-autofocus /></div>
+        <div className="form-field"><label htmlFor="work-area-type">Tipo</label><select className="control" id="work-area-type" value={type} onChange={(event) => setType(event.target.value as "GENERAL" | "SECTOR")}><option value="GENERAL">Área geral</option><option value="SECTOR">Setor da equipe</option></select></div>
+        <Feedback error={error} />
+        <div className="btn-row btn-row-split sheet-actions"><button className="btn btn-quiet" type="button" onClick={close}>Cancelar</button><button className="btn btn-primary" type="submit" disabled={saving} aria-busy={saving}>{saving ? "Criando..." : "Criar área"}</button></div>
+      </form>
+    </Sheet> : null}
+  </>;
 }

@@ -16,6 +16,7 @@ export function Sheet({ open, onClose, title, children, closeLabel = "Fechar", c
     if (open && !dialog.open) {
       returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       dialog.showModal();
+      dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     } else if (!open && dialog.open) {
       dialog.close();
     }
@@ -29,7 +30,13 @@ export function Sheet({ open, onClose, title, children, closeLabel = "Fechar", c
       returnFocus.current = null;
     };
     dialog.addEventListener("close", handleClose);
-    return () => dialog.removeEventListener("close", handleClose);
+    return () => {
+      dialog.removeEventListener("close", handleClose);
+      // Desmontado ainda aberto (renderização condicional): o evento "close" não dispara.
+      const target = returnFocus.current;
+      returnFocus.current = null;
+      if (target?.isConnected) window.requestAnimationFrame(() => target.focus());
+    };
   }, []);
 
   return (

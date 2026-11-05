@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
@@ -13,5 +12,5 @@ export default async function DemandAreaPage({ params }: { params: Promise<{ id:
   const [area, people] = await Promise.all([prisma.workArea.findFirst({ where: { id, members: { some: { userId: user.id } } }, include: { members: { include: { user: { select: { id: true, name: true, email: true } } } }, columns: { orderBy: { position: "asc" } }, folders: { select: { id: true, name: true }, orderBy: { name: "asc" } }, demands: { where: { archivedAt: null }, include: { assignees: { include: { user: { select: { id: true, name: true, email: true } } } } }, orderBy: [{ position: "asc" }, { createdAt: "asc" }] } } }), prisma.user.findMany({ where: { active: true, role: { in: [UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR] } }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } })]);
   if (!area) notFound();
   const demands = area.demands.map((demand) => ({ ...demand, scheduledAt: demand.scheduledAt?.toISOString() ?? null, completedAt: demand.completedAt?.toISOString() ?? null }));
-  return <AppShell user={user} current="demands"><div className="page-back"><Link href="/admin/demandas">← Áreas de trabalho</Link></div><DemandBoard key={area.id} areaId={area.id} areaName={area.name} initialColumns={area.columns} initialDemands={demands} initialFolders={area.folders} people={people} initialMembers={area.members.map((member) => member.user)} canManageMembers={user.role === UserRole.ADMIN} /></AppShell>;
+  return <AppShell user={user} current="demands"><DemandBoard key={area.id} areaId={area.id} areaName={area.name} initialColumns={area.columns} initialDemands={demands} initialFolders={area.folders} people={people} initialMembers={area.members.map((member) => member.user)} canManageMembers={user.role === UserRole.ADMIN} /></AppShell>;
 }
