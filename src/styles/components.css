@@ -602,7 +602,10 @@
 
 @layer components {
   /* Diálogo: variações */
-  .sheet-wide { width: min(100% - 32px, 680px); }
+  /* Só no desktop: abaixo de 560px todo diálogo é bottom sheet de largura total. */
+  @media (min-width: 560px) {
+    .sheet-wide { width: min(100% - 32px, 680px); }
+  }
   .sheet-lead { margin: 0 0 var(--space-4); }
   .sheet-actions { margin-top: var(--space-5); }
   .sheet-form { display: grid; gap: var(--space-4); }
