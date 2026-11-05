@@ -373,7 +373,7 @@ Diretos e firmes; texto curto em sans 600.
 - Célula principal em 600, secundária em 0.75rem `text-muted`; atraso em carmim 600.
 - No celular, lista empilhada de 64px por linha; a linha inteira é o link.
 - **Paginação** (`Pagination`): texto do intervalo à esquerda, botões secundários à direita; abaixo de 400px os botões dividem a largura.
-- **Próximos compromissos** (Visão geral): linha de 72px com bloco de data de 60px (Hoje / Amanhã / dia da semana em caixa alta, dia em 700, mês abreviado), título e área · responsáveis, horário à direita; "Hoje" usa `accent-text`. No desktop largo, duas colunas lidas de cima para baixo. Mostra só demandas não concluídas das áreas de que a pessoa participa.
+- **Próximos compromissos** (Visão geral, logo abaixo da saudação): lista de texto sem caixas, uma linha por compromisso — dia (Hoje em `accent-text` 600, Amanhã ou "Seg., 9 de nov.") e horário em `text-muted`, título em 600, área à direita; link discreto "Ver agenda". No celular, quando e área em cima, título embaixo. Mostra as 5 próximas demandas não concluídas das áreas de que a pessoa participa.
 
 ### Navigation
 - **Sidebar:** grafite com faixas, rótulos de grupo em Label caps `on-dark-subtle`, links de 40px em `on-dark-muted` com ícone de 18px; hover e atual em `sidebar-raised` com texto branco; o atual leva o paralelogramo laranja colado à borda esquerda.
