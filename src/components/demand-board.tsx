@@ -8,8 +8,15 @@ type Person = { id: string; name: string; email: string };
 type Demand = { id: string; title: string; description: string | null; columnId: string; scheduledAt: string | null; completedAt: string | null; assignees: { user: Person }[] };
 type ArchivedDemand = Demand & { folder: Folder | null };
 
-const datetimeValue = (value: string | null) => value ? new Date(value).toISOString().slice(0, 16) : "";
-const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "Sem horário";
+// Datas e horários sempre no fuso de Maceió (UTC−3, sem horário de verão).
+const maceioParts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Maceio", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const datetimeValue = (value: string | null) => {
+  if (!value) return "";
+  const parts = Object.fromEntries(maceioParts.formatToParts(new Date(value)).map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+};
+const fromDatetimeValue = (value: string) => value ? new Date(`${value}:00-03:00`).toISOString() : null;
+const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Maceio" }).format(new Date(value)) : "Sem horário";
 const initials = (name: string) => name.split(" ").filter(Boolean).map((part) => part[0]).join("").slice(0, 2);
 
 export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, initialFolders, people, initialMembers, canManageMembers }: { areaId: string; areaName: string; initialColumns: Column[]; initialDemands: Demand[]; initialFolders: Folder[]; people: Person[]; initialMembers: Person[]; canManageMembers: boolean }) {
@@ -56,7 +63,7 @@ export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, 
     if (!form.title.trim() || !form.columnId) { setMessage("Dê um título e escolha uma coluna."); return; }
     setSaving(true);
     try {
-      const response = await fetch("/api/demandas", { method: selected ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(selected ? { id: selected.id } : { workAreaId: areaId, requestKey: createRequestKey.current }), ...form, scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null }) });
+      const response = await fetch("/api/demandas", { method: selected ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(selected ? { id: selected.id } : { workAreaId: areaId, requestKey: createRequestKey.current }), ...form, scheduledAt: fromDatetimeValue(form.scheduledAt) }) });
       const data = await response.json();
       if (!response.ok) { setMessage(data.error ?? "Não foi possível salvar a atividade."); return; }
       setDemands((current) => selected ? current.map((demand) => demand.id === selected.id ? data.demand : demand) : current.some((demand) => demand.id === data.demand.id) ? current : [...current, data.demand]);
