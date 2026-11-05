@@ -35,6 +35,8 @@ const paths = {
   mail: <><rect x="4" y="6" width="16" height="12" rx="1" /><path d="m4.5 7 7.5 6 7.5-6" /></>,
   calendar: <><rect x="4" y="5.5" width="16" height="14" rx="1" /><path d="M4 10h16" /><path d="M8.5 3.5v4M15.5 3.5v4" /></>,
   trash: <><path d="M5 7h14" /><path d="M10 4h4" /><path d="M7 7l1 12h8l1-12" /></>,
+  share: <><path d="M12 15V4" /><path d="m8 8 4-4 4 4" /><path d="M7 11H6a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1h-1" /></>,
+  addSquare: <><rect x="4.5" y="4.5" width="15" height="15" rx="3" /><path d="M12 8.5v7M8.5 12h7" /></>,
 } as const;
 
 export type IconName = keyof typeof paths;

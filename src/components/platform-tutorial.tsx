@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Icon } from "@/components/ui/icon";
 
 type Role = "ADMIN" | "MANAGER" | "OPERATOR" | "STUDENT";
 type FocusRect = { top: number; left: number; width: number; height: number };
@@ -31,11 +32,12 @@ const operatorSteps: TutorialStep[] = [
 function findFocus(anchors?: string[]) {
   if (!anchors) return null;
   for (const anchor of anchors) {
-    const element = document.querySelector(anchor);
-    if (!element) continue;
-    const rect = element.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      return { top: Math.max(8, rect.top - 8), left: Math.max(8, rect.left - 8), width: rect.width + 16, height: rect.height + 16 };
+    // O mesmo item pode existir no menu lateral e na navegação do celular: usa o que está visível.
+    for (const element of document.querySelectorAll(anchor)) {
+      const rect = element.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        return { top: Math.max(8, rect.top - 8), left: Math.max(8, rect.left - 8), width: rect.width + 16, height: rect.height + 16 };
+      }
     }
   }
   return null;
@@ -50,8 +52,13 @@ export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: 
   const [iphoneGuideOpen, setIphoneGuideOpen] = useState(false);
   const [iphoneStep, setIphoneStep] = useState(0);
   const [focus, setFocus] = useState<FocusRect | null>(null);
+  const cardRef = useRef<HTMLElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   function close() {
+    const target = returnFocusRef.current;
+    returnFocusRef.current = null;
+    if (target?.isConnected) window.requestAnimationFrame(() => target.focus());
     setOpen(false);
     setIphoneOffer(false);
     setIphoneGuideOpen(false);
@@ -59,6 +66,7 @@ export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: 
   }
 
   function start() {
+    if (!returnFocusRef.current && document.activeElement instanceof HTMLElement && document.activeElement !== document.body) returnFocusRef.current = document.activeElement;
     setStepIndex(0);
     setIphoneOffer(false);
     setIphoneGuideOpen(false);
@@ -103,6 +111,13 @@ export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: 
     };
   }, [open, iphoneOffer, iphoneGuideOpen, stepIndex, steps]);
 
+  // Acessibilidade: o foco entra no cartão a cada passo.
+  useEffect(() => {
+    if (!open) return;
+    const primary = cardRef.current?.querySelector<HTMLButtonElement>("[data-tour-primary]");
+    primary?.focus();
+  }, [open, stepIndex, iphoneOffer, iphoneGuideOpen, iphoneStep]);
+
   useEffect(() => {
     document.body.classList.toggle("tutorial-open", open);
     return () => document.body.classList.remove("tutorial-open");
@@ -126,28 +141,41 @@ export function PlatformTutorial({ role, name, userId, initiallySeen }: { role: 
     else close();
   }
 
+  // Teclado: Esc fecha; Tab circula dentro do cartão.
+  function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") { event.preventDefault(); close(); return; }
+    if (event.key !== "Tab") return;
+    const items = [...(cardRef.current?.querySelectorAll<HTMLElement>("button, a[href]") ?? [])];
+    if (!items.length) return;
+    const first = items[0]; const last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
+
+  const progress = ((stepIndex + 1) / steps.length) * 100;
+
   return (
-    <div className="tutorial-layer" role="dialog" aria-modal="true" aria-label="Tutorial Pace Lab">
-      {focus ? <div className="tutorial-focus" style={{ top: focus.top, left: focus.left, width: focus.width, height: focus.height }} /> : <div className="tutorial-backdrop" />}
-      {iphoneOffer ? <section className="tutorial-card tutorial-card-centered">
-        <p className="tutorial-kicker">Pace Lab no iPhone</p>
-        <h2>Leve o Pace Lab para a tela de início.</h2>
+    <div className="tour" role="dialog" aria-modal="true" aria-labelledby="tour-title" onKeyDown={onKeyDown}>
+      {focus ? <div className="tour-spotlight" style={{ top: focus.top, left: focus.left, width: focus.width, height: focus.height }} /> : <div className="tour-backdrop" />}
+      {iphoneOffer ? <section className="tour-card tour-card-centered" ref={cardRef}>
+        <p className="tour-kicker">Pace Lab no iPhone</p>
+        <h2 id="tour-title">Leve o Pace Lab para a tela de início.</h2>
         <p>Se você usa iPhone, veja o passo a passo rápido para abrir a plataforma como um app.</p>
-        <div className="tutorial-actions"><button className="tutorial-button tutorial-button-quiet" type="button" onClick={close}>Agora não</button><button className="tutorial-button" type="button" onClick={() => { setIphoneOffer(false); setIphoneGuideOpen(true); }}>Ver como instalar</button></div>
+        <div className="tour-actions"><button className="tour-button tour-button-quiet" type="button" onClick={close}>Agora não</button><button className="tour-button" type="button" data-tour-primary onClick={() => { setIphoneOffer(false); setIphoneGuideOpen(true); }}>Ver como instalar</button></div>
       </section> : null}
-      {iphoneGuideOpen ? <section className="tutorial-card tutorial-card-centered">
-        <p className="tutorial-kicker">Como baixar o app Pace Lab</p>
-        <div className="tutorial-phone-icon" aria-hidden="true">{iphoneStep === 1 ? "□↑" : "＋"}</div>
-        <h2>{iphoneGuide.title}</h2>
+      {iphoneGuideOpen ? <section className="tour-card tour-card-centered" ref={cardRef}>
+        <p className="tour-kicker">Como baixar o app Pace Lab <span>{iphoneStep + 1} / 3</span></p>
+        <span className="tour-phone-icon" aria-hidden="true"><Icon name={iphoneStep === 1 ? "share" : "addSquare"} /></span>
+        <h2 id="tour-title">{iphoneGuide.title}</h2>
         <p>{iphoneGuide.text}</p>
-        <div className="tutorial-actions"><button className="tutorial-button tutorial-button-quiet" type="button" onClick={() => setIphoneStep((current) => Math.max(0, current - 1))}>Voltar</button><button className="tutorial-button" type="button" onClick={() => iphoneStep === 2 ? close() : setIphoneStep((current) => current + 1)}>{iphoneStep === 2 ? "Concluir" : "Avançar"}</button></div>
-      </section> : !iphoneOffer ? <section className="tutorial-card" aria-live="polite">
-        <p className="tutorial-kicker">{step.label} <span>{String(stepIndex + 1).padStart(2, "0")} / {String(steps.length).padStart(2, "0")}</span></p>
-        <h2>{stepIndex === 0 ? step.title.replace("você", name.split(" ")[0]) : step.title}</h2>
+        <div className="tour-actions"><button className="tour-button tour-button-quiet" type="button" onClick={() => setIphoneStep((current) => Math.max(0, current - 1))}>Voltar</button><button className="tour-button" type="button" data-tour-primary onClick={() => iphoneStep === 2 ? close() : setIphoneStep((current) => current + 1)}>{iphoneStep === 2 ? "Concluir" : "Avançar"}</button></div>
+      </section> : !iphoneOffer ? <section className="tour-card" ref={cardRef} aria-live="polite">
+        <p className="tour-kicker">{step.label} <span>{String(stepIndex + 1).padStart(2, "0")} / {String(steps.length).padStart(2, "0")}</span></p>
+        <h2 id="tour-title">{stepIndex === 0 ? step.title.replace("você", name.split(" ")[0]) : step.title}</h2>
         <p>{step.text}</p>
-        <div className="tutorial-progress" aria-hidden="true"><i style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} /></div>
-        <div className="tutorial-actions"><button className="tutorial-button tutorial-button-quiet" type="button" onClick={close}>Pular</button>{stepIndex > 0 ? <button className="tutorial-button tutorial-button-quiet" type="button" onClick={() => setStepIndex((current) => current - 1)}>Voltar</button> : null}<button className="tutorial-button" type="button" onClick={next}>{isLastStep ? "Finalizar" : "Avançar"}</button></div>
-        {role === "STUDENT" ? <button className="tutorial-install-link" type="button" onClick={() => setIphoneGuideOpen(true)}>Como baixar app Pace Lab no iPhone</button> : null}
+        <div className="tour-progress" aria-hidden="true"><i style={{ width: `${progress}%` }} /></div>
+        <div className="tour-actions"><button className="tour-button tour-button-quiet" type="button" onClick={close}>Pular</button>{stepIndex > 0 ? <button className="tour-button tour-button-quiet" type="button" onClick={() => setStepIndex((current) => current - 1)}>Voltar</button> : null}<button className="tour-button" type="button" data-tour-primary onClick={next}>{isLastStep ? "Finalizar" : "Avançar"}</button></div>
+        {role === "STUDENT" ? <button className="tour-install" type="button" onClick={() => setIphoneGuideOpen(true)}>Como baixar app Pace Lab no iPhone</button> : null}
       </section> : null}
     </div>
   );
