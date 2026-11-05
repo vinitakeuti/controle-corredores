@@ -1,0 +1,3 @@
+/* Ordem das camadas. Precisa ser o primeiro arquivo importado: o bundler emite os @import antes do
+   restante do globals.css, e a ordem das camadas é a da primeira aparição de cada nome. */
+@layer reset, legacy, tokens, base, components, shell, screens;
