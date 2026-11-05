@@ -32,7 +32,7 @@ function ResetLinkAccess({ role, checked, onChange, id }: { role: Role; checked:
 function PermissionPicker({ value, onChange, idPrefix, open = false }: { value: ManagerPermissions; onChange: (value: ManagerPermissions) => void; idPrefix: string; open?: boolean }) {
   const enabled = managerFeatures.filter(([feature]) => value[feature]).length;
   return <details className="permission-picker" open={open}>
-    <summary><span className="form-label">Áreas liberadas para o gerente</span><span className="board-count">{enabled} de {managerFeatures.length}</span><Icon name="chevronDown" className="icon-sm ledger-toggle" /></summary>
+    <summary><span className="form-label">Áreas liberadas para o gerente</span><span className="count-label">{enabled} de {managerFeatures.length}</span><Icon name="chevronDown" className="icon-sm ledger-toggle" /></summary>
     <p className="field-hint">Marque somente as áreas que este gerente poderá acessar. Configurações e gestão de cargos continuam exclusivas de administradores.</p>
     <div className="option-checks-list">{managerFeatures.map(([feature, label]) => <label className="option-check" key={feature} htmlFor={`${idPrefix}-${feature}`}><input id={`${idPrefix}-${feature}`} type="checkbox" checked={value[feature]} onChange={() => onChange({ ...value, [feature]: !value[feature] })} />{label}</label>)}</div>
   </details>;

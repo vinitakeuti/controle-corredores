@@ -4,7 +4,6 @@ import { AppShell } from "@/components/app-shell";
 import { FinancialValues, FinancialVisibilityToggle, HideableMoney } from "@/components/overview-financial-privacy";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusPill } from "@/components/ui/status-pill";
 import { canAccessFeature } from "@/lib/access-control";
 import { requireFeature } from "@/lib/auth";
 import { currentMonthInMaceio, formatCurrency, formatDate, formatTime, greetingForDate, paymentMethodLabel } from "@/lib/format";
@@ -82,7 +81,7 @@ export default async function AdminPage() {
               <span className="activity-mark" aria-hidden="true"><Icon name="check" className="icon-sm" /></span>
               <span className="activity-copy"><strong>{payment.user.name}</strong><span>{paymentMethodLabel(payment.method)} · <HideableMoney value={formatCurrency(payment.amountCents)} /></span></span>
               <time className="activity-time" dateTime={(payment.paidAt ?? payment.createdAt).toISOString()}>{formatTime(payment.paidAt ?? payment.createdAt)}</time>
-            </li>)}</ul> : <div className="state-empty"><strong>Ainda não há pagamentos confirmados neste mês.</strong></div>}
+            </li>)}</ul> : <div className="state-empty"><p>Ainda não há pagamentos confirmados neste mês.</p></div>}
           </section> : <section className="section-block" aria-labelledby="overview-revenue-title">
             <div className="section-head"><div><h2 className="section-title" id="overview-revenue-title">Receita de {currentMonth}</h2><p className="section-lead">O valor mensal das parcelas ativas no período.</p></div></div>
             <div className="state-empty"><p>A receita do mês está disponível no resumo acima.</p></div>
@@ -91,12 +90,12 @@ export default async function AdminPage() {
           <section className="section-block" aria-labelledby="overview-new-title">
             <div className="section-head">
               <div><h2 className="section-title" id="overview-new-title">Novos cadastros</h2><p className="section-lead">Entradas registradas em {currentMonth}.</p></div>
-              <StatusPill tone="neutral">{recentStudents.length} no mês</StatusPill>
+              <span className="count-label">{recentStudents.length} no mês</span>
             </div>
             {recentStudents.length ? <ul className="activity-list">{recentStudents.map((student) => <li key={student.id}>
               <span className="activity-copy"><strong>{student.name}</strong><span>{student.saleOwner?.name ? `Venda: ${student.saleOwner.name}` : "Sem vendedor definido"}</span></span>
               <time className="activity-time" dateTime={student.createdAt.toISOString()}>{formatDate(student.createdAt)}</time>
-            </li>)}</ul> : <div className="state-empty"><strong>Nenhum cadastro neste mês.</strong></div>}
+            </li>)}</ul> : <div className="state-empty"><p>Nenhum cadastro neste mês.</p></div>}
           </section>
         </div>
       </FinancialValues>

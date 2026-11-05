@@ -38,6 +38,6 @@ STORY: A equipe vê primeiro o que pede ação, chega ao registro em um toque, a
 
 FIRST VIEWPORT: Desktop: sidebar escura de 248px, agrupada (Operação, Comercial, Financeiro), com a conta fixa no rodapé. No conteúdo, a linha de contexto (ALUNOS / PERFIL) fica acima do H1 em Anton com ponto. Logo abaixo, uma faixa-resumo com régua: status, próxima cobrança, valor na fonte display e termo. Na visão geral, uma faixa de métricas em que cada número leva à lista filtrada. Celular: topo escuro de 56px, barra inferior com quatro áreas permitidas e um sheet "Mais"; a ação primária fica ao alcance do polegar.
 
-FORM: Evolução do mundo estabelecido da Pace Lab (fixado pelo brief). Movimento-assinatura: marcador laranja inclinado a -12°, o itálico do wordmark, no item de navegação atual, na aba ativa e no passo atual. seed: none (unavailable)
+FORM: Evolução do mundo estabelecido da Pace Lab (fixado pelo brief). Movimento-assinatura: marcador laranja inclinado a -12°, o itálico do wordmark, no item de navegação atual, na aba ativa e no passo atual. seed: none (direção fixada pelo brief: evolução do mundo estabelecido; nenhum roll foi feito)
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
