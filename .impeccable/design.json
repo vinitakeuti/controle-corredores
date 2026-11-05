@@ -1,0 +1,902 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-05T21:04:56+00:00",
+  "title": "Design System: Pace Lab Gestão",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Laranja Pace (Marcador)",
+        "canonical": "#e15d37",
+        "cssVar": "--accent",
+        "tonalRamp": [
+          "#1c0200",
+          "#490f00",
+          "#792307",
+          "#b0370e",
+          "#d56140",
+          "#f29074",
+          "#fcc1b0",
+          "#fee9e3"
+        ]
+      },
+      "accent-strong": {
+        "role": "primary",
+        "displayName": "Laranja Ação",
+        "canonical": "#c74727",
+        "cssVar": "--accent-strong",
+        "tonalRamp": [
+          "#1c0300",
+          "#481003",
+          "#7c1f04",
+          "#ae3819",
+          "#d46246",
+          "#f19078",
+          "#ffc0b0",
+          "#fee9e4"
+        ]
+      },
+      "accent-strong-hover": {
+        "role": "primary",
+        "displayName": "Laranja Ação, hover",
+        "canonical": "#b23e21",
+        "cssVar": "--accent-strong-hover",
+        "tonalRamp": [
+          "#1c0200",
+          "#480f03",
+          "#79240e",
+          "#aa3d23",
+          "#cf664c",
+          "#ed937c",
+          "#ffc0af",
+          "#fee9e4"
+        ]
+      },
+      "accent-text": {
+        "role": "primary",
+        "displayName": "Laranja Link",
+        "canonical": "#b03d1f",
+        "cssVar": "--accent-text",
+        "tonalRamp": [
+          "#1c0300",
+          "#481003",
+          "#79240e",
+          "#a93e22",
+          "#cf664c",
+          "#ec937c",
+          "#fec0af",
+          "#fee9e4"
+        ]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Névoa de Pista",
+        "canonical": "#edf0ec",
+        "cssVar": "--bg",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252725",
+          "#444643",
+          "#646764",
+          "#878a87",
+          "#acafac",
+          "#d0d1cf",
+          "#edefed"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Branco Papel",
+        "canonical": "#ffffff",
+        "cssVar": "--surface",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#262626",
+          "#454545",
+          "#666666",
+          "#898989",
+          "#aeaeae",
+          "#d1d1d1",
+          "#eeeeee"
+        ]
+      },
+      "surface-raised": {
+        "role": "neutral",
+        "displayName": "Papel Elevado",
+        "canonical": "#f6f7f3",
+        "cssVar": "--surface-raised",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#262725",
+          "#454543",
+          "#666663",
+          "#898986",
+          "#adaeab",
+          "#d1d1cf",
+          "#eeefed"
+        ]
+      },
+      "surface-sunken": {
+        "role": "neutral",
+        "displayName": "Papel Rebaixado",
+        "canonical": "#e5e9e3",
+        "cssVar": "--surface-sunken",
+        "tonalRamp": [
+          "#0a0c0a",
+          "#252724",
+          "#434642",
+          "#646762",
+          "#878a85",
+          "#acafab",
+          "#cfd2ce",
+          "#edefec"
+        ]
+      },
+      "surface-hover": {
+        "role": "neutral",
+        "displayName": "Papel em Hover",
+        "canonical": "#e9ede7",
+        "cssVar": "--surface-hover",
+        "tonalRamp": [
+          "#0a0c0a",
+          "#252724",
+          "#434642",
+          "#646762",
+          "#878a85",
+          "#acafab",
+          "#cfd2ce",
+          "#edefec"
+        ]
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "Grafite de Pista",
+        "canonical": "#151a1a",
+        "cssVar": "--sidebar",
+        "tonalRamp": [
+          "#0a0c0c",
+          "#242727",
+          "#424646",
+          "#626767",
+          "#858a8a",
+          "#aaafaf",
+          "#ced2d2",
+          "#ecefef"
+        ]
+      },
+      "sidebar-raised": {
+        "role": "neutral",
+        "displayName": "Grafite Elevado",
+        "canonical": "#222a29",
+        "cssVar": "--sidebar-raised",
+        "tonalRamp": [
+          "#090c0b",
+          "#232827",
+          "#404746",
+          "#606867",
+          "#838b8a",
+          "#a8b0af",
+          "#ccd2d2",
+          "#ebf0ef"
+        ]
+      },
+      "brand-panel-top": {
+        "role": "neutral",
+        "displayName": "Painel da Marca, topo",
+        "canonical": "#26332e",
+        "cssVar": "--brand-panel",
+        "tonalRamp": [
+          "#080c0a",
+          "#212825",
+          "#3d4844",
+          "#5c6a64",
+          "#7f8d87",
+          "#a6b1ac",
+          "#cad3d0",
+          "#e9f0ed"
+        ],
+        "note": "Parada inicial do gradiente --brand-panel: linear-gradient(160deg, #26332e, #101714)."
+      },
+      "brand-panel-bottom": {
+        "role": "neutral",
+        "displayName": "Painel da Marca, base",
+        "canonical": "#101714",
+        "cssVar": "--brand-panel",
+        "tonalRamp": [
+          "#090c0b",
+          "#232826",
+          "#404744",
+          "#606865",
+          "#838b88",
+          "#a9b0ad",
+          "#cdd2d0",
+          "#ebf0ee"
+        ],
+        "note": "Parada final do gradiente --brand-panel."
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Divisória",
+        "canonical": "#d5dbd4",
+        "cssVar": "--line",
+        "tonalRamp": [
+          "#0a0c0a",
+          "#252724",
+          "#424642",
+          "#636862",
+          "#868b85",
+          "#abafaa",
+          "#cfd2ce",
+          "#edefec"
+        ]
+      },
+      "line-soft": {
+        "role": "neutral",
+        "displayName": "Divisória suave",
+        "canonical": "#e4e8e2",
+        "cssVar": "--line-soft",
+        "tonalRamp": [
+          "#0a0c0a",
+          "#252724",
+          "#434642",
+          "#646762",
+          "#878a85",
+          "#acafab",
+          "#cfd2ce",
+          "#edefec"
+        ]
+      },
+      "line-control": {
+        "role": "neutral",
+        "displayName": "Borda de controle",
+        "canonical": "#7f8a85",
+        "cssVar": "--line-control",
+        "tonalRamp": [
+          "#090c0b",
+          "#222825",
+          "#3f4744",
+          "#5f6964",
+          "#828c87",
+          "#a8b0ac",
+          "#ccd3d0",
+          "#eaf0ed"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Régua forte",
+        "canonical": "#17201d",
+        "cssVar": "--line-strong",
+        "tonalRamp": [
+          "#090c0b",
+          "#222826",
+          "#3f4744",
+          "#5f6965",
+          "#828c88",
+          "#a8b0ad",
+          "#ccd3d0",
+          "#eaf0ee"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Texto",
+        "canonical": "#17201d",
+        "cssVar": "--text",
+        "tonalRamp": [
+          "#090c0b",
+          "#222826",
+          "#3f4744",
+          "#5f6965",
+          "#828c88",
+          "#a8b0ad",
+          "#ccd3d0",
+          "#eaf0ee"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Texto secundário",
+        "canonical": "#394641",
+        "cssVar": "--text-secondary",
+        "tonalRamp": [
+          "#080c0b",
+          "#212825",
+          "#3e4844",
+          "#5c6a64",
+          "#808d87",
+          "#a6b1ac",
+          "#cad3d0",
+          "#e9f0ed"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Texto de apoio",
+        "canonical": "#5b6661",
+        "cssVar": "--text-muted",
+        "tonalRamp": [
+          "#080c0a",
+          "#222825",
+          "#3f4744",
+          "#5e6964",
+          "#828c87",
+          "#a8b0ac",
+          "#ccd3d0",
+          "#eaf0ed"
+        ]
+      },
+      "text-placeholder": {
+        "role": "neutral",
+        "displayName": "Placeholder",
+        "canonical": "#6b7570",
+        "cssVar": "--text-placeholder",
+        "tonalRamp": [
+          "#090c0a",
+          "#232825",
+          "#404743",
+          "#5f6964",
+          "#828c87",
+          "#a8b0ac",
+          "#ccd3cf",
+          "#ebf0ed"
+        ]
+      },
+      "on-dark": {
+        "role": "neutral",
+        "displayName": "Texto sobre escuro",
+        "canonical": "#f4f6f3",
+        "cssVar": "--on-dark",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#262725",
+          "#444544",
+          "#656764",
+          "#888a87",
+          "#adaeac",
+          "#d0d1d0",
+          "#eeefed"
+        ]
+      },
+      "on-dark-muted": {
+        "role": "neutral",
+        "displayName": "Texto sobre escuro, apoio",
+        "canonical": "#c9d1cd",
+        "cssVar": "--on-dark-muted",
+        "tonalRamp": [
+          "#090c0b",
+          "#242726",
+          "#414644",
+          "#616865",
+          "#848b88",
+          "#aaafad",
+          "#ced2d0",
+          "#ecefee"
+        ]
+      },
+      "on-dark-subtle": {
+        "role": "neutral",
+        "displayName": "Texto sobre escuro, rótulo",
+        "canonical": "#8f9a94",
+        "cssVar": "--on-dark-subtle",
+        "tonalRamp": [
+          "#090c0a",
+          "#222825",
+          "#404743",
+          "#5f6964",
+          "#828c87",
+          "#a8b0ac",
+          "#ccd3cf",
+          "#ebf0ed"
+        ]
+      },
+      "positive": {
+        "role": "status",
+        "displayName": "Verde de Valor",
+        "canonical": "#31523e",
+        "cssVar": "--positive",
+        "tonalRamp": [
+          "#040e07",
+          "#192b20",
+          "#334c3c",
+          "#4f6f5b",
+          "#73927e",
+          "#9bb5a4",
+          "#c2d7c9",
+          "#e3f4e8"
+        ]
+      },
+      "positive-soft": {
+        "role": "status",
+        "displayName": "Verde de Valor, fundo",
+        "canonical": "#e3ebe4",
+        "cssVar": "--positive-soft",
+        "tonalRamp": [
+          "#0a0c0a",
+          "#242824",
+          "#414742",
+          "#626862",
+          "#858b85",
+          "#aab0ab",
+          "#ced2ce",
+          "#ecf0ec"
+        ]
+      },
+      "danger": {
+        "role": "status",
+        "displayName": "Carmim",
+        "canonical": "#b3173a",
+        "cssVar": "--danger",
+        "tonalRamp": [
+          "#1e0003",
+          "#4e0213",
+          "#810f28",
+          "#b42740",
+          "#db5665",
+          "#f7888f",
+          "#fcbfc1",
+          "#ffe8e9"
+        ]
+      },
+      "danger-hover": {
+        "role": "status",
+        "displayName": "Carmim, hover",
+        "canonical": "#9a1232",
+        "cssVar": "--danger-hover",
+        "tonalRamp": [
+          "#1e0004",
+          "#4d0314",
+          "#7c1b2c",
+          "#ad3346",
+          "#d35e6a",
+          "#f08d93",
+          "#febec0",
+          "#fee9e9"
+        ]
+      },
+      "danger-soft": {
+        "role": "status",
+        "displayName": "Carmim, fundo",
+        "canonical": "#f7e4e8",
+        "cssVar": "--danger-soft",
+        "tonalRamp": [
+          "#0f090b",
+          "#2c2426",
+          "#4d4144",
+          "#716165",
+          "#948588",
+          "#b7aaad",
+          "#d9ced0",
+          "#f5ecee"
+        ]
+      },
+      "warning": {
+        "role": "status",
+        "displayName": "Ocre",
+        "canonical": "#8a5a00",
+        "cssVar": "--warning",
+        "tonalRamp": [
+          "#130900",
+          "#372101",
+          "#5e3d09",
+          "#895c11",
+          "#ac8042",
+          "#cca776",
+          "#eacba4",
+          "#ffebd3"
+        ]
+      },
+      "warning-strong": {
+        "role": "status",
+        "displayName": "Ocre, texto",
+        "canonical": "#6b4600",
+        "cssVar": "--warning-strong",
+        "tonalRamp": [
+          "#130900",
+          "#362201",
+          "#5b3f13",
+          "#835e28",
+          "#a68250",
+          "#c7a880",
+          "#e6cdac",
+          "#feebd3"
+        ]
+      },
+      "warning-soft": {
+        "role": "status",
+        "displayName": "Ocre, fundo",
+        "canonical": "#f4ead6",
+        "cssVar": "--warning-soft",
+        "tonalRamp": [
+          "#0e0b06",
+          "#2a261d",
+          "#4b4438",
+          "#6d6555",
+          "#908878",
+          "#b4ad9f",
+          "#d6d0c5",
+          "#f2eee5"
+        ]
+      },
+      "info": {
+        "role": "status",
+        "displayName": "Azul Ardósia",
+        "canonical": "#2f4f63",
+        "cssVar": "--info",
+        "tonalRamp": [
+          "#030d14",
+          "#172934",
+          "#304858",
+          "#4c6a7e",
+          "#708ea1",
+          "#99b2c3",
+          "#c0d4e2",
+          "#e1f1fc"
+        ]
+      },
+      "info-soft": {
+        "role": "status",
+        "displayName": "Azul Ardósia, fundo",
+        "canonical": "#e2eaee",
+        "cssVar": "--info-soft",
+        "tonalRamp": [
+          "#090c0d",
+          "#232729",
+          "#414648",
+          "#61676a",
+          "#848a8e",
+          "#a9afb2",
+          "#cdd2d4",
+          "#ebeff1"
+        ]
+      },
+      "text-disabled": {
+        "role": "neutral",
+        "displayName": "Texto Desabilitado",
+        "canonical": "#6f7873",
+        "cssVar": "--text-disabled"
+      },
+      "on-dark-line": {
+        "role": "neutral",
+        "displayName": "Linha sobre Escuro",
+        "canonical": "#3a4443",
+        "cssVar": "--on-dark-line"
+      },
+      "accent-on-dark": {
+        "role": "primary",
+        "displayName": "Laranja sobre Painel",
+        "canonical": "#f08a69",
+        "cssVar": "--accent-on-dark"
+      },
+      "positive-on-dark": {
+        "role": "status",
+        "displayName": "Verde sobre Painel",
+        "canonical": "#c8e3cf",
+        "cssVar": "--positive-on-dark"
+      },
+      "danger-on-dark": {
+        "role": "status",
+        "displayName": "Carmim sobre Painel",
+        "canonical": "#ffd4dd",
+        "cssVar": "--danger-on-dark"
+      },
+      "warning-on-dark": {
+        "role": "status",
+        "displayName": "Ocre sobre Painel",
+        "canonical": "#f6dfb2",
+        "cssVar": "--warning-on-dark"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "H1 de página em Anton, caixa alta, terminando em ponto. Login: clamp(2.75rem, 5vw, 4.5rem).",
+        "cssVar": "--display-md"
+      },
+      "display-mobile": {
+        "displayName": "Display (celular)",
+        "purpose": "H1 abaixo de 560px.",
+        "cssVar": "--display-sm"
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Números de decisão: faixa-resumo, métricas (clamp(1.75rem, 3.4vw, 2.75rem)), totais, preços."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Títulos de seção e de diálogo, sans 700, sem ponto.",
+        "cssVar": "--text-lg"
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto corrido e valor de campos; numerais tabulares no body inteiro.",
+        "cssVar": "--text-md"
+      },
+      "body-sm": {
+        "displayName": "Body small",
+        "purpose": "Botões (600), tabelas, listas, mensagens.",
+        "cssVar": "--text-sm"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Rótulos de métrica, cabeçalho de tabela, pílulas.",
+        "cssVar": "--text-xs"
+      },
+      "label-caps": {
+        "displayName": "Label caps",
+        "purpose": "Só a linha de contexto da página e os rótulos de grupo da navegação.",
+        "cssVar": "--tracking-caps"
+      }
+    },
+    "shapes": [
+      {
+        "name": "marker-shape",
+        "value": "polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%)",
+        "purpose": "Paralelogramo a -12° para marcadores curtos (passo atual, métrica atual)."
+      },
+      {
+        "name": "marker-shape-bar",
+        "value": "polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%)",
+        "purpose": "Paralelogramo para barras longas (aba ativa, barra inferior)."
+      },
+      {
+        "name": "stripes-dark",
+        "value": "repeating-linear-gradient(112deg, transparent 0 46px, rgba(255, 255, 255, 0.045) 47px 70px, transparent 71px 150px)",
+        "purpose": "Faixas diagonais das superfícies escuras do shell e do tutorial."
+      },
+      {
+        "name": "brand-panel",
+        "value": "linear-gradient(160deg, #26332e, #101714)",
+        "purpose": "Painel da marca: login, cartão da assinatura, tutorial."
+      }
+    ],
+    "shadows": [
+      {
+        "name": "shadow-overlay",
+        "value": "0 18px 40px rgba(16, 23, 20, 0.18), 0 2px 6px rgba(16, 23, 20, 0.08)",
+        "purpose": "Só camadas flutuantes: sheet, menu de ações, cartão do tutorial."
+      },
+      {
+        "name": "scrim",
+        "value": "rgba(16, 23, 20, 0.46)",
+        "purpose": "Fundo do <dialog> aberto."
+      },
+      {
+        "name": "focus-control",
+        "value": "0 0 0 3px rgba(199, 71, 39, 0.28)",
+        "purpose": "Anel de foco de campo, com borda accent-strong."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 2px solid #c74727; outline-offset: 2px",
+        "purpose": "Foco visível padrão; sobre escuro usa #e15d37."
+      },
+      {
+        "name": "selected-ring",
+        "value": "inset 0 0 0 1px #17201d",
+        "purpose": "Opção marcada em cartões de escolha e métodos de pagamento."
+      },
+      {
+        "name": "segment-active",
+        "value": "0 1px 2px rgba(16, 23, 20, 0.12)",
+        "purpose": "Segmento pressionado do controle segmentado."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Curva única de todas as transições."
+      },
+      {
+        "name": "dur-1",
+        "value": "140ms",
+        "purpose": "Mudanças de cor, fundo e borda; skip link."
+      },
+      {
+        "name": "dur-2",
+        "value": "220ms",
+        "purpose": "Entrada do sheet, rotação de disclosure, spotlight do tutorial."
+      },
+      {
+        "name": "sheet-in",
+        "value": "opacity 0 → 1, translateY(8px) → 0 (24px no bottom sheet)",
+        "purpose": "Entrada do diálogo; em prefers-reduced-motion vira só fade de 140ms."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "xs",
+        "value": "400px",
+        "note": "max-width: 400px — métricas em uma coluna, paginação quebra."
+      },
+      {
+        "name": "sm",
+        "value": "560px",
+        "note": "max-width: 559px — bottom sheet, display 2rem, chips em linha rolável."
+      },
+      {
+        "name": "md",
+        "value": "760px",
+        "note": "max-width: 759px — tabela vira lista empilhada, métricas em 2 colunas."
+      },
+      {
+        "name": "lg",
+        "value": "900px",
+        "note": "min-width: 900px — sidebar fixa; abaixo, topo de 56px e barra inferior de 60px."
+      },
+      {
+        "name": "xl",
+        "value": "1100px",
+        "note": "min-width: 1100px — perfil e visão geral em duas colunas."
+      }
+    ],
+    "layers": "@layer reset, tokens, base, components, shell, screens; (repetido no topo de cada arquivo de camada)"
+  },
+  "components": [
+    {
+      "name": "Botão primário",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A ação principal de um bloco: preenchimento accent-strong, texto branco, 2px de canto, 44px.",
+      "html": "<button class=\"ds-btn ds-btn-primary\" type=\"button\">Salvar condição comercial</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid transparent;border-radius:2px;font:600 0.875rem/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;cursor:pointer;transition:background-color 140ms cubic-bezier(0.22,1,0.36,1),border-color 140ms cubic-bezier(0.22,1,0.36,1),color 140ms cubic-bezier(0.22,1,0.36,1)}.ds-btn:focus-visible{outline:2px solid #c74727;outline-offset:2px}.ds-btn-primary{color:#ffffff;background:#c74727}.ds-btn-primary:hover{background:#b23e21}.ds-btn-primary:disabled{color:#6f7873;background:#e5e9e3;cursor:not-allowed}"
+    },
+    {
+      "name": "Botão secundário",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ações de apoio: branco com borda de controle.",
+      "html": "<button class=\"ds-btn2\" type=\"button\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 5h5v5\"/><path d=\"m19 5-8 8\"/><path d=\"M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4\"/></svg>Abrir PDF</button>",
+      "css": ".ds-btn2{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;color:#17201d;background:#ffffff;border:1px solid #7f8a85;border-radius:2px;font:600 0.875rem/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;cursor:pointer;transition:background-color 140ms cubic-bezier(0.22,1,0.36,1),border-color 140ms cubic-bezier(0.22,1,0.36,1)}.ds-btn2:hover{background:#f6f7f3;border-color:#394641}.ds-btn2:focus-visible{outline:2px solid #c74727;outline-offset:2px}"
+    },
+    {
+      "name": "Botão de perigo",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Ação destrutiva: contorno carmim; a versão sólida só confirma a destruição.",
+      "html": "<button class=\"ds-btn-danger\" type=\"button\">Inativar aluno</button>",
+      "css": ".ds-btn-danger{min-height:44px;padding:0 16px;color:#b3173a;background:#ffffff;border:1px solid #b3173a;border-radius:2px;font:600 0.875rem/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;cursor:pointer;transition:background-color 140ms cubic-bezier(0.22,1,0.36,1)}.ds-btn-danger:hover{background:#f7e4e8}.ds-btn-danger:focus-visible{outline:2px solid #c74727;outline-offset:2px}"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de 44px com rótulo acima; foco em borda accent-strong e anel translúcido.",
+      "html": "<label class=\"ds-field\"><span>E-mail</span><input class=\"ds-control\" type=\"email\" placeholder=\"nome@exemplo.com\"></label>",
+      "css": ".ds-field{display:grid;gap:6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ds-field span{color:#17201d;font-size:0.875rem;font-weight:600;line-height:1.3}.ds-control{min-height:44px;padding:10px 12px;color:#17201d;background:#ffffff;border:1px solid #7f8a85;border-radius:2px;font:1rem/1.4 inherit;caret-color:#c74727;transition:border-color 140ms cubic-bezier(0.22,1,0.36,1),box-shadow 140ms cubic-bezier(0.22,1,0.36,1)}.ds-control::placeholder{color:#6b7570}.ds-control:hover{border-color:#394641}.ds-control:focus{outline:none;border-color:#c74727;box-shadow:0 0 0 3px rgba(199,71,39,0.28)}"
+    },
+    {
+      "name": "Pílula de status",
+      "kind": "chip",
+      "refersTo": "status-pill",
+      "description": "Ponto + rótulo; o tom vem de toneForLabel e nunca substitui o texto.",
+      "html": "<span class=\"ds-pill\" data-tone=\"positive\">Em dia</span> <span class=\"ds-pill\" data-tone=\"danger\">Em atraso</span> <span class=\"ds-pill\" data-tone=\"warning\">Aguardando pagamento</span> <span class=\"ds-pill\" data-tone=\"info\">Cortesia</span> <span class=\"ds-pill\">Inativo</span>",
+      "css": ".ds-pill{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;color:#394641;background:#e5e9e3;border-radius:999px;font:600 0.75rem/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;white-space:nowrap}.ds-pill::before{content:'';width:6px;height:6px;background:currentColor;border-radius:50%}.ds-pill[data-tone=positive]{color:#31523e;background:#e3ebe4}.ds-pill[data-tone=danger]{color:#b3173a;background:#f7e4e8}.ds-pill[data-tone=warning]{color:#6b4600;background:#f4ead6}.ds-pill[data-tone=info]{color:#2f4f63;background:#e2eaee}"
+    },
+    {
+      "name": "Chips de filtro",
+      "kind": "chip",
+      "refersTo": "filter-chip",
+      "description": "Filtros de lista com contagem; o atual é preenchido em grafite.",
+      "html": "<div class=\"ds-chips\"><a class=\"ds-chip\" aria-current=\"true\" href=\"#\">Todos <span>1.245</span></a><a class=\"ds-chip ds-chip-danger\" href=\"#\">Em atraso <span>241</span></a><a class=\"ds-chip\" href=\"#\">Aguardando <span>122</span></a></div>",
+      "css": ".ds-chips{display:flex;flex-wrap:wrap;gap:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ds-chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;color:#394641;background:#ffffff;border:1px solid #7f8a85;border-radius:999px;font-size:0.875rem;font-weight:600;text-decoration:none;transition:border-color 140ms,color 140ms}.ds-chip span{color:#5b6661;font-weight:500}.ds-chip-danger span{color:#b3173a;font-weight:600}.ds-chip:hover{color:#17201d;border-color:#394641}.ds-chip:focus-visible{outline:2px solid #c74727;outline-offset:2px}.ds-chip[aria-current=true]{color:#ffffff;background:#17201d;border-color:#17201d}.ds-chip[aria-current=true] span{color:rgba(255,255,255,0.78)}"
+    },
+    {
+      "name": "Sidebar com marcador",
+      "kind": "nav",
+      "refersTo": "sidebar-link",
+      "description": "Navegação desktop sobre grafite com faixas a 112°; o item atual leva o paralelogramo laranja.",
+      "html": "<nav class=\"ds-side\"><span class=\"ds-side-label\">Operação</span><a class=\"ds-side-link\" href=\"#\">Visão geral</a><a class=\"ds-side-link\" href=\"#\">Demandas</a><a class=\"ds-side-link\" aria-current=\"page\" href=\"#\">Alunos</a><a class=\"ds-side-link\" href=\"#\">Analisar dados</a></nav>",
+      "css": ".ds-side{position:relative;isolation:isolate;display:grid;gap:2px;width:248px;padding:24px 12px;background:#151a1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ds-side::before{content:'';position:absolute;inset:0;z-index:-1;background:repeating-linear-gradient(112deg,transparent 0 46px,rgba(255,255,255,0.045) 47px 70px,transparent 71px 150px)}.ds-side-label{padding:0 12px 8px;color:#8f9a94;font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase}.ds-side-link{position:relative;display:flex;align-items:center;min-height:40px;padding:0 12px;color:#c9d1cd;border-radius:2px;font-size:0.875rem;font-weight:500;text-decoration:none;transition:background-color 140ms,color 140ms}.ds-side-link:hover{color:#ffffff;background:#222a29}.ds-side-link:focus-visible{outline:2px solid #e15d37;outline-offset:-2px}.ds-side-link[aria-current=page]{color:#ffffff;background:#222a29;font-weight:600}.ds-side-link[aria-current=page]::before{content:'';position:absolute;top:8px;bottom:8px;left:-3px;width:7px;background:#e15d37;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}"
+    },
+    {
+      "name": "Abas com marcador",
+      "kind": "nav",
+      "refersTo": "tabs",
+      "description": "Abas de 44px; a ativa leva a barra-paralelogramo (--marker-shape-bar).",
+      "html": "<nav class=\"ds-tabs\"><a href=\"#\" aria-current=\"page\">Equipe</a><a href=\"#\">E-mails</a></nav>",
+      "css": ".ds-tabs{display:flex;gap:24px;border-bottom:1px solid #d5dbd4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ds-tabs a{position:relative;display:inline-flex;align-items:center;min-height:44px;color:#5b6661;font-size:0.875rem;font-weight:600;text-decoration:none}.ds-tabs a:hover{color:#17201d}.ds-tabs a:focus-visible{outline:2px solid #c74727;outline-offset:2px}.ds-tabs a[aria-current=page]{color:#17201d}.ds-tabs a[aria-current=page]::after{content:'';position:absolute;right:0;bottom:0;left:0;height:6px;background:#e15d37;clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)}"
+    },
+    {
+      "name": "Faixa de métricas",
+      "kind": "custom",
+      "refersTo": "metric-strip",
+      "description": "Números de decisão em Anton numa faixa plana com régua forte; cada métrica leva à lista filtrada e mostra o marcador no hover.",
+      "html": "<div class=\"ds-metrics\"><a class=\"ds-metric\" href=\"#\"><span class=\"ds-metric-label\">Ativos</span><span class=\"ds-metric-value\">827</span><span class=\"ds-metric-note\">1.245 cadastros no total</span></a><a class=\"ds-metric ds-metric-danger\" href=\"#\"><span class=\"ds-metric-label\">Em atraso</span><span class=\"ds-metric-value\">241</span><span class=\"ds-metric-note\">Precisam de atenção</span></a><a class=\"ds-metric\" href=\"#\"><span class=\"ds-metric-label\">Aguardando pagamento</span><span class=\"ds-metric-value\">122</span><span class=\"ds-metric-note\">Possíveis vendas em aberto</span></a></div>",
+      "css": ".ds-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #17201d;border-bottom:1px solid #d5dbd4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ds-metric{position:relative;display:grid;gap:8px;padding:16px 16px 24px 0;color:#17201d;text-decoration:none;transition:background-color 140ms}.ds-metric+.ds-metric{padding-left:16px;border-left:1px solid #d5dbd4}.ds-metric-label{color:#5b6661;font-size:0.75rem;font-weight:600}.ds-metric-value{font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;font-size:2.75rem;line-height:1;letter-spacing:0.01em}.ds-metric-danger .ds-metric-value{color:#b3173a}.ds-metric-note{color:#5b6661;font-size:0.875rem}.ds-metric:hover{background:#e9ede7}.ds-metric:hover .ds-metric-note{color:#b03d1f}.ds-metric:hover::after{content:'';position:absolute;top:-3px;left:-4px;width:56px;height:6px;background:#e15d37;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}.ds-metric+.ds-metric:hover::after{left:12px}.ds-metric:focus-visible{outline:2px solid #c74727;outline-offset:2px}"
+    },
+    {
+      "name": "Cabeçalho de página",
+      "kind": "custom",
+      "refersTo": "page-header",
+      "description": "Linha de contexto (uma por página, local ou caminho com volta) acima do H1 em Anton, caixa alta, com ponto final.",
+      "html": "<header class=\"ds-ph\"><a class=\"ds-ph-context\" href=\"#\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m14 6-6 6 6 6\"/></svg>Alunos <span>/ Perfil</span></a><h1 class=\"ds-ph-title\">Lucas Santos.</h1><p class=\"ds-ph-lead\">Dados cadastrais e histórico financeiro básico.</p></header>",
+      "css": ".ds-ph{display:grid;gap:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ds-ph-context{display:inline-flex;align-items:center;gap:6px;width:fit-content;min-height:24px;color:#394641;font-size:0.75rem;font-weight:600;letter-spacing:0.14em;line-height:1;text-transform:uppercase;text-decoration:none}.ds-ph-context span{color:#5b6661}.ds-ph-context:hover{color:#b03d1f}.ds-ph-context:focus-visible{outline:2px solid #c74727;outline-offset:2px}.ds-ph-title{margin:0;color:#17201d;font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;font-weight:400;font-size:2.75rem;line-height:0.95;letter-spacing:0.01em;text-transform:uppercase;text-wrap:balance}.ds-ph-lead{margin:0;max-width:68ch;color:#5b6661}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A Prancheta do Treinador",
+    "overview": "O app de trabalho da Pace Lab é um sistema só, para equipe e alunos, no computador e no celular. A marca vive em três lugares e só neles: os títulos condensados em caixa alta que terminam em ponto, o marcador laranja inclinado que diz \"você está aqui\", e as superfícies escuras com faixas diagonais translúcidas (sidebar, topo do celular, painel do login, cartão da assinatura, tutorial). Todo o resto é ferramenta: neutros esverdeados, texto quase preto, divisórias finas, números tabulares, cantos de 2px.\n\nA densidade é de operação. A equipe lê mais de mil registros por dia, então as telas são seções planas empilhadas e separadas por réguas, com faixas de números no topo e tabelas que viram listas empilhadas no celular. Não há grade de cartões de dashboard nem cartão dentro de cartão; a profundidade é tonal e só os overlays (diálogo, menu, tutorial) ganham sombra.\n\nO laranja da marca é o acento único. Ele aparece em três papéis, cada um com seu tom: o marcador (#e15d37 puro, nunca em texto), o preenchimento da ação primária (tom mais escuro, para o branco passar AA) e os links (tom ainda mais escuro, para passar AA sobre o fundo claro).",
+    "keyCharacteristics": [
+      "Seções planas separadas por divisórias; uma régua forte (`line-strong`) abre cada faixa de números.",
+      "Títulos de página em Anton, caixa alta, terminando em ponto; o resto na sans do sistema com numerais tabulares.",
+      "Marcador em paralelogramo laranja a -12° só no item atual: navegação, aba, passo, métrica.",
+      "Superfície escura com faixas a 112° como assinatura do shell e das telas de acesso.",
+      "Cantos de 2px em tudo que é controle ou contêiner; pílula só para status e filtros; círculo só para marcadores numéricos e avatares.",
+      "Alvos de toque de 44px, foco visível em laranja escuro, movimento curto e substituído por opacidade em `prefers-reduced-motion`."
+    ],
+    "rules": [
+      {
+        "name": "The Three Oranges Rule",
+        "body": "O laranja tem três tons com três papéis fixos: `accent` marca, `accent-strong` preenche a ação, `accent-text` é texto. Um tom nunca faz o papel do outro.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Accent Rule",
+        "body": "O laranja é o único acento da marca. Estados usam verde, carmim, ocre e ardósia, todos dessaturados; nenhuma outra cor de marca entra.",
+        "section": "colors"
+      },
+      {
+        "name": "The Text Is The Status Rule",
+        "body": "Toda cor de estado vem acompanhada de texto (pílula com ponto + rótulo, mensagem com ícone + frase). A cor reforça; nunca é a única informação.",
+        "section": "colors"
+      },
+      {
+        "name": "The Full Stop Rule",
+        "body": "Todo título em Anton termina em ponto final. Títulos de seção na sans não levam ponto.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Faces Rule",
+        "body": "Anton só para o H1 da página e para números de decisão. Tudo que se lê em sequência ou se opera fica na sans do sistema. Nenhuma terceira família, exceto a monoespaçada do sistema na caixa de código copiável.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Context Line Rule",
+        "body": "A linha de contexto em caixa alta espaçada existe uma vez por página, acima do H1. Ela veio dos antigos eyebrows (decisão aprovada pelo dono: \"Eyebrow vira linha de contexto\") e por isso guarda o texto que cada tela já tinha: a área (\"Comercial\", \"Área do aluno\"), o caminho com volta (\"‹ Alunos / Perfil\", link para a lista) ou o rótulo herdado (\"Base histórica\", \"Gestão financeira\", \"Pagamento confirmado\"). Telas novas usam área ou caminho. Trocar um rótulo herdado é mudança de texto e passa pelo dono. Ela não aparece em títulos de seção internos.",
+        "section": "typography"
+      },
+      {
+        "name": "The Same Tool Everywhere Rule",
+        "body": "Nenhuma tarefa é exclusiva do desktop. Toda tabela tem a lista empilhada equivalente, todo diálogo vira bottom sheet e toda ação primária fica alcançável pelo polegar acima da barra inferior.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Page Rule",
+        "body": "Nada que fica na página tem sombra. Se um bloco precisa se destacar, ganha régua, tom ou posição, não elevação.",
+        "section": "elevation"
+      },
+      {
+        "name": "The You-Are-Here Rule",
+        "body": "O paralelogramo laranja marca só a posição atual: item atual da sidebar, aba atual da barra inferior e do menu \"Mais\", aba ativa, passo atual do stepper, métrica atual ou em hover numa faixa que navega. Ele nunca decora título, seção, botão ou cartão.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** usar os tokens de `src/styles/tokens.css` para toda cor, espaço, raio, movimento e forma; o arquivo é a fonte da verdade.",
+      "**Do** escrever CSS puro dentro das camadas `reset, tokens, base, components, shell, screens`, repetindo a declaração de ordem no topo de cada arquivo de camada, e importar o arquivo novo em `src/app/globals.css`.",
+      "**Do** terminar todo H1 em Anton com ponto final e manter uma única linha de contexto acima dele.",
+      "**Do** preencher a ação primária com `accent-strong` e escrever links em `accent-text`.",
+      "**Do** aplicar o paralelogramo com `clip-path: var(--marker-shape)` ou `var(--marker-shape-bar)` e cor `accent`, só no item atual.",
+      "**Do** separar seções por divisórias e abrir faixas de números com a régua `line-strong`.",
+      "**Do** dar 44px de alvo a todo controle tocável e respeitar `env(safe-area-inset-*)` no topo, na barra inferior e no sheet.",
+      "**Do** oferecer lista empilhada para toda tabela abaixo de 760px e transformar todo diálogo em bottom sheet abaixo de 560px.",
+      "**Do** trocar deslocamento por opacidade ou cor quando `prefers-reduced-motion: reduce`.",
+      "**Do** servir fontes só por `next/font` (local ou google), mantendo o CSP estrito (`font-src 'self' data:`, sem CDN externo)."
+    ],
+    "donts": [
+      "**Don't** usar `accent` (#e15d37) como texto ou como fundo de botão com texto branco; ele não passa AA.",
+      "**Don't** usar o marcador laranja como enfeite de título, seção, botão ou cartão.",
+      "**Don't** montar grade de cartões de dashboard nem cartão dentro de cartão; não dar sombra a nada que fique na página.",
+      "**Don't** arredondar além de 2px fora do topo do bottom sheet; não usar pílula em botão, campo ou contêiner.",
+      "**Don't** usar Anton em texto corrido, rótulos, botões ou títulos de seção.",
+      "**Don't** introduzir uma segunda cor de marca, ícones de fonte ou glifos no lugar de ícones SVG.",
+      "**Don't** redesenhar, distorcer ou trocar o wordmark, nem usar o logo antigo de faixas vermelhas.",
+      "**Don't** adicionar Tailwind, biblioteca de componentes ou qualquer dependência nova sem aprovação.",
+      "**Don't** carregar fontes, estilos ou scripts de CDN externo nem afrouxar o CSP.",
+      "**Don't** aplicar este sistema ao layout HTML dos e-mails (`src/lib/email.ts`) nem à loja (`loja-pacelab/`), que tem identidade própria.",
+      "**Don't** alterar a marcação nem os atributos dos campos de cartão do Appmax em `src/components/checkout-payment.tsx`; estilize ao redor deles."
+    ]
+  }
+}
