@@ -5,7 +5,7 @@ import { FinanceMonthPicker } from "@/components/finance-month-picker";
 import { PageHeader } from "@/components/ui/page-header";
 import { Icon } from "@/components/ui/icon";
 import { requireFeature } from "@/lib/auth";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, maceioDateParts } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { contractedMonthlyRevenueCents } from "@/lib/revenue-recognition";
 import { getStoreSalesSummary } from "@/lib/store-finance";
@@ -38,9 +38,9 @@ const periodLabels: Record<PlanPeriod, string> = {
 
 function monthRange(value?: string) {
   const match = value?.match(/^(\d{4})-(\d{2})$/);
-  const now = new Date();
-  const year = match ? Number(match[1]) : now.getFullYear();
-  const month = match ? Number(match[2]) - 1 : now.getMonth();
+  const today = maceioDateParts();
+  const year = match ? Number(match[1]) : today.year;
+  const month = match ? Number(match[2]) - 1 : today.month - 1;
   const from = new Date(Date.UTC(year, month, 1, 3));
   const to = new Date(Date.UTC(year, month + 1, 1, 3) - 1);
   const key = `${year}-${String(month + 1).padStart(2, "0")}`;

@@ -76,16 +76,47 @@ export function calculateAge(date: Date | string | null | undefined) {
   return age >= 0 ? age : null;
 }
 
+// Dias do calendário em Maceió (UTC-03:00 o ano todo, sem horário de verão), independentes
+// do fuso do servidor: em produção o contêiner roda em UTC.
+const maceioDayParts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Maceio", year: "numeric", month: "2-digit", day: "2-digit" });
+
+export function maceioDateParts(date = new Date()) {
+  const parts = Object.fromEntries(maceioDayParts.formatToParts(date).map((part) => [part.type, part.value]));
+  return { year: Number(parts.year), month: Number(parts.month), day: Number(parts.day) };
+}
+
+/** 00:00 em Maceió do dia informado. Aceita dia ou mês fora do intervalo (dia 0 = último dia do mês anterior). */
+export function maceioDayStart(year: number, month: number, day: number) {
+  return new Date(Date.UTC(year, month - 1, day, 3));
+}
+
+/** 23:59:59,999 em Maceió do dia informado. */
+export function maceioDayEnd(year: number, month: number, day: number) {
+  return new Date(maceioDayStart(year, month, day + 1).getTime() - 1);
+}
+
+/** Valor AAAA-MM-DD para <input type="date">, no dia de Maceió. */
+export function maceioInputDate(date: Date) {
+  const { year, month, day } = maceioDateParts(date);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function parseInputDate(value?: string) {
+  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return undefined;
+  const [year, month, day] = match.slice(1).map(Number);
+  const start = maceioDayStart(year, month, day);
+  return maceioDateParts(start).day === day ? { year, month, day } : undefined;
+}
+
 export function toDateStart(value?: string) {
-  if (!value) return undefined;
-  const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? undefined : date;
+  const date = parseInputDate(value);
+  return date ? maceioDayStart(date.year, date.month, date.day) : undefined;
 }
 
 export function toDateEnd(value?: string) {
-  if (!value) return undefined;
-  const date = new Date(`${value}T23:59:59.999`);
-  return Number.isNaN(date.getTime()) ? undefined : date;
+  const date = parseInputDate(value);
+  return date ? maceioDayEnd(date.year, date.month, date.day) : undefined;
 }
 
 export function subscriptionLabel(status: string) {

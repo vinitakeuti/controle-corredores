@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { FilterChips } from "@/components/ui/filter-chips";
 import { PageHeader } from "@/components/ui/page-header";
 import { requireFeature } from "@/lib/auth";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, maceioDateParts, maceioDayEnd, maceioDayStart } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { monthlyEquivalentCents } from "@/lib/revenue-recognition";
 
@@ -13,13 +13,14 @@ const periods: Array<{ id: Period; label: string }> = [
   { id: "day", label: "Hoje" }, { id: "week", label: "Esta semana" }, { id: "month", label: "Este mês" }, { id: "last-month", label: "Mês passado" },
 ];
 
+// Períodos sempre no calendário de Maceió, qualquer que seja o fuso do servidor.
 function periodRange(period: Period) {
-  const now = new Date(); const to = new Date(now); to.setHours(23, 59, 59, 999);
-  const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
-  if (period === "week") { const from = new Date(startOfDay); from.setDate(from.getDate() - 6); return { from, to }; }
-  if (period === "month") return { from: new Date(now.getFullYear(), now.getMonth(), 1), to };
-  if (period === "last-month") return { from: new Date(now.getFullYear(), now.getMonth() - 1, 1), to: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999) };
-  return { from: startOfDay, to };
+  const { year, month, day } = maceioDateParts();
+  const to = maceioDayEnd(year, month, day);
+  if (period === "week") return { from: maceioDayStart(year, month, day - 6), to };
+  if (period === "month") return { from: maceioDayStart(year, month, 1), to };
+  if (period === "last-month") return { from: maceioDayStart(year, month - 1, 1), to: maceioDayEnd(year, month, 0) };
+  return { from: maceioDayStart(year, month, day), to };
 }
 
 function commissionFor(amountCents: number, rateBps: number) { return Math.round(amountCents * rateBps / 10000); }

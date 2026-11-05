@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { StatusPill } from "@/components/ui/status-pill";
 import { requireFeature } from "@/lib/auth";
-import { formatCurrency, formatDate, formatShortDate, toDateEnd, toDateStart } from "@/lib/format";
+import { formatCurrency, formatDate, formatShortDate, maceioDateParts, maceioDayEnd, maceioDayStart, maceioInputDate, toDateEnd, toDateStart } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 type SearchParams = { period?: string; from?: string; to?: string; status?: string; page?: string };
@@ -17,17 +17,18 @@ type Period = "today" | "yesterday" | "week" | "month" | "last-month" | "custom"
 const periods: Array<{ id: Period; label: string }> = [
   { id: "today", label: "Hoje" }, { id: "yesterday", label: "Ontem" }, { id: "week", label: "Últimos 7 dias" }, { id: "month", label: "Este mês" }, { id: "last-month", label: "Mês passado" }, { id: "custom", label: "Personalizado" },
 ];
-const inputDate = (date: Date) => date.toISOString().slice(0, 10);
-
+// Períodos sempre no calendário de Maceió, qualquer que seja o fuso do servidor.
 function periodRange(period: Period, fromParam?: string, toParam?: string) {
-  const now = new Date(); const endToday = new Date(now); endToday.setHours(23, 59, 59, 999);
-  const startToday = new Date(now); startToday.setHours(0, 0, 0, 0);
-  if (period === "yesterday") { const start = new Date(startToday); start.setDate(start.getDate() - 1); const end = new Date(endToday); end.setDate(end.getDate() - 1); return { from: start, to: end, fromValue: inputDate(start), toValue: inputDate(end) }; }
-  if (period === "week") { const start = new Date(startToday); start.setDate(start.getDate() - 6); return { from: start, to: endToday, fromValue: inputDate(start), toValue: inputDate(endToday) }; }
-  if (period === "month") { const start = new Date(now.getFullYear(), now.getMonth(), 1); return { from: start, to: endToday, fromValue: inputDate(start), toValue: inputDate(endToday) }; }
-  if (period === "last-month") { const start = new Date(now.getFullYear(), now.getMonth() - 1, 1); const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999); return { from: start, to: end, fromValue: inputDate(start), toValue: inputDate(end) }; }
-  if (period === "custom") { const from = toDateStart(fromParam) ?? startToday; const to = toDateEnd(toParam) ?? endToday; return { from, to, fromValue: inputDate(from), toValue: inputDate(to) }; }
-  return { from: startToday, to: endToday, fromValue: inputDate(startToday), toValue: inputDate(endToday) };
+  const { year, month, day } = maceioDateParts();
+  const startToday = maceioDayStart(year, month, day);
+  const endToday = maceioDayEnd(year, month, day);
+  const range = (from: Date, to: Date) => ({ from, to, fromValue: maceioInputDate(from), toValue: maceioInputDate(to) });
+  if (period === "yesterday") return range(maceioDayStart(year, month, day - 1), maceioDayEnd(year, month, day - 1));
+  if (period === "week") return range(maceioDayStart(year, month, day - 6), endToday);
+  if (period === "month") return range(maceioDayStart(year, month, 1), endToday);
+  if (period === "last-month") return range(maceioDayStart(year, month - 1, 1), maceioDayEnd(year, month, 0));
+  if (period === "custom") return range(toDateStart(fromParam) ?? startToday, toDateEnd(toParam) ?? endToday);
+  return range(startToday, endToday);
 }
 
 export default async function SalesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
