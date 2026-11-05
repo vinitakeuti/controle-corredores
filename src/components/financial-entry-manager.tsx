@@ -1,11 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Feedback } from "@/components/ui/feedback";
 import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
-import { formatCurrency, formatDate } from "@/lib/format";
 
 type EntryType = "REVENUE" | "EXPENSE";
 type LedgerKind = "income" | "cost";
@@ -26,37 +25,29 @@ const categories = {
   EXPENSE: ["Operação", "Marketing", "Equipe", "Equipamento", "Impostos", "Outro"],
 };
 
-export function FinancialEntryManager({ month }: { month: string }) {
-  return <FinancialEntryForm month={month} initialType="EXPENSE" idPrefix="financial" />;
-}
-
-// Celular: barra fixa com Saída e Entrada, acima da navegação inferior; o formulário abre em bottom sheet.
-export function FinancialMobileActions({ month }: { month: string }) {
+// Registrar no financeiro: "Nova saída" e "Nova entrada" abrem o mesmo formulário num painel.
+// O painel continua aberto depois de salvar, para lançar várias despesas em sequência.
+export function FinancialEntryActions({ month }: { month: string }) {
   const [type, setType] = useState<EntryType | null>(null);
 
   return <>
-    <div className="finance-quick-actions">
-      <button type="button" className="btn btn-secondary" onClick={() => setType("EXPENSE")}><span className="ledger-sign" data-kind="cost" aria-hidden="true">−</span>Saída</button>
-      <button type="button" className="btn btn-secondary" onClick={() => setType("REVENUE")}><span className="ledger-sign" data-kind="income" aria-hidden="true">+</span>Entrada</button>
+    <div className="btn-row finance-entry-actions">
+      <button type="button" className="btn btn-secondary" onClick={() => setType("EXPENSE")}><span className="ledger-sign" data-kind="cost" aria-hidden="true">−</span>Nova saída</button>
+      <button type="button" className="btn btn-secondary" onClick={() => setType("REVENUE")}><span className="ledger-sign" data-kind="income" aria-hidden="true">+</span>Nova entrada</button>
     </div>
-    {type ? <Sheet open onClose={() => setType(null)} title={type === "EXPENSE" ? "Registrar saída" : "Registrar entrada"} closeLabel="Fechar lançamento">
-      <FinancialEntryForm key={type} month={month} initialType={type} onSaved={() => setType(null)} idPrefix="financial-mobile" />
+    {type ? <Sheet open onClose={() => setType(null)} title="Registrar no financeiro" closeLabel="Fechar lançamento" className="sheet-wide">
+      <FinancialEntryForm key={type} month={month} initialType={type} idPrefix="financial-new" />
     </Sheet> : null}
   </>;
 }
 
-export function FinancialEntryRow({ entry, kind, editable }: { entry: FinancialEntryRowData; kind: LedgerKind; editable: boolean }) {
+// Abre a edição de um lançamento a partir de uma célula ou linha da lista (apenas administradores).
+export function FinancialEntryEditButton({ entry, kind, className, label, children }: { entry: FinancialEntryRowData; kind: LedgerKind; className: string; label: string; children: React.ReactNode }) {
   const [editing, setEditing] = useState(false);
-  const content = <>
-    <span className="ledger-sign" data-kind={kind} aria-hidden="true">{kind === "income" ? "+" : "−"}</span>
-    <span className="ledger-copy"><strong>{entry.title}</strong><small>{entry.category ? `${entry.category} · ` : ""}{formatDate(entry.occurredAt)} · {entry.createdByName}</small></span>
-    <span className="ledger-amount" data-kind={kind}>{kind === "cost" ? "−" : ""}{formatCurrency(entry.amountCents)}</span>
-  </>;
-
-  return <li className="ledger-row">
-    {editable ? <button type="button" className="ledger-row-content" onClick={() => setEditing(true)} aria-label={`Editar lançamento ${entry.title}, ${kind === "cost" ? "menos " : ""}${formatCurrency(entry.amountCents)}`}>{content}<Icon name="chevronRight" className="icon-sm ledger-edit" /></button> : <div className="ledger-row-content">{content}</div>}
+  return <>
+    <button type="button" className={className} onClick={() => setEditing(true)} aria-label={label}>{children}</button>
     {editing ? <FinancialEntryEditModal entry={entry} initialType={kind === "income" ? "REVENUE" : "EXPENSE"} onClose={() => setEditing(false)} /> : null}
-  </li>;
+  </>;
 }
 
 function TypeToggle({ type, onChange }: { type: EntryType; onChange: (type: EntryType) => void }) {
@@ -128,7 +119,7 @@ function FinancialEntryEditModal({ entry, initialType, onClose }: { entry: Finan
     }
   }
 
-  return <Sheet open onClose={onClose} title={entry.title} closeLabel="Fechar edição">
+  return <Sheet open onClose={onClose} title={entry.title} closeLabel="Fechar edição" className="sheet-wide">
     <form className="sheet-form finance-form" onSubmit={save}>
       <TypeToggle type={type} onChange={changeType} />
       <div className="form-field"><label htmlFor="financial-edit-title-input">Título</label><input className="control" id="financial-edit-title-input" value={title} onChange={(event) => setTitle(event.target.value)} required /></div>
@@ -151,8 +142,9 @@ function FinancialEntryEditModal({ entry, initialType, onClose }: { entry: Finan
   </Sheet>;
 }
 
-function FinancialEntryForm({ month, initialType, onSaved, idPrefix }: { month: string; initialType: EntryType; onSaved?: () => void; idPrefix: string }) {
+function FinancialEntryForm({ month, initialType, idPrefix }: { month: string; initialType: EntryType; idPrefix: string }) {
   const router = useRouter();
+  const titleRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<EntryType>(initialType);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(categories[initialType][0]);
@@ -190,7 +182,7 @@ function FinancialEntryForm({ month, initialType, onSaved, idPrefix }: { month: 
       setAmount("");
       setMessage("Lançamento registrado.");
       router.refresh();
-      onSaved?.();
+      titleRef.current?.focus();
     } catch {
       setError("Não foi possível salvar. Tente novamente.");
     } finally {
@@ -200,9 +192,9 @@ function FinancialEntryForm({ month, initialType, onSaved, idPrefix }: { month: 
 
   const id = (name: string) => `${idPrefix}-${name}`;
 
-  return <form className="finance-form" onSubmit={submit}>
+  return <form className="sheet-form finance-form" onSubmit={submit}>
     <TypeToggle type={type} onChange={changeType} />
-    <div className="form-field"><label htmlFor={id("title")}>Título</label><input className="control" id={id("title")} value={title} onChange={(event) => setTitle(event.target.value)} placeholder={type === "REVENUE" ? "Ex.: Venda de camiseta" : "Ex.: Aluguel da pista"} required data-autofocus /></div>
+    <div className="form-field"><label htmlFor={id("title")}>Título</label><input ref={titleRef} className="control" id={id("title")} value={title} onChange={(event) => setTitle(event.target.value)} placeholder={type === "REVENUE" ? "Ex.: Venda de camiseta" : "Ex.: Aluguel da pista"} required data-autofocus /></div>
     <div className="form-grid finance-form-grid">
       <div className="form-field"><label htmlFor={id("category")}>Categoria</label><select className="control" id={id("category")} value={category} onChange={(event) => setCategory(event.target.value)}>{categories[type].map((item) => <option key={item}>{item}</option>)}</select></div>
       <div className="form-field"><label htmlFor={id("amount")}>Valor (R$)</label><input className="control" id={id("amount")} inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0,00" required /></div>
