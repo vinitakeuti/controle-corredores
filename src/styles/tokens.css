@@ -14,6 +14,8 @@
     --brand-panel: linear-gradient(160deg, #26332e, #101714);
     /* Assinatura: marcador em paralelogramo, inclinado como o itálico do wordmark (-12°) */
     --marker-shape: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+    /* Barras longas (aba ativa, barra inferior) precisam de corte maior para o paralelogramo aparecer em 1x */
+    --marker-shape-bar: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
     --stripes-dark: repeating-linear-gradient(112deg, transparent 0 46px, rgba(255, 255, 255, 0.045) 47px 70px, transparent 71px 150px);
 
     /* Linhas */

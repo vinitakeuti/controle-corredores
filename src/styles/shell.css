@@ -185,9 +185,9 @@
     top: -1px;
     left: 28%;
     right: 28%;
-    height: 5px;
+    height: 6px;
     background: var(--accent);
-    clip-path: var(--marker-shape);
+    clip-path: var(--marker-shape-bar);
   }
 
   /* Menu "Mais" e menu do aluno, dentro do .sheet */
