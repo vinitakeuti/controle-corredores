@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PaymentStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
@@ -6,6 +5,9 @@ import { StudentBillingControls } from "@/components/student-billing-controls";
 import { StudentAccountStatusControl } from "@/components/student-account-status-control";
 import { StudentPasswordResetLink } from "@/components/student-password-reset-link";
 import { LiabilityTermReview } from "@/components/liability-term-review";
+import { liabilityTermStatusLabel } from "@/components/liability-term-labels";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusPill, toneForLabel } from "@/components/ui/status-pill";
 import { canGeneratePasswordResetLink } from "@/lib/access-control";
 import { requireFeature } from "@/lib/auth";
 import { calculateAge, formatCpf, formatCurrency, formatDate, formatPhone, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
@@ -27,34 +29,83 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
   const status = !student.active ? "Inativo" : student.leftAt ? "Desistente" : subscriptionLabel(student.subscription?.status ?? "");
   const periodLabel = { MONTHLY: "Mensal", QUARTERLY: "Trimestral", SEMIANNUAL: "Semestral", ANNUAL: "Anual" } as const;
   const termStatus = student.liabilityTermStatus === "SUBMITTED" || student.liabilityTermStatus === "APPROVED" || student.liabilityTermStatus === "REJECTED" ? student.liabilityTermStatus : "PENDING";
+  const subscription = student.subscription;
+  const nextCharge = subscription?.isCourtesy ? "Cortesia ativa" : formatDate(subscription?.nextBillingAt);
+  const currentValue = subscription?.isCourtesy ? "Cortesia" : subscription ? formatCurrency(subscription.priceCents) : "—";
+  const priceKind = subscription?.isCourtesy ? "Cortesia" : subscription?.hasCustomPrice ? "Valor exclusivo" : "Valor do plano";
+  const paymentsNewestFirst = student.payments.slice().reverse();
 
   return (
     <AppShell user={user} current="students">
-      <div className="page-back"><Link href="/admin/alunos">← Alunos</Link></div>
-      <header className="page-heading"><div><p className="eyebrow">Perfil do aluno</p><h1>{student.name}.</h1><p>Dados cadastrais e histórico financeiro básico.</p></div></header>
+      <PageHeader context={{ label: "Alunos", href: "/admin/alunos", current: "Perfil" }} title={`${student.name}.`} lead="Dados cadastrais e histórico financeiro básico." />
 
-      <section className="profile-layout">
-        <section className="panel profile-panel">
-          <div className="profile-header"><div><p className="eyebrow">Cadastro</p><h2>Dados básicos</h2></div><span className={`pill ${status === "Em atraso" || status === "Desistente" || status === "Inativo" ? "pill-coral" : ""}`}>{status || "Sem assinatura"}</span></div>
-          <dl className="profile-details"><div><dt>Nome</dt><dd>{student.name}</dd></div><div><dt>E-mail</dt><dd>{student.email}</dd></div><div><dt>CPF</dt><dd>{formatCpf(student.cpf)}</dd></div><div><dt>Idade</dt><dd>{age === null ? "—" : `${age} anos`}</dd></div><div><dt>Telefone</dt><dd>{formatPhone(student.phone)}</dd></div><div><dt>Data de ingresso</dt><dd>{formatDate(student.joinedAt)}</dd></div></dl>
+      <dl className="summary-strip profile-summary" aria-label="Resumo do aluno">
+        <div><dt>Situação</dt><dd><StatusPill tone={toneForLabel(status)}>{status || "Sem assinatura"}</StatusPill></dd></div>
+        <div><dt>Próxima cobrança</dt><dd>{nextCharge}</dd></div>
+        <div><dt>Valor vigente</dt><dd className="summary-figure">{currentValue}</dd></div>
+        <div><dt>Termo de responsabilidade</dt><dd><StatusPill tone={toneForLabel(liabilityTermStatusLabel[termStatus])}>{liabilityTermStatusLabel[termStatus]}</StatusPill></dd></div>
+      </dl>
+
+      <div className="profile-columns">
+        <section className="section-block" aria-labelledby="profile-basic">
+          <div className="section-head"><div><h2 className="section-title" id="profile-basic">Dados básicos</h2><p className="section-lead">Cadastro e contato do aluno.</p></div></div>
+          <dl className="dl-grid">
+            <div><dt>Nome</dt><dd>{student.name}</dd></div>
+            <div><dt>E-mail</dt><dd>{student.email}</dd></div>
+            <div><dt>CPF</dt><dd>{formatCpf(student.cpf)}</dd></div>
+            <div><dt>Idade</dt><dd>{age === null ? "—" : `${age} anos`}</dd></div>
+            <div><dt>Telefone</dt><dd>{formatPhone(student.phone)}</dd></div>
+            <div><dt>Data de ingresso</dt><dd>{formatDate(student.joinedAt)}</dd></div>
+          </dl>
         </section>
-        <aside className="profile-side"><section className="panel"><div className="panel-heading"><div><h2>Pagamentos</h2><p>Resumo do histórico confirmado.</p></div></div><div className="summary-list"><div className="summary-item"><span>Data de pagamento</span><strong>{formatDate(firstPayment?.paidAt)}</strong></div><div className="summary-item"><span>Último pagamento</span><strong>{formatDate(lastPayment?.paidAt)}</strong></div><div className="summary-item"><span>Valor mais recente</span><strong>{lastPayment ? formatCurrency(lastPayment.amountCents) : "—"}</strong></div><div className="summary-item"><span>Próxima cobrança</span><strong>{student.subscription?.isCourtesy ? "Cortesia ativa" : formatDate(student.subscription?.nextBillingAt)}</strong></div></div></section></aside>
+        <section className="section-block" aria-labelledby="profile-payments-summary">
+          <div className="section-head"><div><h2 className="section-title" id="profile-payments-summary">Pagamentos</h2><p className="section-lead">Resumo do histórico confirmado.</p></div></div>
+          <dl className="kv-list">
+            <div><dt>Primeiro pagamento</dt><dd>{formatDate(firstPayment?.paidAt)}</dd></div>
+            <div><dt>Último pagamento</dt><dd>{formatDate(lastPayment?.paidAt)}</dd></div>
+            <div><dt>Valor mais recente</dt><dd>{lastPayment ? formatCurrency(lastPayment.amountCents) : "—"}</dd></div>
+            <div><dt>Próxima cobrança</dt><dd>{nextCharge}</dd></div>
+          </dl>
+        </section>
+      </div>
+
+      <section className="section-block" aria-labelledby="profile-enrollment">
+        <div className="section-head">
+          <div><h2 className="section-title" id="profile-enrollment">Plano atual</h2><p className="section-lead">Serviço e condição comercial deste aluno.</p></div>
+          <StatusPill tone={subscription?.isCourtesy || subscription?.hasCustomPrice ? "info" : "neutral"}>{priceKind}</StatusPill>
+        </div>
+        <dl className="dl-grid profile-enrollment-grid">
+          <div><dt>Categoria</dt><dd>{subscription?.plan?.service.name ?? "Ainda não definida"}</dd></div>
+          <div><dt>Plano</dt><dd>{subscription?.plan ? periodLabel[subscription.plan.period] : "Ainda não escolhido"}</dd></div>
+          <div><dt>Valor vigente</dt><dd>{currentValue}</dd></div>
+          <div><dt>Cobrança</dt><dd>{subscription?.isCourtesy ? "Isenta" : subscription?.manualMonthlyBilling ? "Mensal manual" : "Por período"}</dd></div>
+          <div><dt>Status</dt><dd>{status || "Aguardando escolha"}</dd></div>
+        </dl>
       </section>
 
-      <section className="panel profile-enrollment">
-        <div className="panel-heading"><div><p className="eyebrow">Matrícula</p><h2>Plano atual</h2><p>Serviço e condição comercial deste aluno.</p></div><span className={`pill ${student.subscription?.hasCustomPrice ? "pill-coral" : ""}`}>{student.subscription?.isCourtesy ? "Cortesia" : student.subscription?.hasCustomPrice ? "Valor exclusivo" : "Valor do plano"}</span></div>
-        <div className="enrollment-details"><div><span>Categoria</span><strong>{student.subscription?.plan?.service.name ?? "Ainda não definida"}</strong></div><div><span>Plano</span><strong>{student.subscription?.plan ? periodLabel[student.subscription.plan.period] : "Ainda não escolhido"}</strong></div><div><span>Valor vigente</span><strong>{student.subscription?.isCourtesy ? "Cortesia" : student.subscription ? formatCurrency(student.subscription.priceCents) : "—"}</strong></div><div><span>Cobrança</span><strong>{student.subscription?.isCourtesy ? "Isenta" : student.subscription?.manualMonthlyBilling ? "Mensal manual" : "Por período"}</strong></div><div><span>Status</span><strong>{status || "Aguardando escolha"}</strong></div></div>
+      {subscription && student.active ? <StudentBillingControls studentId={student.id} initialPriceCents={subscription.priceCents} initialPlanId={subscription.planId} initialAllowedMethods={subscription.allowedMethods} initialManualMonthlyBilling={subscription.manualMonthlyBilling} initialIsCourtesy={subscription.isCourtesy} automaticPixActive={subscription.recurringEnabled && subscription.asaasPixAuthorizationStatus === "ACTIVE"} hasCustomPrice={subscription.hasCustomPrice} plans={plans} canDelete={user.role === UserRole.ADMIN} canManageCourtesy={user.role === UserRole.ADMIN} /> : null}
+
+      <LiabilityTermReview studentId={student.id} status={termStatus} fileName={student.liabilityTermFileName} submittedAt={student.liabilityTermSubmittedAt ? formatDate(student.liabilityTermSubmittedAt) : null} reviewedAt={student.liabilityTermReviewedAt ? formatDate(student.liabilityTermReviewedAt) : null} reviewNote={student.liabilityTermReviewNote} hasSignedPdf={Boolean(student.liabilityTermSignedPdf)} />
+
+      <section className="section-block" aria-labelledby="profile-payments">
+        <div className="section-head"><div><h2 className="section-title" id="profile-payments">Pagamentos confirmados</h2><p className="section-lead">{student.payments.length} {student.payments.length === 1 ? "lançamento encontrado" : "lançamentos encontrados"}.</p></div></div>
+        {student.payments.length ? <>
+          <div className="data-table-wrap profile-payments-table">
+            <table className="data-table">
+              <caption className="visually-hidden">Pagamentos confirmados de {student.name}</caption>
+              <thead><tr><th scope="col">Data</th><th scope="col">Método</th><th scope="col" className="num">Valor</th><th scope="col">Status</th></tr></thead>
+              <tbody>{paymentsNewestFirst.map((payment) => <tr key={payment.id}><td>{formatDate(payment.paidAt)}</td><td>{paymentMethodLabel(payment.method)}</td><td className="num">{formatCurrency(payment.amountCents)}</td><td><StatusPill tone={toneForLabel(paymentLabel(payment.status))}>{paymentLabel(payment.status)}</StatusPill></td></tr>)}</tbody>
+            </table>
+          </div>
+          <ul className="data-rows profile-payments-rows" aria-label={`Pagamentos confirmados de ${student.name}`}>
+            {paymentsNewestFirst.map((payment) => <li key={payment.id}><span className="row-title">{formatCurrency(payment.amountCents)}</span><StatusPill tone={toneForLabel(paymentLabel(payment.status))}>{paymentLabel(payment.status)}</StatusPill><span className="row-meta"><span>{formatDate(payment.paidAt)}</span><span>{paymentMethodLabel(payment.method)}</span></span></li>)}
+          </ul>
+        </> : <div className="state-empty"><strong>Nenhum pagamento confirmado.</strong><p>Os pagamentos confirmados deste aluno aparecem nesta lista.</p></div>}
       </section>
 
       <StudentAccountStatusControl studentId={student.id} initialActive={student.active} canManage={user.role === UserRole.ADMIN} />
 
       {canGeneratePasswordResetLink(user) ? <StudentPasswordResetLink studentId={student.id} studentEmail={student.email} active={student.active} /> : null}
-
-      <LiabilityTermReview studentId={student.id} status={termStatus} fileName={student.liabilityTermFileName} submittedAt={student.liabilityTermSubmittedAt ? formatDate(student.liabilityTermSubmittedAt) : null} reviewedAt={student.liabilityTermReviewedAt ? formatDate(student.liabilityTermReviewedAt) : null} reviewNote={student.liabilityTermReviewNote} hasSignedPdf={Boolean(student.liabilityTermSignedPdf)} />
-
-      {student.subscription && student.active ? <StudentBillingControls studentId={student.id} initialPriceCents={student.subscription.priceCents} initialPlanId={student.subscription.planId} initialAllowedMethods={student.subscription.allowedMethods} initialManualMonthlyBilling={student.subscription.manualMonthlyBilling} initialIsCourtesy={student.subscription.isCourtesy} automaticPixActive={student.subscription.recurringEnabled && student.subscription.asaasPixAuthorizationStatus === "ACTIVE"} hasCustomPrice={student.subscription.hasCustomPrice} plans={plans} canDelete={user.role === UserRole.ADMIN} canManageCourtesy={user.role === UserRole.ADMIN} /> : null}
-
-      <section className="panel profile-payments"><div className="panel-heading"><div><h2>Pagamentos confirmados</h2><p>{student.payments.length} lançamentos encontrados.</p></div></div>{student.payments.length ? <div className="table-scroll"><table className="payments-table"><thead><tr><th>Data</th><th>Método</th><th>Valor</th><th>Status</th></tr></thead><tbody>{student.payments.slice().reverse().map((payment) => <tr key={payment.id}><td>{formatDate(payment.paidAt)}</td><td>{paymentMethodLabel(payment.method)}</td><td>{formatCurrency(payment.amountCents)}</td><td><span className="pill">{paymentLabel(payment.status)}</span></td></tr>)}</tbody></table></div> : <div className="empty-state">Nenhum pagamento confirmado.</div>}</section>
     </AppShell>
   );
 }

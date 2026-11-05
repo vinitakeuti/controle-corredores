@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "@/components/ui/icon";
+import { Feedback } from "@/components/ui/feedback";
+import { StatusPill } from "@/components/ui/status-pill";
 
 export function StudentAccountStatusControl({ studentId, initialActive, canManage }: { studentId: string; initialActive: boolean; canManage: boolean }) {
   const router = useRouter();
@@ -35,10 +38,23 @@ export function StudentAccountStatusControl({ studentId, initialActive, canManag
     }
   }
 
-  return <section className="panel student-account-status-control">
-    <div className="panel-heading"><div><p className="eyebrow">Acesso à assessoria</p><h2>{initialActive ? "Aluno ativo" : "Aluno inativo"}</h2><p>{initialActive ? "O aluno pode acessar a área dele e permanece incluído nos acompanhamentos financeiros." : "O aluno vê o aviso de conta inativa e pode acessar a loja. Ele fica fora da análise de alunos em atraso e da receita prevista."}</p></div><span className={`pill ${initialActive ? "" : "pill-coral"}`}>{initialActive ? "Ativo" : "Inativo"}</span></div>
-    {canManage ? initialActive ? <div className="student-account-status-actions">{confirming ? <><p className="delete-warning">Isso suspende o acesso à assessoria, revoga os links abertos e retira o aluno da análise de atrasos. O histórico e as cobranças já emitidas serão preservados.</p><button className="button button-quiet" type="button" onClick={() => setConfirming(false)} disabled={pending}>Cancelar</button><button className="button button-danger" type="button" onClick={() => void changeStatus(false)} disabled={pending}>{pending ? "Inativando..." : "Confirmar inativação"}</button></> : <button className="button button-danger-quiet" type="button" onClick={() => setConfirming(true)} disabled={pending}>Inativar aluno</button>}</div> : <div className="student-account-status-actions"><button className="button button-dark" type="button" onClick={() => void changeStatus(true)} disabled={pending}>{pending ? "Reativando..." : "Reativar aluno"}</button></div> : <p className="student-account-status-note">Somente administradores podem alterar o acesso do aluno.</p>}
-    {error ? <p className="error-message">{error}</p> : null}
-    {message ? <p className="success-message">{message}</p> : null}
+  return <section className="section-block" aria-labelledby={`account-status-${studentId}`}>
+    <div className="section-head">
+      <div>
+        <h2 className="section-title" id={`account-status-${studentId}`}>Acesso à assessoria</h2>
+        <p className="section-lead">{initialActive ? "O aluno pode acessar a área dele e permanece incluído nos acompanhamentos financeiros." : "O aluno vê o aviso de conta inativa e pode acessar a loja. Ele fica fora da análise de alunos em atraso e da receita prevista."}</p>
+      </div>
+      <StatusPill tone={initialActive ? "positive" : "neutral"}>{initialActive ? "Ativo" : "Inativo"}</StatusPill>
+    </div>
+    {canManage ? initialActive ? confirming ? <div className="message-stack">
+      <p className="message" data-tone="warning"><Icon name="alert" /><span>Isso suspende o acesso à assessoria, revoga os links abertos e retira o aluno da análise de atrasos. O histórico e as cobranças já emitidas serão preservados.</span></p>
+      <div className="btn-row">
+        <button className="btn btn-secondary" type="button" onClick={() => setConfirming(false)} disabled={pending}>Cancelar</button>
+        <button className="btn btn-danger-solid" type="button" onClick={() => void changeStatus(false)} disabled={pending} aria-busy={pending}>{pending ? "Inativando..." : "Confirmar inativação"}</button>
+      </div>
+    </div> : <div className="btn-row"><button className="btn btn-danger" type="button" onClick={() => setConfirming(true)} disabled={pending}>Inativar aluno</button></div>
+      : <div className="btn-row"><button className="btn btn-primary" type="button" onClick={() => void changeStatus(true)} disabled={pending} aria-busy={pending}>{pending ? "Reativando..." : "Reativar aluno"}</button></div>
+      : <p className="field-hint">Somente administradores podem alterar o acesso do aluno.</p>}
+    <Feedback success={message} error={error} />
   </section>;
 }

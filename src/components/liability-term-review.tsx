@@ -2,15 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-type Status = "PENDING" | "SUBMITTED" | "APPROVED" | "REJECTED";
-
-const statusLabel: Record<Status, string> = {
-  PENDING: "Aguardando envio",
-  SUBMITTED: "Aguardando validação",
-  APPROVED: "Validado",
-  REJECTED: "Novo envio solicitado",
-};
+import { liabilityTermStatusLabel as statusLabel, type LiabilityTermStatus as Status } from "@/components/liability-term-labels";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
+import { StatusPill, toneForLabel } from "@/components/ui/status-pill";
 
 export function LiabilityTermReview({ studentId, status, fileName, submittedAt, reviewedAt, reviewNote, hasSignedPdf }: { studentId: string; status: Status; fileName: string | null; submittedAt: string | null; reviewedAt: string | null; reviewNote: string | null; hasSignedPdf: boolean }) {
   const router = useRouter();
@@ -36,40 +31,46 @@ export function LiabilityTermReview({ studentId, status, fileName, submittedAt, 
     }
   }
 
+  const titleId = `term-title-${studentId}`;
+
   return (
-    <section className={`panel profile-payments liability-term-review liability-term-review-${status.toLowerCase()}`}>
-      <div className="panel-heading">
+    <section className="section-block term-review" aria-labelledby={titleId}>
+      <div className="section-head">
         <div>
-          <p className="eyebrow">Termo de responsabilidade</p>
-          <h2>{statusLabel[status]}</h2>
-          <p>{status === "SUBMITTED" ? "Confira a assinatura no VALIDAR do ITI antes de aprovar." : status === "APPROVED" ? "Documento assinado digitalmente e validado pela administração." : status === "REJECTED" ? "O aluno pode enviar um novo PDF assinado." : "O aluno ainda não enviou o PDF assinado."}</p>
+          <h2 className="section-title" id={titleId}>Termo de responsabilidade</h2>
+          <p className="section-lead">{status === "SUBMITTED" ? "Confira a assinatura no VALIDAR do ITI antes de aprovar." : status === "APPROVED" ? "Documento assinado digitalmente e validado pela administração." : status === "REJECTED" ? "O aluno pode enviar um novo PDF assinado." : "O aluno ainda não enviou o PDF assinado."}</p>
         </div>
-        <span className={`pill ${status === "REJECTED" ? "pill-coral" : ""}`}>{statusLabel[status]}</span>
+        <StatusPill tone={toneForLabel(statusLabel[status])}>{statusLabel[status]}</StatusPill>
       </div>
 
-      {hasSignedPdf ? <div className="term-review-file">
-        <div>
+      {hasSignedPdf ? <div className="term-file">
+        <Icon name="file" />
+        <div className="term-file-copy">
           <strong>{fileName || "Termo assinado em PDF"}</strong>
           <small>{submittedAt ? `Enviado em ${submittedAt}` : "PDF enviado pelo aluno"}{reviewedAt ? ` · Revisado em ${reviewedAt}` : ""}</small>
         </div>
-        <a className="term-review-open-file" href={`/api/admin/students/${encodeURIComponent(studentId)}/liability-term`} target="_blank" rel="noreferrer">Abrir PDF <span aria-hidden="true">↗</span></a>
+        <a className="btn btn-secondary" href={`/api/admin/students/${encodeURIComponent(studentId)}/liability-term`} target="_blank" rel="noreferrer">Abrir PDF<Icon name="external" className="icon-sm" /><span className="visually-hidden"> (abre em nova aba)</span></a>
       </div> : null}
 
-      {status === "SUBMITTED" ? <div className="term-review-actions">
-        <div className="term-validation-callout">
-          <div><span aria-hidden="true">1</span><div><strong>Valide a assinatura digital</strong><p>Abra o arquivo, envie-o ao VALIDAR do ITI e confirme a validade antes de liberar o aluno.</p></div></div>
-          <a href="https://validar.iti.gov.br" target="_blank" rel="noreferrer">Validar no ITI <b aria-hidden="true">↗</b></a>
+      {status === "SUBMITTED" ? <div className="term-decision">
+        <div className="message term-validation" data-tone="info">
+          <Icon name="info" />
+          <div>
+            <strong>Valide a assinatura digital</strong>
+            <p>Abra o arquivo, envie-o ao VALIDAR do ITI e confirme a validade antes de liberar o aluno.</p>
+            <a href="https://validar.iti.gov.br" target="_blank" rel="noreferrer">Validar no ITI<Icon name="external" className="icon-sm" /><span className="visually-hidden"> (abre em nova aba)</span></a>
+          </div>
         </div>
-        <div className="field term-review-note-field">
-          <label htmlFor="term-review-note">Observação da validação</label>
-          <textarea id="term-review-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Opcional ao aprovar; obrigatória se solicitar novo envio." rows={3} />
+        <div className="form-field">
+          <label htmlFor={`term-review-note-${studentId}`}>Observação da validação</label>
+          <textarea className="control" id={`term-review-note-${studentId}`} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Opcional ao aprovar; obrigatória se solicitar novo envio." rows={3} />
         </div>
-        {error ? <p className="error-message">{error}</p> : null}
-        <div className="term-review-decision-actions">
-          <button className="button button-dark" type="button" disabled={pending} onClick={() => review("APPROVE")}>{pending ? "Salvando..." : "Aprovar e liberar aluno"}</button>
-          <button className="button term-review-reject" type="button" disabled={pending} onClick={() => review("REJECT")}>Solicitar novo envio</button>
+        <div className="btn-row">
+          <button className="btn btn-primary" type="button" disabled={pending} aria-busy={pending} onClick={() => review("APPROVE")}>{pending ? "Salvando..." : "Aprovar e liberar aluno"}</button>
+          <button className="btn btn-secondary" type="button" disabled={pending} onClick={() => review("REJECT")}>Solicitar novo envio</button>
         </div>
-      </div> : reviewNote ? <p className="term-review-note"><strong>Observação:</strong> {reviewNote}</p> : null}
+      </div> : reviewNote ? <p className="term-note"><strong>Observação:</strong> {reviewNote}</p> : null}
+      <Feedback error={error} />
     </section>
   );
 }

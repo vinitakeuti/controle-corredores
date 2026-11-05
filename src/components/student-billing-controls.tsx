@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
 
 type Method = "PIX" | "CARD" | "BOLETO";
 type Period = "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL";
@@ -70,5 +72,56 @@ export function StudentBillingControls({ studentId, initialPriceCents, initialPl
     }
   }
 
-  return <section className="panel profile-payments"><div className="panel-heading"><div><h2>Plano e condição comercial</h2><p>Escolha o plano do aluno e, se necessário, defina um valor exclusivo.</p></div></div>{hasCustomPrice ? <div className="notice"><strong>Valor exclusivo ativo</strong><p>O aluno verá este valor na área dele e não acompanhará reajustes do plano enquanto a condição estiver ativa.</p></div> : null}{automaticPixActive ? <div className="notice"><strong>Pix Automático ativo</strong><p>Ao alterar plano ou valor, a autorização atual será cancelada e o aluno precisará consentir novamente.</p></div> : null}<div className="billing-fields"><div className="field"><label htmlFor="student-plan">Plano</label><select id="student-plan" value={planId} onChange={(event) => selectPlan(event.target.value)}><option value="">Selecione um plano</option>{plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.service.name} · {periodLabel[plan.period]} · R$ {formatPrice(plan.priceCents)}/mês</option>)}</select></div><div className="field"><label htmlFor="student-price">Valor mensal exclusivo (R$)</label><input id="student-price" type="number" min="1" max="100000" step="0.01" inputMode="decimal" value={price} onChange={(event) => setPrice(event.target.value)} /></div></div>{canManageCourtesy ? <label className="manual-monthly-option courtesy-option"><input type="checkbox" checked={isCourtesy} onChange={(event) => setIsCourtesy(event.target.checked)} /><span><strong>Conceder cortesia</strong><small>Ativa este aluno sem cobrança ou pagamento registrado. Ao remover a cortesia, ele volta a aguardar pagamento.</small></span></label> : null}<label className="manual-monthly-option"><input type="checkbox" checked={manualMonthlyBilling} disabled={!manualMonthlyAvailable && !manualMonthlyBilling} onChange={(event) => setManualMonthlyBilling(event.target.checked)} /><span><strong>Cobrança mensal manual via Pix</strong><small>Em um plano trimestral, semestral ou anual, o aluno receberá uma cobrança avulsa em Pix pelo valor mensal, todos os meses. Pix Automático não será usado.</small>{!manualMonthlyAvailable ? <em>Disponível apenas em planos que aceitam Pix.</em> : null}</span></label><div className="billing-plan-methods"><span>{isCourtesy ? "Condição ativa" : manualMonthlyBilling ? "Método da cobrança mensal" : "Métodos deste plano"}</span><strong>{isCourtesy ? "Cortesia — sem cobrança" : methods.length ? methodsLabel(methods) : "Nenhum método configurado"}</strong></div>{error ? <p className="error-message">{error}</p> : null}{message ? <p className="success-message">{message}</p> : null}<div className="creation-actions"><button className="button button-dark" type="button" onClick={save} disabled={pending || !plans.length}>{pending ? "Salvando..." : "Salvar condição comercial"}</button>{canDelete ? !confirmDelete ? <button className="button button-danger-quiet" type="button" onClick={() => setConfirmDelete(true)} disabled={pending}>Excluir aluno</button> : <><span className="delete-warning">Excluir remove o cadastro, pagamentos e links abertos.</span><button className="button button-quiet" type="button" onClick={() => setConfirmDelete(false)} disabled={pending}>Cancelar</button><button className="button button-danger" type="button" onClick={remove} disabled={pending}>Confirmar exclusão</button></> : null}</div></section>;
+  const titleId = `billing-title-${studentId}`;
+
+  return <section className="section-block billing-controls" aria-labelledby={titleId}>
+    <div className="section-head">
+      <div>
+        <h2 className="section-title" id={titleId}>Plano e condição comercial</h2>
+        <p className="section-lead">Escolha o plano do aluno e, se necessário, defina um valor exclusivo.</p>
+      </div>
+    </div>
+
+    {hasCustomPrice || automaticPixActive ? <div className="message-stack billing-notices">
+      {hasCustomPrice ? <div className="message" data-tone="info"><Icon name="info" /><div><strong>Valor exclusivo ativo</strong><p>O aluno verá este valor na área dele e não acompanhará reajustes do plano enquanto a condição estiver ativa.</p></div></div> : null}
+      {automaticPixActive ? <div className="message" data-tone="warning"><Icon name="alert" /><div><strong>Pix Automático ativo</strong><p>Ao alterar plano ou valor, a autorização atual será cancelada e o aluno precisará consentir novamente.</p></div></div> : null}
+    </div> : null}
+
+    <div className="form-grid">
+      <div className="form-field">
+        <label htmlFor="student-plan">Plano</label>
+        <select className="control" id="student-plan" value={planId} onChange={(event) => selectPlan(event.target.value)}>
+          <option value="">Selecione um plano</option>
+          {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.service.name} · {periodLabel[plan.period]} · R$ {formatPrice(plan.priceCents)}/mês</option>)}
+        </select>
+      </div>
+      <div className="form-field">
+        <label htmlFor="student-price">Valor mensal exclusivo (R$)</label>
+        <input className="control" id="student-price" type="number" min="1" max="100000" step="0.01" inputMode="decimal" value={price} onChange={(event) => setPrice(event.target.value)} />
+      </div>
+    </div>
+
+    <div className="billing-options">
+      {canManageCourtesy ? <label className="check"><input type="checkbox" checked={isCourtesy} onChange={(event) => setIsCourtesy(event.target.checked)} /><span className="check-copy"><strong>Conceder cortesia</strong><small>Ativa este aluno sem cobrança ou pagamento registrado. Ao remover a cortesia, ele volta a aguardar pagamento.</small></span></label> : null}
+      <label className="check"><input type="checkbox" checked={manualMonthlyBilling} disabled={!manualMonthlyAvailable && !manualMonthlyBilling} onChange={(event) => setManualMonthlyBilling(event.target.checked)} /><span className="check-copy"><strong>Cobrança mensal manual via Pix</strong><small>Em um plano trimestral, semestral ou anual, o aluno receberá uma cobrança avulsa em Pix pelo valor mensal, todos os meses. Pix Automático não será usado.</small>{!manualMonthlyAvailable ? <em>Disponível apenas em planos que aceitam Pix.</em> : null}</span></label>
+    </div>
+
+    <dl className="kv-list billing-methods">
+      <div><dt>{isCourtesy ? "Condição ativa" : manualMonthlyBilling ? "Método da cobrança mensal" : "Métodos deste plano"}</dt><dd>{isCourtesy ? "Cortesia — sem cobrança" : methods.length ? methodsLabel(methods) : "Nenhum método configurado"}</dd></div>
+    </dl>
+
+    <Feedback success={message} error={error} />
+
+    <div className="btn-row btn-row-split billing-actions">
+      <button className="btn btn-primary" type="button" onClick={save} disabled={pending || !plans.length} aria-busy={pending}>{pending ? "Salvando..." : "Salvar condição comercial"}</button>
+      {canDelete && !confirmDelete ? <button className="btn btn-danger" type="button" onClick={() => setConfirmDelete(true)} disabled={pending}><Icon name="trash" />Excluir aluno</button> : null}
+    </div>
+    {canDelete && confirmDelete ? <div className="message-stack billing-delete">
+      <p className="message" data-tone="danger"><Icon name="alert" /><span>Excluir remove o cadastro, pagamentos e links abertos.</span></p>
+      <div className="btn-row">
+        <button className="btn btn-secondary" type="button" onClick={() => setConfirmDelete(false)} disabled={pending}>Cancelar</button>
+        <button className="btn btn-danger-solid" type="button" onClick={remove} disabled={pending} aria-busy={pending}>Confirmar exclusão</button>
+      </div>
+    </div> : null}
+  </section>;
 }
