@@ -1,14 +1,19 @@
+import Link from "next/link";
 import { FinancialEntryType, PaymentStatus, PlanPeriod, SubscriptionStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
-import { FinancialEntryManager, FinancialEntryRow, FinancialMobileActions } from "@/components/financial-entry-manager";
+import { FinancialEntryActions, FinancialEntryEditButton, type FinancialEntryRowData } from "@/components/financial-entry-manager";
 import { FinanceMonthPicker } from "@/components/finance-month-picker";
+import { FilterChips } from "@/components/ui/filter-chips";
+import { Icon } from "@/components/ui/icon";
+import { PageHeader } from "@/components/ui/page-header";
+import { Pagination } from "@/components/ui/pagination";
 import { requireFeature } from "@/lib/auth";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatShortDate, maceioDateParts } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { contractedMonthlyRevenueCents } from "@/lib/revenue-recognition";
 import { getStoreSalesSummary } from "@/lib/store-finance";
 
-type SearchParams = { month?: string };
+type SearchParams = { month?: string; tipo?: string; q?: string; pagina?: string };
 type FinancialLedgerEntry = {
   id: string;
   title: string;
@@ -36,9 +41,9 @@ const periodLabels: Record<PlanPeriod, string> = {
 
 function monthRange(value?: string) {
   const match = value?.match(/^(\d{4})-(\d{2})$/);
-  const now = new Date();
-  const year = match ? Number(match[1]) : now.getFullYear();
-  const month = match ? Number(match[2]) - 1 : now.getMonth();
+  const today = maceioDateParts();
+  const year = match ? Number(match[1]) : today.year;
+  const month = match ? Number(match[2]) - 1 : today.month - 1;
   const from = new Date(Date.UTC(year, month, 1, 3));
   const to = new Date(Date.UTC(year, month + 1, 1, 3) - 1);
   const key = `${year}-${String(month + 1).padStart(2, "0")}`;
@@ -50,25 +55,28 @@ function salesLabel(count: number) {
   return `${count} ${count === 1 ? "venda" : "vendas"}`;
 }
 
-function LedgerRows({ entries, empty, kind, canDelete }: { entries: FinancialLedgerEntry[]; empty: string; kind: "income" | "cost"; canDelete: boolean }) {
-  return entries.length ? <div className="finance-list finance-manual-list">{entries.map((entry) => <FinancialEntryRow
-    key={entry.id}
-    editable={canDelete}
-    kind={kind}
-    entry={{
-      id: entry.id,
-      title: entry.title,
-      category: entry.category,
-      description: entry.description,
-      amountCents: entry.amountCents,
-      occurredAt: entry.occurredAt.toISOString(),
-      isFixed: entry.isFixed,
-      createdByName: entry.createdBy.name,
-    }}
-  />)}</div> : <p className="finance-ledger-empty">{empty}</p>;
+type LedgerFilter = "todos" | "entradas" | "variaveis" | "fixos";
+const PAGE_SIZE = 20;
+const ledgerFilters: Record<LedgerFilter, string> = { todos: "Todos", entradas: "Entradas", variaveis: "Saídas variáveis", fixos: "Custos fixos" };
+const normalize = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const countLabel = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+function ledgerKey(entry: { type: FinancialEntryType; isFixed: boolean }): Exclude<LedgerFilter, "todos"> {
+  if (entry.type === FinancialEntryType.REVENUE) return "entradas";
+  return entry.isFixed ? "fixos" : "variaveis";
 }
 
-function PlanRevenueSummary({ contracts, totalCents, planCash, paymentCount, monthLabel }: { contracts: ActiveContract[]; totalCents: number; planCash: number; paymentCount: number; monthLabel: string }) {
+function typeLabel(entry: { type: FinancialEntryType; isFixed: boolean }) {
+  if (entry.type === FinancialEntryType.REVENUE) return entry.isFixed ? "Entrada recorrente" : "Entrada";
+  return entry.isFixed ? "Custo fixo" : "Saída variável";
+}
+
+function toRowData(entry: FinancialLedgerEntry): FinancialEntryRowData {
+  return { id: entry.id, title: entry.title, category: entry.category, description: entry.description, amountCents: entry.amountCents, occurredAt: entry.occurredAt.toISOString(), isFixed: entry.isFixed, createdByName: entry.createdBy.name };
+}
+
+// Composição da receita contratada: contratos ativos agrupados por plano, valor e período.
+function PlanRevenueComposition({ contracts, totalCents, monthLabel }: { contracts: ActiveContract[]; totalCents: number; monthLabel: string }) {
   const groups = Array.from(contracts.reduce((items, contract) => {
     const key = `${contract.planName}:${contract.priceCents}:${contract.billingPeriod}:${contract.manualMonthlyBilling}`;
     const current = items.get(key) ?? { ...contract, count: 0, totalCents: 0 };
@@ -78,27 +86,30 @@ function PlanRevenueSummary({ contracts, totalCents, planCash, paymentCount, mon
     return items;
   }, new Map<string, ActiveContract & { count: number; totalCents: number }>()).values()).sort((left, right) => right.totalCents - left.totalCents || left.planName.localeCompare(right.planName, "pt-BR"));
 
-  return <details className="finance-plan-revenue">
+  return <details className="disclosure fin-contracts">
     <summary>
-      <span className="finance-entry-mark income">+</span>
-      <span className="finance-plan-revenue-copy"><strong>Planos</strong><small>{contracts.length} contrato{contracts.length === 1 ? "" : "s"} ativo{contracts.length === 1 ? "" : "s"} · receita do mês inteiro</small></span>
-      <span className="finance-plan-revenue-total"><b>{formatCurrency(totalCents)}</b><small>previsto em {monthLabel}</small></span>
+      <span>
+        <span className="section-title">Receita contratada de planos</span>
+        <span className="section-lead disclosure-lead">{formatCurrency(totalCents)} previsto em {monthLabel} · {countLabel(contracts.length, "contrato ativo", "contratos ativos")} · receita do mês inteiro</span>
+      </span>
+      <Icon name="chevronRight" />
     </summary>
-    <div className="finance-plan-revenue-body">
-      <div className="finance-plan-cash-summary"><span><strong>Recebido até agora</strong><small>{salesLabel(paymentCount)} · pagamentos confirmados</small></span><b>{formatCurrency(planCash)}</b></div>
-      <p>Composição da receita mensal contratada. Cada contrato ativo entra uma vez no mês, sem esperar o dia do vencimento.</p>
-      {groups.length ? <div className="finance-contract-list">{groups.map((group) => <div key={`${group.planName}-${group.priceCents}-${group.billingPeriod}-${group.manualMonthlyBilling}`}>
-        <span>{group.planName}</span>
-        <small>{group.count} contrato{group.count === 1 ? "" : "s"} · {group.manualMonthlyBilling ? "cobrança mensal manual" : `plano ${periodLabels[group.billingPeriod]}`} · {formatCurrency(group.priceCents)}/mês cada</small>
-        <b>{formatCurrency(group.totalCents)}</b>
-      </div>)}</div> : <p className="finance-ledger-empty">Nenhum contrato ativo compõe esta receita.</p>}
+    <div className="disclosure-body">
+      <p className="field-hint fin-contracts-hint">Composição da receita mensal contratada. Cada contrato ativo entra uma vez no mês, sem esperar o dia do vencimento.</p>
+      {groups.length ? <ul className="ledger ledger-compact">{groups.map((group) => <li className="ledger-row" key={`${group.planName}-${group.priceCents}-${group.billingPeriod}-${group.manualMonthlyBilling}`}><div className="ledger-row-content">
+        <span className="ledger-copy"><strong>{group.planName}</strong><small>{countLabel(group.count, "contrato", "contratos")} · {group.manualMonthlyBilling ? "cobrança mensal manual" : `plano ${periodLabels[group.billingPeriod]}`} · {formatCurrency(group.priceCents)}/mês cada</small></span>
+        <span className="ledger-amount">{formatCurrency(group.totalCents)}</span>
+      </div></li>)}</ul> : <p className="ledger-empty">Nenhum contrato ativo compõe esta receita.</p>}
     </div>
   </details>;
 }
 
 export default async function FinancePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const user = await requireFeature("finance");
-  const range = monthRange((await searchParams).month);
+  const params = await searchParams;
+  const range = monthRange(params.month);
+  const filter: LedgerFilter = params.tipo === "entradas" || params.tipo === "variaveis" || params.tipo === "fixos" ? params.tipo : "todos";
+  const query = typeof params.q === "string" ? params.q.trim().slice(0, 80) : "";
   const [payments, financialEntries, storeSales, activeContracts] = await Promise.all([
     prisma.payment.findMany({ where: { status: PaymentStatus.PAID }, select: { id: true, amountCents: true, paidAt: true } }),
     prisma.financialEntry.findMany({ where: { OR: [{ occurredAt: { gte: range.from, lte: range.to } }, { isFixed: true, occurredAt: { lt: range.from } }] }, include: { createdBy: { select: { name: true } } }, orderBy: { occurredAt: "desc" } }),
@@ -114,8 +125,8 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const monthPayments = payments.filter((payment) => payment.paidAt && payment.paidAt >= range.from && payment.paidAt <= range.to);
   const planCash = monthPayments.reduce((sum, payment) => sum + payment.amountCents, 0);
   const contractedPlanRevenue = contractedMonthlyRevenueCents(activeContracts);
-  const otherRevenue = entries.filter((entry) => entry.type === FinancialEntryType.REVENUE).reduce((sum, entry) => sum + entry.amountCents, 0);
   const revenueEntries = entries.filter((entry) => entry.type === FinancialEntryType.REVENUE);
+  const otherRevenue = revenueEntries.reduce((sum, entry) => sum + entry.amountCents, 0);
   const monthCosts = entries.filter((entry) => entry.type === FinancialEntryType.EXPENSE && !entry.isFixed);
   const fixedCosts = entries.filter((entry) => entry.type === FinancialEntryType.EXPENSE && entry.isFixed);
   const monthCostsCents = monthCosts.reduce((sum, entry) => sum + entry.amountCents, 0);
@@ -125,32 +136,113 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const projectedResult = contractedPlanRevenue + storeSales.totalCents + otherRevenue - costs;
   const canManageEntries = user.role === UserRole.ADMIN;
 
+  // Lançamentos: um só livro do mês, com filtro por tipo, busca e páginas (estado na URL).
+  const counts: Record<LedgerFilter, number> = { todos: entries.length, entradas: revenueEntries.length, variaveis: monthCosts.length, fixos: fixedCosts.length };
+  const needle = normalize(query);
+  const ledger = entries
+    .filter((entry) => filter === "todos" || ledgerKey(entry) === filter)
+    .filter((entry) => !needle || normalize([entry.title, entry.category, entry.description, entry.createdBy.name].filter(Boolean).join(" ")).includes(needle))
+    .sort((left, right) => right.occurredAt.getTime() - left.occurredAt.getTime() || left.title.localeCompare(right.title, "pt-BR"));
+  const totalPages = Math.max(1, Math.ceil(ledger.length / PAGE_SIZE));
+  const page = Math.min(totalPages, Math.max(1, Number.parseInt(params.pagina ?? "1", 10) || 1));
+  const pageEntries = ledger.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const ledgerHref = (next: { tipo?: LedgerFilter; q?: string; pagina?: number }) => {
+    const search = new URLSearchParams();
+    if (params.month) search.set("month", range.key);
+    const tipo = next.tipo ?? filter;
+    if (tipo !== "todos") search.set("tipo", tipo);
+    const q = next.q ?? query;
+    if (q) search.set("q", q);
+    if (next.pagina && next.pagina > 1) search.set("pagina", String(next.pagina));
+    const value = search.toString();
+    return `/admin/financeiro${value ? `?${value}` : ""}#lancamentos`;
+  };
+  const amountText = (entry: { type: FinancialEntryType; amountCents: number }) => `${entry.type === FinancialEntryType.EXPENSE ? "−" : ""}${formatCurrency(entry.amountCents)}`;
+  const kindOf = (entry: { type: FinancialEntryType }) => entry.type === FinancialEntryType.REVENUE ? "income" as const : "cost" as const;
+
   return <AppShell user={user} current="finance">
-    <header className="page-heading finance-heading"><h1>Financeiro</h1><FinanceMonthPicker value={range.key} /></header>
-    <section className="finance-metrics">
-      <article><p>Entradas recebidas</p><strong>{formatCurrency(cashRevenue)}</strong><small>Planos, loja e lançamentos confirmados</small></article>
-      <article className="expense"><p>Saídas do mês</p><strong>{formatCurrency(costs)}</strong><small>{formatCurrency(monthCostsCents)} variáveis · {formatCurrency(fixedCostsCents)} fixas</small></article>
-      <article className="profit"><p>Resultado projetado</p><strong>{formatCurrency(projectedResult)}</strong><small>Receita dos contratos, loja e lançamentos menos saídas</small></article>
+    <PageHeader context={{ label: "Gestão financeira" }} title="Financeiro." lead={`Entradas, saídas e resultado de ${range.label}.`} actions={<><FinanceMonthPicker value={range.key} /><FinancialEntryActions month={range.key} /></>} />
+    <div className="metric-strip finance-summary" data-count={3}>
+      <div className="metric" data-tone="positive"><span className="metric-label">Entradas recebidas</span><strong className="metric-value">{formatCurrency(cashRevenue)}</strong><span className="metric-note">Planos, loja e lançamentos confirmados</span></div>
+      <div className="metric"><span className="metric-label">Saídas do mês</span><strong className="metric-value">{formatCurrency(costs)}</strong><span className="metric-note">{formatCurrency(monthCostsCents)} variáveis · {formatCurrency(fixedCostsCents)} fixas</span></div>
+      <div className="metric" data-tone={projectedResult < 0 ? "danger" : "positive"}><span className="metric-label">Resultado projetado</span><strong className="metric-value">{formatCurrency(projectedResult)}</strong><span className="metric-note">Receita dos contratos, loja e lançamentos menos saídas</span></div>
+    </div>
+
+    <section className="section-block fin-statement" aria-labelledby="finance-statement-title">
+      <div className="section-head"><div><h2 className="section-title" id="finance-statement-title">Resumo de {range.label}</h2><p className="section-lead">De onde veio o que entrou no caixa e para onde foram as saídas.</p></div></div>
+      <div className="fin-statement-grid">
+        <div className="fin-group">
+          <div className="fin-group-head"><h3>Entradas recebidas</h3><span className="fin-group-total" data-kind="income">{formatCurrency(cashRevenue)}</span></div>
+          <ul className="fin-lines">
+            <li><div className="fin-line"><span className="fin-line-copy"><strong>Planos</strong><small>{salesLabel(monthPayments.length)} · pagamentos confirmados</small></span><span className="fin-line-amount">{formatCurrency(planCash)}</span></div></li>
+            <li><div className="fin-line"><span className="fin-line-copy"><strong>Loja</strong><small>{salesLabel(storeSales.count)} · Pedidos pagos</small></span><span className="fin-line-amount">{formatCurrency(storeSales.totalCents)}</span></div></li>
+            <li><Link className="fin-line" href={ledgerHref({ tipo: "entradas", q: "", pagina: 1 })}><span className="fin-line-copy"><strong>Outras entradas</strong><small>{countLabel(revenueEntries.length, "lançamento manual", "lançamentos manuais")}</small></span><span className="fin-line-amount">{formatCurrency(otherRevenue)}</span><Icon name="chevronRight" className="icon-sm" /></Link></li>
+          </ul>
+        </div>
+        <div className="fin-group">
+          <div className="fin-group-head"><h3>Saídas do mês</h3><span className="fin-group-total" data-kind="cost">−{formatCurrency(costs)}</span></div>
+          <ul className="fin-lines">
+            <li><Link className="fin-line" href={ledgerHref({ tipo: "variaveis", q: "", pagina: 1 })}><span className="fin-line-copy"><strong>Saídas variáveis</strong><small>{countLabel(monthCosts.length, "lançamento", "lançamentos")} no mês</small></span><span className="fin-line-amount" data-kind="cost">−{formatCurrency(monthCostsCents)}</span><Icon name="chevronRight" className="icon-sm" /></Link></li>
+            <li><Link className="fin-line" href={ledgerHref({ tipo: "fixos", q: "", pagina: 1 })}><span className="fin-line-copy"><strong>Custos fixos</strong><small>{countLabel(fixedCosts.length, "custo recorrente", "custos recorrentes")} · repetem todo mês</small></span><span className="fin-line-amount" data-kind="cost">−{formatCurrency(fixedCostsCents)}</span><Icon name="chevronRight" className="icon-sm" /></Link></li>
+          </ul>
+        </div>
+      </div>
+      <PlanRevenueComposition contracts={activeContracts} totalCents={contractedPlanRevenue} monthLabel={range.label} />
     </section>
-    <section className="finance-layout"><div>
-      <section className="finance-statement">
-        <section className="panel finance-ledger finance-income-ledger">
-          <div className="panel-heading"><div><p className="eyebrow">Ganhos</p><h2>Entradas recebidas</h2><p>Valores que entraram no caixa em {range.label}.</p></div><b className="finance-section-total">{formatCurrency(cashRevenue)}</b></div>
-          <div className="finance-list">
-            <PlanRevenueSummary contracts={activeContracts} totalCents={contractedPlanRevenue} planCash={planCash} paymentCount={monthPayments.length} monthLabel={range.label} />
-            <div><span className="finance-entry-mark income">+</span><div><strong>Loja</strong><small>{salesLabel(storeSales.count)} · Pedidos pagos</small></div><b>{formatCurrency(storeSales.totalCents)}</b></div>
+
+    <section className="section-block fin-ledger" id="lancamentos" aria-labelledby="finance-ledger-title">
+      <div className="section-head"><div><h2 className="section-title" id="finance-ledger-title">Lançamentos de {range.label}</h2><p className="section-lead">Entradas e saídas registradas no financeiro. Custos fixos aparecem em todos os meses.{canManageEntries ? " Toque em um lançamento para editar ou excluir." : ""}</p></div></div>
+      <FilterChips label="Filtrar lançamentos por tipo" active={filter} chips={(Object.keys(ledgerFilters) as LedgerFilter[]).map((key) => ({ key, label: ledgerFilters[key], count: counts[key], href: ledgerHref({ tipo: key, pagina: 1 }) }))} />
+      {entries.length ? <form className="toolbar fin-ledger-search" method="get" action="/admin/financeiro#lancamentos" role="search" aria-label="Buscar lançamentos">
+        {params.month ? <input type="hidden" name="month" value={range.key} /> : null}
+        {filter !== "todos" ? <input type="hidden" name="tipo" value={filter} /> : null}
+        <div className="toolbar-search">
+          <div className="search-field">
+            <label className="visually-hidden" htmlFor="finance-ledger-search">Buscar lançamento</label>
+            <Icon name="search" />
+            <input className="control" id="finance-ledger-search" name="q" type="search" placeholder="Buscar por título, categoria ou responsável" defaultValue={query} />
           </div>
-          <details className="finance-subsection finance-expandable"><summary>Outras entradas <b>{revenueEntries.length}</b></summary><LedgerRows entries={revenueEntries} kind="income" canDelete={canManageEntries} empty="Nenhuma outra entrada neste mês." /></details>
-        </section>
-        <section className="panel finance-ledger finance-expense-ledger">
-          <div className="panel-heading"><div><p className="eyebrow">Saídas</p><h2>Despesas</h2><p>Separadas entre o que variou no mês e o que é recorrente.</p></div><b className="finance-section-total negative">−{formatCurrency(costs)}</b></div>
-          <div className="finance-expense-columns">
-            <div className="finance-subsection"><p>Saídas do mês <b>−{formatCurrency(monthCostsCents)}</b></p><LedgerRows entries={monthCosts} kind="cost" canDelete={canManageEntries} empty="Nenhuma saída variável neste mês." /></div>
-            <div className="finance-subsection fixed"><p>Custos fixos <b>−{formatCurrency(fixedCostsCents)}</b></p><LedgerRows entries={fixedCosts} kind="cost" canDelete={canManageEntries} empty="Nenhum custo fixo neste mês." /></div>
-          </div>
-        </section>
-      </section>
-    </div><aside className="finance-entry-panel"><div className="finance-entry-intro"><p className="eyebrow">Novo lançamento</p><h2>Registrar no financeiro</h2><p>Inclua uma entrada ou saída avulsa para manter o resultado do mês atualizado.</p></div><FinancialEntryManager month={range.key} /></aside></section>
-    <FinancialMobileActions month={range.key} />
+          <button className="btn btn-secondary" type="submit">Buscar</button>
+        </div>
+      </form> : null}
+
+      {pageEntries.length ? <>
+        <div className="data-table-wrap responsive-table">
+          <table className="data-table fin-ledger-table">
+            <caption className="visually-hidden">Lançamentos de {range.label}{filter !== "todos" ? `, ${ledgerFilters[filter]}` : ""}, página {page} de {totalPages}</caption>
+            <thead><tr><th scope="col">Data</th><th scope="col">Lançamento</th><th scope="col">Tipo</th><th scope="col">Registrado por</th><th scope="col" className="num">Valor</th></tr></thead>
+            <tbody>{pageEntries.map((entry) => {
+              const meta = [entry.category, entry.description].filter(Boolean).join(" · ");
+              const copy = <><span className="cell-primary">{entry.title}</span>{meta ? <span className="cell-secondary">{meta}</span> : null}</>;
+              return <tr key={entry.id}>
+                <td className="fin-date">{formatShortDate(entry.occurredAt)}</td>
+                <td className="fin-entry-cell">{canManageEntries ? <FinancialEntryEditButton className="fin-entry-link" entry={toRowData(entry)} kind={kindOf(entry)} label={`Editar lançamento ${entry.title}, ${amountText(entry)}`}>{copy}</FinancialEntryEditButton> : copy}</td>
+                <td className="fin-type">{typeLabel(entry)}</td>
+                <td className="fin-author">{entry.createdBy.name}</td>
+                <td className="num"><span className="fin-amount" data-kind={kindOf(entry)}>{amountText(entry)}</span></td>
+              </tr>;
+            })}</tbody>
+          </table>
+        </div>
+        <ul className="data-rows responsive-rows fin-ledger-rows" aria-label={`Lançamentos de ${range.label}, página ${page} de ${totalPages}`}>
+          {pageEntries.map((entry) => {
+            const content = <>
+              <span className="row-title">{entry.title}</span>
+              <span className="fin-amount" data-kind={kindOf(entry)}>{amountText(entry)}</span>
+              <span className="row-meta"><span>{formatShortDate(entry.occurredAt)}</span><span>{typeLabel(entry)}</span>{entry.category ? <span>{entry.category}</span> : null}<span>{entry.createdBy.name}</span></span>
+            </>;
+            return <li key={entry.id}>{canManageEntries ? <FinancialEntryEditButton className="fin-row-button" entry={toRowData(entry)} kind={kindOf(entry)} label={`Editar lançamento ${entry.title}, ${amountText(entry)}`}>{content}</FinancialEntryEditButton> : <div className="fin-row-static">{content}</div>}</li>;
+          })}
+        </ul>
+        <Pagination page={page} totalPages={totalPages} total={ledger.length} pageSize={PAGE_SIZE} itemLabel={ledger.length === 1 ? "lançamento" : "lançamentos"} hrefFor={(next) => ledgerHref({ pagina: next })} label="Paginação dos lançamentos" />
+      </> : entries.length ? <div className="state-empty">
+        <strong>{query ? `Nada corresponde a “${query}”.` : `Nenhum lançamento em ${ledgerFilters[filter]}.`}</strong>
+        <p>{query ? "Confira a grafia ou busque por outra palavra." : "Escolha outro tipo acima."}</p>
+        <Link className="btn btn-secondary" href={ledgerHref({ tipo: "todos", q: "", pagina: 1 })}>Limpar busca e filtros</Link>
+      </div> : <div className="state-empty">
+        <strong>Nenhum lançamento em {range.label}.</strong>
+        <p>Use Nova saída ou Nova entrada para registrar o que entrou ou saiu do caixa.</p>
+      </div>}
+    </section>
   </AppShell>;
 }

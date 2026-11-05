@@ -1,8 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
+import { Sheet } from "@/components/ui/sheet";
 
 type EntryType = "REVENUE" | "EXPENSE";
 type LedgerKind = "income" | "cost";
@@ -23,42 +25,35 @@ const categories = {
   EXPENSE: ["Operação", "Marketing", "Equipe", "Equipamento", "Impostos", "Outro"],
 };
 
-export function FinancialEntryManager({ month }: { month: string }) {
-  return <FinancialEntryForm month={month} initialType="EXPENSE" />;
-}
-
-export function FinancialMobileActions({ month }: { month: string }) {
+// Registrar no financeiro: "Nova saída" e "Nova entrada" abrem o mesmo formulário num painel.
+// O painel continua aberto depois de salvar, para lançar várias despesas em sequência.
+export function FinancialEntryActions({ month }: { month: string }) {
   const [type, setType] = useState<EntryType | null>(null);
 
   return <>
-    <div className="financial-mobile-actions">
-      <button type="button" className="expense" onClick={() => setType("EXPENSE")}><b>−</b> Saída</button>
-      <button type="button" onClick={() => setType("REVENUE")}><b>+</b> Entrada</button>
+    <div className="btn-row finance-entry-actions">
+      <button type="button" className="btn btn-secondary" onClick={() => setType("EXPENSE")}><span className="ledger-sign" data-kind="cost" aria-hidden="true">−</span>Nova saída</button>
+      <button type="button" className="btn btn-secondary" onClick={() => setType("REVENUE")}><span className="ledger-sign" data-kind="income" aria-hidden="true">+</span>Nova entrada</button>
     </div>
-    {type ? <div className="financial-entry-modal" role="dialog" aria-modal="true" aria-labelledby="financial-entry-modal-title">
-      <button className="financial-entry-backdrop" type="button" aria-label="Fechar lançamento" onClick={() => setType(null)} />
-      <section>
-        <div className="financial-entry-modal-heading">
-          <div><p className="eyebrow">Novo lançamento</p><h2 id="financial-entry-modal-title">{type === "EXPENSE" ? "Registrar saída" : "Registrar entrada"}</h2></div>
-          <button type="button" onClick={() => setType(null)} aria-label="Fechar">×</button>
-        </div>
-        <FinancialEntryForm key={type} month={month} initialType={type} onSaved={() => setType(null)} />
-      </section>
-    </div> : null}
+    {type ? <Sheet open onClose={() => setType(null)} title="Registrar no financeiro" closeLabel="Fechar lançamento" className="sheet-wide">
+      <FinancialEntryForm key={type} month={month} initialType={type} idPrefix="financial-new" />
+    </Sheet> : null}
   </>;
 }
 
-export function FinancialEntryRow({ entry, kind, editable }: { entry: FinancialEntryRowData; kind: LedgerKind; editable: boolean }) {
+// Abre a edição de um lançamento a partir de uma célula ou linha da lista (apenas administradores).
+export function FinancialEntryEditButton({ entry, kind, className, label, children }: { entry: FinancialEntryRowData; kind: LedgerKind; className: string; label: string; children: React.ReactNode }) {
   const [editing, setEditing] = useState(false);
-  const content = <>
-    <span className={`finance-entry-mark ${kind}`}>{kind === "income" ? "+" : "−"}</span>
-    <span className="finance-entry-row-copy"><strong>{entry.title}</strong><small>{entry.category ? `${entry.category} · ` : ""}{formatDate(entry.occurredAt)} · {entry.createdByName}</small></span>
-    <span className="finance-entry-row-amount"><b className={kind === "cost" ? "negative" : ""}>{kind === "cost" ? "−" : ""}{formatCurrency(entry.amountCents)}</b></span>
-  </>;
-
-  return <div className={`finance-entry-row${editable ? " is-editable" : ""}`}>
-    {editable ? <button type="button" className="finance-entry-row-content" onClick={() => setEditing(true)} aria-label={`Editar lançamento ${entry.title}`}>{content}</button> : <div className="finance-entry-row-content">{content}</div>}
+  return <>
+    <button type="button" className={className} onClick={() => setEditing(true)} aria-label={label}>{children}</button>
     {editing ? <FinancialEntryEditModal entry={entry} initialType={kind === "income" ? "REVENUE" : "EXPENSE"} onClose={() => setEditing(false)} /> : null}
+  </>;
+}
+
+function TypeToggle({ type, onChange }: { type: EntryType; onChange: (type: EntryType) => void }) {
+  return <div className="segmented" role="group" aria-label="Tipo de lançamento">
+    <button type="button" aria-pressed={type === "EXPENSE"} data-kind="cost" onClick={() => onChange("EXPENSE")}>Saída</button>
+    <button type="button" aria-pressed={type === "REVENUE"} data-kind="income" onClick={() => onChange("REVENUE")}>Entrada</button>
   </div>;
 }
 
@@ -124,35 +119,32 @@ function FinancialEntryEditModal({ entry, initialType, onClose }: { entry: Finan
     }
   }
 
-  return <div className="financial-entry-modal financial-entry-edit-modal" role="dialog" aria-modal="true" aria-labelledby="financial-entry-edit-title">
-    <button className="financial-entry-backdrop" type="button" aria-label="Fechar edição" onClick={onClose} />
-    <section>
-      <div className="financial-entry-modal-heading">
-        <div><p className="eyebrow">Editar lançamento</p><h2 id="financial-entry-edit-title">{entry.title}</h2></div>
-        <button type="button" onClick={onClose} aria-label="Fechar">×</button>
+  return <Sheet open onClose={onClose} title={entry.title} closeLabel="Fechar edição" className="sheet-wide">
+    <form className="sheet-form finance-form" onSubmit={save}>
+      <TypeToggle type={type} onChange={changeType} />
+      <div className="form-field"><label htmlFor="financial-edit-title-input">Título</label><input className="control" id="financial-edit-title-input" value={title} onChange={(event) => setTitle(event.target.value)} required /></div>
+      <div className="form-grid finance-form-grid">
+        <div className="form-field"><label htmlFor="financial-edit-category">Categoria</label><select className="control" id="financial-edit-category" value={category} onChange={(event) => setCategory(event.target.value)}>{categories[type].map((item) => <option key={item}>{item}</option>)}</select></div>
+        <div className="form-field"><label htmlFor="financial-edit-amount">Valor (R$)</label><input className="control" id="financial-edit-amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div>
+        <div className="form-field"><label htmlFor="financial-edit-date">Data</label><input className="control" id="financial-edit-date" type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} required /></div>
       </div>
-      <form className="financial-entry-form" onSubmit={save}>
-        <div className="financial-entry-type">
-          <button type="button" className={type === "EXPENSE" ? "active expense" : ""} onClick={() => changeType("EXPENSE")}>Saída</button>
-          <button type="button" className={type === "REVENUE" ? "active" : ""} onClick={() => changeType("REVENUE")}>Entrada</button>
-        </div>
-        <div className="financial-entry-core">
-          <div className="field financial-title-field"><label htmlFor="financial-edit-title-input">Título</label><input id="financial-edit-title-input" value={title} onChange={(event) => setTitle(event.target.value)} required /></div>
-          <div className="field"><label htmlFor="financial-edit-category">Categoria</label><select id="financial-edit-category" value={category} onChange={(event) => setCategory(event.target.value)}>{categories[type].map((item) => <option key={item}>{item}</option>)}</select></div>
-          <div className="field"><label htmlFor="financial-edit-amount">Valor (R$)</label><input id="financial-edit-amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} required /></div>
-          <div className="field"><label htmlFor="financial-edit-date">Data</label><input id="financial-edit-date" type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} required /></div>
-          <label className="financial-fixed"><input type="checkbox" checked={isFixed} onChange={(event) => setIsFixed(event.target.checked)} /><span><strong>Recorrente</strong><small>Repete todo mês</small></span></label>
-        </div>
-        <div className="field financial-entry-description-field"><label htmlFor="financial-edit-description">Descrição <em>opcional</em></label><textarea id="financial-edit-description" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Detalhes para conferência." /></div>
-        {message ? <p className="error-message" role="alert">{message}</p> : null}
-        {confirmingDelete ? <div className="financial-entry-delete-confirm" role="alert"><p>Excluir este lançamento{isFixed ? " e encerrar sua repetição nos próximos meses" : ""}?</p><div><button type="button" className="button" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Cancelar</button><button type="button" className="button financial-entry-danger" onClick={remove} disabled={deleting}>{deleting ? "Excluindo..." : "Confirmar exclusão"}</button></div></div> : <div className="financial-entry-editor-actions"><button type="button" className="financial-entry-delete-trigger" onClick={() => setConfirmingDelete(true)}>Excluir lançamento</button><button className="button button-dark" type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar alterações"}</button></div>}
-      </form>
-    </section>
-  </div>;
+      <label className="check"><input type="checkbox" checked={isFixed} onChange={(event) => setIsFixed(event.target.checked)} /><span className="check-copy"><strong>Recorrente</strong><small>Repete todo mês</small></span></label>
+      <div className="form-field"><label htmlFor="financial-edit-description">Descrição <span className="optional-tag">opcional</span></label><textarea className="control" id="financial-edit-description" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Detalhes para conferência." /></div>
+      <Feedback error={message} />
+      {confirmingDelete ? <div className="message-stack">
+        <p className="message" data-tone="danger"><Icon name="alert" /><span>Excluir este lançamento{isFixed ? " e encerrar sua repetição nos próximos meses" : ""}?</span></p>
+        <div className="btn-row"><button type="button" className="btn btn-secondary" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Cancelar</button><button type="button" className="btn btn-danger-solid" onClick={remove} disabled={deleting} aria-busy={deleting}>{deleting ? "Excluindo..." : "Confirmar exclusão"}</button></div>
+      </div> : <div className="btn-row btn-row-split sheet-actions">
+        <button type="button" className="btn btn-danger" onClick={() => setConfirmingDelete(true)}><Icon name="trash" />Excluir lançamento</button>
+        <button className="btn btn-primary" type="submit" disabled={saving} aria-busy={saving}>{saving ? "Salvando..." : "Salvar alterações"}</button>
+      </div>}
+    </form>
+  </Sheet>;
 }
 
-function FinancialEntryForm({ month, initialType, onSaved }: { month: string; initialType: EntryType; onSaved?: () => void }) {
+function FinancialEntryForm({ month, initialType, idPrefix }: { month: string; initialType: EntryType; idPrefix: string }) {
   const router = useRouter();
+  const titleRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<EntryType>(initialType);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(categories[initialType][0]);
@@ -161,6 +153,7 @@ function FinancialEntryForm({ month, initialType, onSaved }: { month: string; in
   const [occurredAt, setOccurredAt] = useState(`${month}-01`);
   const [isFixed, setIsFixed] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   function changeType(next: EntryType) {
@@ -172,6 +165,7 @@ function FinancialEntryForm({ month, initialType, onSaved }: { month: string; in
     event.preventDefault();
     setSaving(true);
     setMessage("");
+    setError("");
     try {
       const response = await fetch("/api/admin/financial-entries", {
         method: "POST",
@@ -180,7 +174,7 @@ function FinancialEntryForm({ month, initialType, onSaved }: { month: string; in
       });
       const data = await response.json().catch(() => null) as { error?: unknown } | null;
       if (!response.ok) {
-        setMessage(typeof data?.error === "string" ? data.error : "Não foi possível salvar.");
+        setError(typeof data?.error === "string" ? data.error : "Não foi possível salvar.");
         return;
       }
       setTitle("");
@@ -188,33 +182,30 @@ function FinancialEntryForm({ month, initialType, onSaved }: { month: string; in
       setAmount("");
       setMessage("Lançamento registrado.");
       router.refresh();
-      onSaved?.();
+      titleRef.current?.focus();
     } catch {
-      setMessage("Não foi possível salvar. Tente novamente.");
+      setError("Não foi possível salvar. Tente novamente.");
     } finally {
       setSaving(false);
     }
   }
 
-  return <form className="financial-entry-form" onSubmit={submit}>
-    <div className="financial-entry-type">
-      <button type="button" className={type === "EXPENSE" ? "active expense" : ""} onClick={() => changeType("EXPENSE")}>Saída</button>
-      <button type="button" className={type === "REVENUE" ? "active" : ""} onClick={() => changeType("REVENUE")}>Entrada</button>
+  const id = (name: string) => `${idPrefix}-${name}`;
+
+  return <form className="sheet-form finance-form" onSubmit={submit}>
+    <TypeToggle type={type} onChange={changeType} />
+    <div className="form-field"><label htmlFor={id("title")}>Título</label><input ref={titleRef} className="control" id={id("title")} value={title} onChange={(event) => setTitle(event.target.value)} placeholder={type === "REVENUE" ? "Ex.: Venda de camiseta" : "Ex.: Aluguel da pista"} required data-autofocus /></div>
+    <div className="form-grid finance-form-grid">
+      <div className="form-field"><label htmlFor={id("category")}>Categoria</label><select className="control" id={id("category")} value={category} onChange={(event) => setCategory(event.target.value)}>{categories[type].map((item) => <option key={item}>{item}</option>)}</select></div>
+      <div className="form-field"><label htmlFor={id("amount")}>Valor (R$)</label><input className="control" id={id("amount")} inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0,00" required /></div>
+      <div className="form-field"><label htmlFor={id("date")}>Data</label><input className="control" id={id("date")} type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} required /></div>
     </div>
-    <div className="financial-entry-core">
-      <div className="field financial-title-field"><label htmlFor="financial-title">Título</label><input id="financial-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder={type === "REVENUE" ? "Ex.: Venda de camiseta" : "Ex.: Aluguel da pista"} required /></div>
-      <div className="field"><label htmlFor="financial-category">Categoria</label><select id="financial-category" value={category} onChange={(event) => setCategory(event.target.value)}>{categories[type].map((item) => <option key={item}>{item}</option>)}</select></div>
-      <div className="field"><label htmlFor="financial-amount">Valor (R$)</label><input id="financial-amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0,00" required /></div>
-      <div className="field"><label htmlFor="financial-date">Data</label><input id="financial-date" type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} required /></div>
-      <label className="financial-fixed"><input type="checkbox" checked={isFixed} onChange={(event) => setIsFixed(event.target.checked)} /><span><strong>Custo fixo</strong><small>Repete todo mês</small></span></label>
-    </div>
-    <details className="financial-entry-notes">
+    <label className="check"><input type="checkbox" checked={isFixed} onChange={(event) => setIsFixed(event.target.checked)} /><span className="check-copy"><strong>Custo fixo</strong><small>Repete todo mês</small></span></label>
+    <details className="finance-notes">
       <summary>Adicionar descrição</summary>
-      <div className="field"><label htmlFor="financial-description">Descrição <em>opcional</em></label><textarea id="financial-description" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Detalhes para conferência." /></div>
+      <div className="form-field"><label htmlFor={id("description")}>Descrição <span className="optional-tag">opcional</span></label><textarea className="control" id={id("description")} rows={3} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Detalhes para conferência." /></div>
     </details>
-    <div className="financial-entry-submit">
-      {message ? <p className={message === "Lançamento registrado." ? "success-message" : "error-message"} role="status">{message}</p> : null}
-      <button className="button button-dark" type="submit" disabled={saving}>{saving ? "Salvando…" : type === "REVENUE" ? "Registrar entrada" : "Registrar saída"}</button>
-    </div>
+    <Feedback success={message} error={error} />
+    <button className="btn btn-primary btn-block" type="submit" disabled={saving} aria-busy={saving}>{saving ? "Salvando…" : type === "REVENUE" ? "Registrar entrada" : "Registrar saída"}</button>
   </form>;
 }

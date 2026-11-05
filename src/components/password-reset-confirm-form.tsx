@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Feedback } from "@/components/ui/feedback";
 
 export function PasswordResetConfirmForm({ token, email }: { token: string; email: string }) {
   const router = useRouter();
@@ -20,5 +21,11 @@ export function PasswordResetConfirmForm({ token, email }: { token: string; emai
       router.replace("/login?password=updated");
     } catch { setError("Não foi possível conectar ao servidor."); } finally { setLoading(false); }
   }
-  return <form onSubmit={submit}><input type="email" name="username" autoComplete="username" value={email} readOnly hidden /><div className="field"><label htmlFor="new-password">Nova senha</label><input id="new-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} required /></div><div className="field"><label htmlFor="confirm-password">Confirme a nova senha</label><input id="confirm-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required /></div>{error ? <p className="error-message">{error}</p> : null}<button className="button button-primary" type="submit" disabled={loading}>{loading ? "Salvando..." : "Redefinir senha"}</button></form>;
+  return <form className="auth-form" onSubmit={submit}>
+    <input type="email" name="username" autoComplete="username" value={email} readOnly hidden />
+    <div className="form-field"><label htmlFor="new-password">Nova senha</label><input className="control" id="new-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} required /></div>
+    <div className="form-field"><label htmlFor="confirm-password">Confirme a nova senha</label><input className="control" id="confirm-password" type="password" autoComplete="new-password" minLength={8} maxLength={128} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required aria-invalid={error === "As senhas não coincidem." || undefined} /></div>
+    <Feedback error={error} />
+    <button className="btn btn-primary btn-block" type="submit" disabled={loading} aria-busy={loading}>{loading ? "Salvando..." : "Redefinir senha"}</button>
+  </form>;
 }

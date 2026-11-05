@@ -1,0 +1,253 @@
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+/* Shell: sidebar escura no desktop; topo compacto + barra inferior no celular. */
+@layer shell {
+  .shell {
+    position: relative;
+    min-height: 100dvh;
+    background: var(--bg);
+  }
+
+  /* Superfície escura da marca com as faixas diagonais */
+  .brand-surface {
+    position: relative;
+    isolation: isolate;
+    color: var(--on-dark);
+    background-color: var(--sidebar);
+  }
+  .brand-surface::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--stripes-dark);
+    pointer-events: none;
+  }
+
+  .shell-wordmark { display: block; width: fit-content; border-radius: var(--radius); }
+  a.shell-wordmark:hover .brand-wordmark-image { opacity: 0.86; }
+
+  /* Sidebar (desktop) */
+  .shell-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: var(--z-shell);
+    display: none;
+    flex-direction: column;
+    width: var(--sidebar-w);
+    padding: var(--space-5) var(--space-3) var(--space-3);
+  }
+  .shell-sidebar .shell-wordmark { margin: var(--space-2) var(--space-3) var(--space-6); }
+  .shell-nav { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--on-dark-line) transparent; }
+  .shell-nav-group + .shell-nav-group { margin-top: var(--space-4); }
+  .shell-nav-label {
+    display: block;
+    padding: 0 var(--space-3) var(--space-2);
+    color: var(--on-dark-subtle);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-caps);
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  .shell-nav-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+
+  .shell-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 40px;
+    padding: 0 var(--space-3);
+    color: var(--on-dark-muted);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+  }
+  .shell-link .icon { width: 18px; height: 18px; opacity: 0.85; }
+  .shell-link .icon-external { width: 14px; height: 14px; margin-left: auto; opacity: 0.6; }
+  .shell-link:hover { color: #ffffff; background: var(--sidebar-raised); }
+  .shell-link:focus-visible { outline-color: var(--accent); outline-offset: -2px; }
+  .shell-link[aria-current="page"] { color: #ffffff; background: var(--sidebar-raised); font-weight: 600; }
+  .shell-link[aria-current="page"] .icon { opacity: 1; }
+
+  /* Assinatura: marcador laranja inclinado como o itálico do wordmark */
+  .shell-link[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: -3px;
+    width: 7px;
+    background: var(--accent);
+    clip-path: var(--marker-shape);
+  }
+
+  .shell-sidebar-footer { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid rgba(255, 255, 255, 0.08); }
+  .shell-account {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    padding: var(--space-2) 0 0 var(--space-3);
+  }
+  .shell-account-name { display: grid; min-width: 0; }
+  .shell-account-name strong { overflow: hidden; color: var(--on-dark); font-size: var(--text-sm); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+  .shell-account-name span { color: var(--on-dark-subtle); font-size: var(--text-xs); }
+  .shell-account form { margin: 0; }
+  .shell-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 var(--space-3);
+    color: var(--on-dark-muted);
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: var(--radius);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+  }
+  .shell-logout .icon { width: 16px; height: 16px; }
+  .shell-logout:hover { color: #ffffff; background: var(--sidebar-raised); }
+  .shell-logout:focus-visible { outline-color: var(--accent); }
+
+  /* Conteúdo */
+  .shell-main { min-width: 0; padding: var(--space-5) var(--space-4) calc(var(--tabbar-h) + var(--space-7) + env(safe-area-inset-bottom)); }
+  .shell[data-nav="student"] .shell-main { padding-bottom: calc(var(--space-7) + env(safe-area-inset-bottom)); }
+  .shell-content { position: relative; width: min(100%, var(--content-max)); min-width: 0; margin: 0 auto; }
+  .shell-main:focus { outline: none; }
+
+  /* Topo (celular) */
+  .shell-topbar {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-shell);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    height: var(--topbar-h);
+    padding: 0 var(--space-1) 0 var(--space-4);
+  }
+  .shell-topbar .icon-btn { color: #ffffff; }
+  .shell-topbar .icon-btn:focus-visible { outline-color: var(--accent); outline-offset: -4px; }
+
+  /* Barra inferior (celular, equipe) */
+  .shell-tabbar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-shell);
+    display: grid;
+    grid-template-columns: repeat(var(--tab-count, 5), minmax(0, 1fr));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+  .shell-tab {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 4px;
+    min-height: var(--tabbar-h);
+    padding: 6px 2px;
+    color: var(--text-muted);
+    background: transparent;
+    border: 0;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.1;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .shell-tab .icon { width: 22px; height: 22px; }
+  .shell-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .shell-tab:hover { color: var(--text); }
+  .shell-tab:focus-visible { outline-offset: -3px; }
+  .shell-tab[aria-current="page"] { color: var(--text); }
+  .shell-tab[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 28%;
+    right: 28%;
+    height: 6px;
+    background: var(--accent);
+    clip-path: var(--marker-shape-bar);
+  }
+
+  /* Menu "Mais" e menu do aluno, dentro do .sheet */
+  .shell-menu-list { display: grid; margin: 0; padding: 0; list-style: none; }
+  .shell-menu-label {
+    display: block;
+    padding: var(--space-4) 0 var(--space-1);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+  .shell-menu-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 48px;
+    padding: 0;
+    color: var(--text);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: var(--text-md);
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .shell-menu-link .icon-external { width: 16px; height: 16px; margin-left: auto; color: var(--text-muted); }
+  .shell-menu-link[aria-current="page"] { font-weight: 700; }
+  .shell-menu-link[aria-current="page"]::after {
+    content: "";
+    width: 8px;
+    height: 18px;
+    margin-left: auto;
+    background: var(--accent);
+    clip-path: var(--marker-shape);
+  }
+  .shell-menu-account { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-4); }
+  .shell-menu-account div { display: grid; min-width: 0; }
+  .shell-menu-account strong { overflow: hidden; font-size: var(--text-sm); text-overflow: ellipsis; white-space: nowrap; }
+  .shell-menu-account span { color: var(--text-muted); font-size: var(--text-xs); }
+  .shell-menu-account form { margin: 0; }
+
+  /* Compatibilidade com telas antigas: a barra fixa do Financeiro fica acima da barra inferior. */
+  .shell[data-nav="staff"] .financial-mobile-actions { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: 9px; }
+
+  @media (min-width: 900px) {
+    .shell { padding-left: var(--sidebar-w); }
+    .shell-sidebar { display: flex; }
+    .shell-topbar,
+    .shell-tabbar { display: none; }
+    .shell-main,
+    .shell[data-nav="student"] .shell-main { padding: var(--space-7) clamp(var(--space-6), 4vw, var(--space-8)) var(--space-8); }
+  }
+
+  @media (min-width: 560px) and (max-width: 899px) {
+    .shell-main { padding-right: var(--space-6); padding-left: var(--space-6); }
+  }
+}

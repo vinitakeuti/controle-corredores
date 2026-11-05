@@ -1,6 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
+import { MenuButton } from "@/components/ui/menu-button";
+import { PageHeader } from "@/components/ui/page-header";
+import { Sheet } from "@/components/ui/sheet";
 
 type Column = { id: string; name: string; position: number };
 type Folder = { id: string; name: string };
@@ -8,8 +13,15 @@ type Person = { id: string; name: string; email: string };
 type Demand = { id: string; title: string; description: string | null; columnId: string; scheduledAt: string | null; completedAt: string | null; assignees: { user: Person }[] };
 type ArchivedDemand = Demand & { folder: Folder | null };
 
-const datetimeValue = (value: string | null) => value ? new Date(value).toISOString().slice(0, 16) : "";
-const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "Sem horário";
+// Datas e horários sempre no fuso de Maceió (UTC−3, sem horário de verão).
+const maceioParts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Maceio", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const datetimeValue = (value: string | null) => {
+  if (!value) return "";
+  const parts = Object.fromEntries(maceioParts.formatToParts(new Date(value)).map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+};
+const fromDatetimeValue = (value: string) => value ? new Date(`${value}:00-03:00`).toISOString() : null;
+const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Maceio" }).format(new Date(value)) : "Sem horário";
 const initials = (name: string) => name.split(" ").filter(Boolean).map((part) => part[0]).join("").slice(0, 2);
 
 export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, initialFolders, people, initialMembers, canManageMembers }: { areaId: string; areaName: string; initialColumns: Column[]; initialDemands: Demand[]; initialFolders: Folder[]; people: Person[]; initialMembers: Person[]; canManageMembers: boolean }) {
@@ -22,7 +34,6 @@ export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, 
   const [manageOpen, setManageOpen] = useState(false);
   const [manageMembersOpen, setManageMembersOpen] = useState(false);
   const [foldersOpen, setFoldersOpen] = useState(false);
-  const [boardMenuOpen, setBoardMenuOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveListOpen, setArchiveListOpen] = useState(false);
   const [archivedDemands, setArchivedDemands] = useState<ArchivedDemand[]>([]);
@@ -35,6 +46,8 @@ export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, 
   const [archiveFolderId, setArchiveFolderId] = useState("");
   const [columnNames, setColumnNames] = useState<Record<string, string>>({});
   const [memberIds, setMemberIds] = useState(initialMembers.map((member) => member.id));
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
   const createRequestKey = useRef("");
   const emptyForm = { title: "", description: "", scheduledAt: "", assigneeIds: [] as string[], columnId: initialColumns[0]?.id ?? "" };
   const [form, setForm] = useState(emptyForm);
@@ -48,6 +61,7 @@ export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, 
   }
   function startEdit(demand: Demand) { setSelected(demand); setCreateOpen(true); setMessage(""); setAssigneeSearch(""); setForm({ title: demand.title, description: demand.description ?? "", scheduledAt: datetimeValue(demand.scheduledAt), assigneeIds: demand.assignees.map((item) => item.user.id), columnId: demand.columnId }); }
   function closeEditor() { setCreateOpen(false); setSelected(null); setMessage(""); }
+  function closeView() { setViewing(null); setArchiveOpen(false); setConfirmDelete(false); setMessage(""); }
   function toggleAssignee(id: string) { setForm((current) => ({ ...current, assigneeIds: current.assigneeIds.includes(id) ? current.assigneeIds.filter((item) => item !== id) : [...current.assigneeIds, id] })); }
   function toggleMember(id: string) { setMemberIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]); }
 
@@ -56,7 +70,7 @@ export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, 
     if (!form.title.trim() || !form.columnId) { setMessage("Dê um título e escolha uma coluna."); return; }
     setSaving(true);
     try {
-      const response = await fetch("/api/demandas", { method: selected ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(selected ? { id: selected.id } : { workAreaId: areaId, requestKey: createRequestKey.current }), ...form, scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null }) });
+      const response = await fetch("/api/demandas", { method: selected ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(selected ? { id: selected.id } : { workAreaId: areaId, requestKey: createRequestKey.current }), ...form, scheduledAt: fromDatetimeValue(form.scheduledAt) }) });
       const data = await response.json();
       if (!response.ok) { setMessage(data.error ?? "Não foi possível salvar a atividade."); return; }
       setDemands((current) => selected ? current.map((demand) => demand.id === selected.id ? data.demand : demand) : current.some((demand) => demand.id === data.demand.id) ? current : [...current, data.demand]);
@@ -80,12 +94,12 @@ export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, 
     } finally { setSaving(false); }
   }
   async function deleteViewed() {
-    if (!viewing || saving || !window.confirm("Excluir esta demanda? Esta ação não pode ser desfeita.")) return;
+    if (!viewing || saving) return;
     setSaving(true);
     try {
       const response = await fetch("/api/demandas?id=" + encodeURIComponent(viewing.id), { method: "DELETE" }); const data = await response.json();
       if (!response.ok) { setMessage(data.error ?? "Não foi possível excluir a demanda."); return; }
-      setDemands((items) => items.filter((demand) => demand.id !== viewing.id)); setViewing(null);
+      setDemands((items) => items.filter((demand) => demand.id !== viewing.id)); closeView();
     } finally { setSaving(false); }
   }
   async function createFolder() {
@@ -98,7 +112,7 @@ export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, 
     } finally { setSaving(false); }
   }
   async function deleteFolder(folder: Folder) {
-    if (saving || !window.confirm(`Excluir a pasta “${folder.name}”? Os cards continuarão arquivados, sem pasta.`)) return;
+    if (saving) return;
     setSaving(true); setMessage("");
     try {
       const response = await fetch("/api/demandas/folders?id=" + encodeURIComponent(folder.id), { method: "DELETE" }); const data = await response.json();
@@ -106,12 +120,13 @@ export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, 
       setFolders((items) => items.filter((item) => item.id !== folder.id));
       setArchivedDemands((items) => items.map((demand) => demand.folder?.id === folder.id ? { ...demand, folder: null } : demand));
       if (archiveFolderId === folder.id) setArchiveFolderId("");
+      setFolderToDelete(null);
     } finally { setSaving(false); }
   }
   async function archiveViewed() {
     if (!archiveFolderId || !viewing) { setMessage("Escolha uma pasta para arquivar."); return; }
     const id = viewing.id; const updated = await updateViewed({ folderId: archiveFolderId });
-    if (updated) { setDemands((items) => items.filter((demand) => demand.id !== id)); setViewing(null); setArchiveOpen(false); }
+    if (updated) { setDemands((items) => items.filter((demand) => demand.id !== id)); closeView(); }
   }
   async function openArchiveList(folder: Folder | null = null) {
     setSaving(true); setMessage("");
@@ -152,39 +167,167 @@ export function DemandBoard({ areaId, areaName, initialColumns, initialDemands, 
     setMemberIds(data.members.map((member: Person) => member.id)); setManageMembersOpen(false); setMessage("");
   }
 
-  return <section className="demand-board">
-    <header className="demand-board-head"><div><p className="eyebrow">Área de trabalho</p><h1>{areaName}.</h1><p>Use as setas em cada demanda para movê-la entre as colunas.</p></div><div className="demand-board-actions"><button className="button button-dark" type="button" onClick={() => startCreate()}>Nova demanda</button><div className="demand-settings"><button className="demand-settings-trigger" type="button" aria-label="Opções do quadro" title="Opções do quadro" aria-expanded={boardMenuOpen} onClick={() => setBoardMenuOpen((open) => !open)}>⋮</button>{boardMenuOpen ? <div className="demand-settings-menu"><button type="button" onClick={() => { setBoardMenuOpen(false); void openArchiveList(); }}>Arquivo</button><button type="button" onClick={() => { setBoardMenuOpen(false); setFoldersOpen(true); }}>Pastas</button>{canManageMembers ? <button type="button" onClick={() => { setBoardMenuOpen(false); setManageMembersOpen(true); }}>Pessoas do quadro</button> : null}<button type="button" onClick={() => { setBoardMenuOpen(false); setManageOpen(true); }}>Editar colunas</button></div> : null}</div></div></header>
-    {message && !createOpen && !manageOpen && !viewing ? <p className="error-message">{message}</p> : null}
-    <div className="demand-columns-scroll" aria-label="Quadro de demandas"><div className="demand-columns" style={{ "--demand-column-count": columns.length } as React.CSSProperties}>{columns.map((column, columnIndex) => <section className="demand-column" key={column.id}><header><strong>{column.name}</strong><span>{demands.filter((demand) => demand.columnId === column.id).length}</span></header><div className="demand-column-cards">{demands.filter((demand) => demand.columnId === column.id).map((demand) => <article className={"demand-card " + (demand.completedAt ? "completed" : "")} key={demand.id}><button className="demand-card-open" type="button" onClick={() => { setViewing(demand); setMessage(""); }}><strong>{demand.title}</strong>{demand.description ? <p>{demand.description}</p> : null}<small>{demand.completedAt ? "Concluída · " : ""}{dateLabel(demand.scheduledAt)}</small>{demand.assignees.length ? <div className="demand-avatars">{demand.assignees.map(({ user }) => <span title={user.name} key={user.id}>{initials(user.name)}</span>)}</div> : null}</button><div className="demand-move-actions"><button type="button" onClick={() => void move(demand.id, columns[columnIndex - 1].id)} disabled={columnIndex === 0} aria-label="Mover para a coluna anterior">←</button><button type="button" onClick={() => void move(demand.id, columns[columnIndex + 1].id)} disabled={columnIndex === columns.length - 1} aria-label="Mover para a próxima coluna">→</button></div></article>)}</div><button className="demand-add-inline" type="button" onClick={() => startCreate(column.id)}>+ Adicionar</button></section>)}</div></div>
-    {createOpen ? <Editor selected={selected} form={form} setForm={setForm} columns={columns} message={message} saving={saving} search={assigneeSearch} setSearch={setAssigneeSearch} people={matchingPeople} selectedPeople={selectedPeople} toggleAssignee={toggleAssignee} close={closeEditor} save={saveDemand} /> : null}
-    {viewing ? <DemandView demand={viewing} message={message} saving={saving} folders={folders} archiveOpen={archiveOpen} archiveFolderId={archiveFolderId} setArchiveFolderId={setArchiveFolderId} close={() => { setViewing(null); setArchiveOpen(false); }} edit={() => { const demand = viewing; setViewing(null); startEdit(demand); }} complete={() => void updateViewed({ completed: !viewing.completedAt })} remove={() => void deleteViewed()} toggleArchive={() => { setArchiveOpen((open) => !open); setMessage(""); }} archive={() => void archiveViewed()} /> : null}
-    {archiveListOpen ? <ArchiveList demands={archiveFolder ? archivedDemands.filter((demand) => demand.folder?.id === archiveFolder.id) : archivedDemands} folder={archiveFolder} saving={saving} close={() => { setArchiveListOpen(false); setArchiveFolder(null); }} restore={restoreArchived} /> : null}
-    {manageOpen ? <ColumnsEditor columns={columns} names={columnNames} setNames={setColumnNames} newName={newColumnName} setNewName={setNewColumnName} message={message} close={() => setManageOpen(false)} rename={renameColumn} remove={deleteColumn} add={addColumn} /> : null}
-    {foldersOpen ? <FoldersEditor folders={folders} newName={newFolderName} setNewName={setNewFolderName} saving={saving} message={message} close={() => setFoldersOpen(false)} create={createFolder} remove={deleteFolder} openFolder={(folder) => void openArchiveList(folder)} /> : null}
-    {manageMembersOpen ? <MembersEditor people={people} memberIds={memberIds} toggle={toggleMember} message={message} close={() => setManageMembersOpen(false)} save={saveMembers} /> : null}
+  const boardMenu = [
+    { label: "Arquivo", icon: "file" as const, onSelect: () => void openArchiveList() },
+    { label: "Pastas", icon: "layers" as const, onSelect: () => { setMessage(""); setFoldersOpen(true); } },
+    ...(canManageMembers ? [{ label: "Pessoas do quadro", icon: "users" as const, onSelect: () => { setMessage(""); setManageMembersOpen(true); } }] : []),
+    { label: "Editar colunas", icon: "board" as const, onSelect: () => { setMessage(""); setManageOpen(true); } },
+  ];
+  const anyDialogOpen = createOpen || manageOpen || foldersOpen || manageMembersOpen || archiveListOpen || Boolean(viewing);
+
+  return <section className="board" aria-label={`Quadro ${areaName}`}>
+    <PageHeader
+      context={{ label: "Áreas de trabalho", href: "/admin/demandas", current: "Quadro" }}
+      title={`${areaName}.`}
+      lead="Use as setas em cada demanda para movê-la entre as colunas."
+      actions={<><button className="btn btn-primary" type="button" onClick={() => startCreate()}><Icon name="plus" />Nova demanda</button><MenuButton label="Opções do quadro" items={boardMenu} /></>}
+    />
+    <Feedback error={!anyDialogOpen ? message : ""} />
+    <div className="board-scroll" role="region" aria-label="Quadro de demandas" tabIndex={0}>
+      <div className="board-columns" style={{ "--board-columns": columns.length } as React.CSSProperties}>
+        {columns.map((column, columnIndex) => {
+          const items = demands.filter((demand) => demand.columnId === column.id);
+          const previous = columns[columnIndex - 1];
+          const next = columns[columnIndex + 1];
+          return <section className="board-column" key={column.id} aria-labelledby={`column-${column.id}`}>
+            <header className="board-column-head"><h2 id={`column-${column.id}`}>{column.name}</h2><span className="board-count" aria-label={`${items.length} ${items.length === 1 ? "demanda" : "demandas"}`}>{items.length}</span></header>
+            <ul className="board-cards">
+              {items.map((demand) => <li className="board-card" data-completed={demand.completedAt ? "true" : undefined} key={demand.id}>
+                <button className="board-card-open" type="button" onClick={() => { setViewing(demand); setMessage(""); }}>
+                  <strong>{demand.title}</strong>
+                  {demand.description ? <span className="board-card-text">{demand.description}</span> : null}
+                  <span className="board-card-meta">
+                    {demand.completedAt ? <span className="board-card-done"><Icon name="check" className="icon-sm" />Concluída</span> : null}
+                    <span><Icon name="calendar" className="icon-sm" />{dateLabel(demand.scheduledAt)}</span>
+                  </span>
+                  {demand.assignees.length ? <span className="avatars" aria-label={`Responsáveis: ${demand.assignees.map(({ user }) => user.name).join(", ")}`}>{demand.assignees.map(({ user }) => <span className="avatar" title={user.name} aria-hidden="true" key={user.id}>{initials(user.name)}</span>)}</span> : null}
+                </button>
+                <div className="board-card-move">
+                  <button className="icon-btn" type="button" onClick={() => previous && void move(demand.id, previous.id)} disabled={!previous} aria-label={previous ? `Mover “${demand.title}” para ${previous.name}` : "Já está na primeira coluna"}><Icon name="arrowLeft" /></button>
+                  <button className="icon-btn" type="button" onClick={() => next && void move(demand.id, next.id)} disabled={!next} aria-label={next ? `Mover “${demand.title}” para ${next.name}` : "Já está na última coluna"}><Icon name="arrowRight" /></button>
+                </div>
+              </li>)}
+            </ul>
+            {items.length === 0 ? <p className="board-empty">Nenhuma demanda nesta coluna.</p> : null}
+            <button className="btn btn-quiet board-add" type="button" onClick={() => startCreate(column.id)}><Icon name="plus" />Adicionar</button>
+          </section>;
+        })}
+      </div>
+    </div>
+
+    {createOpen ? <Sheet open onClose={closeEditor} title={selected ? "Editar demanda" : "Nova demanda"} className="sheet-wide">
+      <Editor selected={selected} form={form} setForm={setForm} columns={columns} message={message} saving={saving} search={assigneeSearch} setSearch={setAssigneeSearch} people={matchingPeople} selectedPeople={selectedPeople} toggleAssignee={toggleAssignee} close={closeEditor} save={saveDemand} />
+    </Sheet> : null}
+
+    {viewing ? <Sheet open onClose={closeView} title={viewing.title}>
+      <div className="demand-view">
+        <p className="demand-view-state">{viewing.completedAt ? <span className="status-pill" data-tone="positive">Concluída</span> : <span className="status-pill" data-tone="neutral">Demanda</span>}</p>
+        {viewing.description ? <p className="demand-view-text">{viewing.description}</p> : <p className="field-hint">Sem detalhes adicionais.</p>}
+        <dl className="kv-list">
+          <div><dt>Data e horário</dt><dd>{dateLabel(viewing.scheduledAt)}</dd></div>
+          <div><dt>Responsáveis</dt><dd>{viewing.assignees.length ? viewing.assignees.map(({ user }) => user.name).join(", ") : "Nenhum responsável"}</dd></div>
+        </dl>
+        <Feedback error={message} />
+        <div className="btn-row demand-actions">
+          <button className="btn btn-secondary" type="button" onClick={() => { const demand = viewing; closeView(); startEdit(demand); }}>Editar</button>
+          <button className="btn btn-secondary" type="button" onClick={() => void updateViewed({ completed: !viewing.completedAt })} disabled={saving}><Icon name="check" />{viewing.completedAt ? "Reabrir" : "Concluir"}</button>
+          <button className="btn btn-secondary" type="button" onClick={() => { setArchiveOpen((open) => !open); setConfirmDelete(false); setMessage(""); }} aria-expanded={archiveOpen}><Icon name="file" />Arquivar</button>
+          <button className="btn btn-danger" type="button" onClick={() => { setConfirmDelete(true); setArchiveOpen(false); }} disabled={saving}><Icon name="trash" />Excluir</button>
+        </div>
+        {confirmDelete ? <div className="message-stack demand-view-panel">
+          <p className="message" data-tone="danger"><Icon name="alert" /><span>Excluir esta demanda? Esta ação não pode ser desfeita.</span></p>
+          <div className="btn-row"><button className="btn btn-secondary" type="button" onClick={() => setConfirmDelete(false)}>Cancelar</button><button className="btn btn-danger-solid" type="button" onClick={() => void deleteViewed()} disabled={saving} aria-busy={saving}>Excluir demanda</button></div>
+        </div> : null}
+        {archiveOpen ? <div className="demand-view-panel">
+          <h3 className="section-title">Escolha uma pasta</h3>
+          <div className="form-field"><label htmlFor="demand-folder">Pasta</label><select className="control" id="demand-folder" value={archiveFolderId} onChange={(event) => setArchiveFolderId(event.target.value)}><option value="">Selecione uma pasta</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></div>
+          {folders.length ? null : <p className="field-hint">Crie uma pasta nas opções do quadro.</p>}
+          <button className="btn btn-primary" type="button" onClick={() => void archiveViewed()} disabled={saving || !folders.length}>Arquivar demanda</button>
+        </div> : null}
+      </div>
+    </Sheet> : null}
+
+    {archiveListOpen ? <Sheet open onClose={() => { setArchiveListOpen(false); setArchiveFolder(null); }} title={archiveFolder?.name ?? "Demandas arquivadas"}>
+      <p className="section-lead sheet-lead">{archiveFolder ? "Cards guardados nesta pasta. Restaure um card para devolvê-lo ao quadro." : "Cards arquivados neste quadro."}</p>
+      <Feedback error={message} />
+      {(() => {
+        const list = archiveFolder ? archivedDemands.filter((demand) => demand.folder?.id === archiveFolder.id) : archivedDemands;
+        return list.length ? <ul className="activity-list">{list.map((demand) => <li key={demand.id}>
+          <span className="activity-copy"><strong>{demand.title}</strong><span>{demand.folder?.name ?? "Sem pasta"} · {dateLabel(demand.scheduledAt)}</span></span>
+          <button className="btn btn-secondary" type="button" onClick={() => void restoreArchived(demand)} disabled={saving}>Restaurar</button>
+        </li>)}</ul> : <div className="state-empty"><p>{archiveFolder ? "Esta pasta ainda não tem cards arquivados." : "Nenhuma demanda foi arquivada neste quadro."}</p></div>;
+      })()}
+    </Sheet> : null}
+
+    {manageOpen ? <Sheet open onClose={() => setManageOpen(false)} title="Colunas">
+      <p className="section-lead sheet-lead">Crie, renomeie ou remova colunas. Ao excluir, as demandas seguem para a próxima coluna disponível.</p>
+      <ul className="edit-list">{columns.map((column) => <li key={column.id}>
+        <input className="control" aria-label={"Nome da coluna " + column.name} value={columnNames[column.id] ?? column.name} onChange={(event) => setColumnNames({ ...columnNames, [column.id]: event.target.value })} />
+        <button className="btn btn-secondary" type="button" onClick={() => void renameColumn(column)}>Salvar</button>
+        <button className="icon-btn edit-list-remove" type="button" onClick={() => void deleteColumn(column)} aria-label={`Excluir a coluna ${column.name}`}><Icon name="trash" /></button>
+      </li>)}</ul>
+      <div className="control-group edit-list-add">
+        <input className="control" aria-label="Nome da nova coluna" placeholder="Nova coluna" value={newColumnName} onChange={(event) => setNewColumnName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void addColumn()} />
+        <button className="btn btn-primary" type="button" onClick={() => void addColumn()}><Icon name="plus" />Coluna</button>
+      </div>
+      <Feedback error={message} />
+    </Sheet> : null}
+
+    {foldersOpen ? <Sheet open onClose={() => { setFoldersOpen(false); setFolderToDelete(null); }} title="Pastas do arquivo">
+      <p className="section-lead sheet-lead">Abra uma pasta para ver e restaurar os cards guardados.</p>
+      <div className="control-group edit-list-add">
+        <input className="control" aria-label="Nome da nova pasta" placeholder="Nome da pasta" value={newFolderName} onChange={(event) => setNewFolderName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void createFolder()} />
+        <button className="btn btn-primary" type="button" onClick={() => void createFolder()} disabled={saving}>Criar pasta</button>
+      </div>
+      <p className="field-hint">Ao excluir uma pasta, os cards permanecem no arquivo e ficam sem pasta.</p>
+      <Feedback error={message} />
+      {folders.length ? <ul className="activity-list folder-list">{folders.map((folder) => <li key={folder.id}>
+        {folderToDelete === folder.id ? <>
+          <span className="activity-copy"><strong>Excluir a pasta “{folder.name}”?</strong><span>Os cards continuarão arquivados, sem pasta.</span></span>
+          <span className="btn-row"><button className="btn btn-secondary" type="button" onClick={() => setFolderToDelete(null)}>Cancelar</button><button className="btn btn-danger-solid" type="button" onClick={() => void deleteFolder(folder)} disabled={saving}>Excluir</button></span>
+        </> : <>
+          <button className="folder-open" type="button" onClick={() => void openArchiveList(folder)} disabled={saving}><Icon name="file" /><span className="activity-copy"><strong>{folder.name}</strong><span>Abrir pasta</span></span></button>
+          <button className="icon-btn" type="button" onClick={() => setFolderToDelete(folder.id)} disabled={saving} aria-label={`Excluir a pasta ${folder.name}`}><Icon name="trash" /></button>
+        </>}
+      </li>)}</ul> : <div className="state-empty"><p>Ainda não há pastas neste quadro.</p></div>}
+    </Sheet> : null}
+
+    {manageMembersOpen ? <Sheet open onClose={() => setManageMembersOpen(false)} title="Pessoas do quadro">
+      <p className="section-lead sheet-lead">Somente as pessoas selecionadas poderão abrir e movimentar demandas aqui.</p>
+      <ul className="person-list">{people.map((person) => <li key={person.id}><label className="person-option">
+        <input type="checkbox" checked={memberIds.includes(person.id)} onChange={() => toggleMember(person.id)} />
+        <span className="avatar" aria-hidden="true">{initials(person.name)}</span>
+        <span className="activity-copy"><strong>{person.name}</strong><span>{person.email}</span></span>
+      </label></li>)}</ul>
+      <Feedback error={message} />
+      <div className="btn-row sheet-actions"><button className="btn btn-primary" type="button" onClick={() => void saveMembers()}>Salvar acesso</button></div>
+    </Sheet> : null}
   </section>;
 }
 
 function Editor({ selected, form, setForm, columns, message, saving, search, setSearch, people, selectedPeople, toggleAssignee, close, save }: { selected: Demand | null; form: { title: string; description: string; scheduledAt: string; assigneeIds: string[]; columnId: string }; setForm: (form: { title: string; description: string; scheduledAt: string; assigneeIds: string[]; columnId: string }) => void; columns: Column[]; message: string; saving: boolean; search: string; setSearch: (value: string) => void; people: Person[]; selectedPeople: Person[]; toggleAssignee: (id: string) => void; close: () => void; save: () => void }) {
-  return <div className="demand-editor-layer" role="dialog" aria-modal="true" aria-label="Editor de demanda"><button className="demand-editor-backdrop" type="button" onClick={close} aria-label="Fechar" /><section className="demand-editor"><div className="panel-heading"><div><p className="eyebrow">{selected ? "Editar demanda" : "Nova demanda"}</p><h2>{selected ? "Ajuste a atividade" : "O que precisa acontecer?"}</h2></div><button className="button button-quiet" type="button" onClick={close}>Fechar</button></div><div className="field"><label htmlFor="demand-title">Atividade</label><input id="demand-title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} autoFocus /></div><div className="field"><label htmlFor="demand-description">Detalhes</label><textarea id="demand-description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={4} /></div><div className="demand-editor-grid"><div className="field"><label htmlFor="demand-column">Coluna</label><select id="demand-column" value={form.columnId} onChange={(event) => setForm({ ...form, columnId: event.target.value })}>{columns.map((column) => <option key={column.id} value={column.id}>{column.name}</option>)}</select></div><div className="field"><label htmlFor="demand-time">Data e horário</label><input id="demand-time" type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })} /></div></div><fieldset className="demand-assignees"><legend>Responsáveis</legend><div className="assignee-search"><label htmlFor="demand-assignee-search">Buscar colaborador</label><input id="demand-assignee-search" type="search" placeholder="Nome ou e-mail" value={search} onChange={(event) => setSearch(event.target.value)} /></div>{selectedPeople.length ? <div className="selected-assignees">{selectedPeople.map((person) => <button type="button" key={person.id} onClick={() => toggleAssignee(person.id)}><span>{initials(person.name)}</span>{person.name}<b aria-label={"Remover " + person.name}>×</b></button>)}</div> : <p className="assignee-empty">Nenhum responsável selecionado.</p>}<div className="assignee-options">{people.length ? people.map((person) => { const isSelected = form.assigneeIds.includes(person.id); return <button className={isSelected ? "selected" : ""} type="button" key={person.id} onClick={() => toggleAssignee(person.id)} aria-pressed={isSelected}><span>{initials(person.name)}</span><strong>{person.name}</strong><small>{person.email}</small><i>{isSelected ? "✓" : "+"}</i></button>; }) : <p>Nenhum colaborador encontrado.</p>}</div></fieldset>{message ? <p className="error-message">{message}</p> : null}<div className="creation-actions"><button className="button button-dark" type="button" onClick={save} disabled={saving}>{saving ? "Salvando…" : selected ? "Salvar alterações" : "Criar demanda"}</button></div></section></div>;
-}
-
-function DemandView({ demand, message, saving, folders, archiveOpen, archiveFolderId, setArchiveFolderId, close, edit, complete, remove, toggleArchive, archive }: { demand: Demand; message: string; saving: boolean; folders: Folder[]; archiveOpen: boolean; archiveFolderId: string; setArchiveFolderId: (value: string) => void; close: () => void; edit: () => void; complete: () => void; remove: () => void; toggleArchive: () => void; archive: () => void }) {
-  return <div className="demand-editor-layer" role="dialog" aria-modal="true" aria-label="Detalhes da demanda"><button className="demand-editor-backdrop" type="button" onClick={close} aria-label="Fechar" /><section className="demand-editor demand-view"><div className="panel-heading"><div><p className="eyebrow">{demand.completedAt ? "Concluída" : "Demanda"}</p><h2>{demand.title}</h2></div><button className="button button-quiet" type="button" onClick={close}>Fechar</button></div><div className="demand-view-copy">{demand.description ? <p>{demand.description}</p> : <p className="muted">Sem detalhes adicionais.</p>}<dl><div><dt>Data e horário</dt><dd>{dateLabel(demand.scheduledAt)}</dd></div><div><dt>Responsáveis</dt><dd>{demand.assignees.length ? demand.assignees.map(({ user }) => user.name).join(", ") : "Nenhum responsável"}</dd></div></dl></div>{message ? <p className="error-message">{message}</p> : null}<div className="demand-view-actions"><button className="button button-secondary" type="button" onClick={edit}>Editar</button><button className="button button-secondary" type="button" onClick={complete} disabled={saving}>{demand.completedAt ? "Reabrir" : "Concluir"}</button><button className="button button-secondary" type="button" onClick={toggleArchive}>Arquivar</button><button className="button button-danger-quiet" type="button" onClick={remove} disabled={saving}>Excluir</button></div>{archiveOpen ? <div className="demand-archive-panel"><p className="eyebrow">Arquivo</p><h3>Escolha uma pasta</h3><div className="field"><label htmlFor="demand-folder">Pasta</label><select id="demand-folder" value={archiveFolderId} onChange={(event) => setArchiveFolderId(event.target.value)}><option value="">Selecione uma pasta</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></div>{folders.length ? null : <p className="muted">Crie uma pasta nas opções do quadro.</p>}<button className="button button-dark" type="button" onClick={archive} disabled={saving || !folders.length}>Arquivar demanda</button></div> : null}</section></div>;
-}
-
-function ArchiveList({ demands, folder, saving, close, restore }: { demands: ArchivedDemand[]; folder: Folder | null; saving: boolean; close: () => void; restore: (demand: ArchivedDemand) => Promise<void> }) {
-  return <div className="demand-editor-layer" role="dialog" aria-modal="true" aria-label={folder ? `Pasta ${folder.name}` : "Arquivo de demandas"}><button className="demand-editor-backdrop" type="button" onClick={close} aria-label="Fechar" /><section className="demand-editor"><div className="panel-heading"><div><p className="eyebrow">{folder ? "Pasta do arquivo" : "Arquivo"}</p><h2>{folder?.name ?? "Demandas arquivadas"}</h2><p>{folder ? "Cards guardados nesta pasta. Restaure um card para devolvê-lo ao quadro." : "Cards arquivados neste quadro."}</p></div><button className="button button-quiet" type="button" onClick={close}>Fechar</button></div><div className="demand-archive-list">{demands.length ? demands.map((demand) => <article key={demand.id}><div><strong>{demand.title}</strong><small>{demand.folder?.name ?? "Sem pasta"} · {dateLabel(demand.scheduledAt)}</small></div><button className="button button-secondary" type="button" onClick={() => void restore(demand)} disabled={saving}>Restaurar</button></article>) : <p className="muted">{folder ? "Esta pasta ainda não tem cards arquivados." : "Nenhuma demanda foi arquivada neste quadro."}</p>}</div></section></div>;
-}
-
-function FoldersEditor({ folders, newName, setNewName, saving, message, close, create, remove, openFolder }: { folders: Folder[]; newName: string; setNewName: (value: string) => void; saving: boolean; message: string; close: () => void; create: () => Promise<void>; remove: (folder: Folder) => Promise<void>; openFolder: (folder: Folder) => void }) {
-  return <div className="demand-editor-layer" role="dialog" aria-modal="true" aria-label="Pastas do quadro"><button className="demand-editor-backdrop" type="button" onClick={close} aria-label="Fechar" /><section className="demand-editor"><div className="panel-heading"><div><p className="eyebrow">Organização</p><h2>Pastas do arquivo</h2><p>Abra uma pasta para ver e restaurar os cards guardados.</p></div><button className="button button-quiet" type="button" onClick={close}>Fechar</button></div><div className="demand-folder-create demand-folder-create-dialog"><input aria-label="Nome da nova pasta" placeholder="Nome da pasta" value={newName} onChange={(event) => setNewName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void create()} /><button className="button button-dark" type="button" onClick={() => void create()} disabled={saving}>Criar pasta</button></div><p className="muted demand-folder-help">Ao excluir uma pasta, os cards permanecem no arquivo e ficam sem pasta.</p>{message ? <p className="error-message">{message}</p> : null}<div className="demand-folder-list">{folders.length ? folders.map((folder) => <div className="demand-folder-item" key={folder.id}><button className="demand-folder-open" type="button" onClick={() => openFolder(folder)} disabled={saving}>{folder.name}<small>Abrir pasta</small></button><button className="button button-danger-quiet" type="button" onClick={() => void remove(folder)} disabled={saving}>Excluir</button></div>) : <p className="muted">Ainda não há pastas neste quadro.</p>}</div></section></div>;
-}
-
-function ColumnsEditor({ columns, names, setNames, newName, setNewName, message, close, rename, remove, add }: { columns: Column[]; names: Record<string, string>; setNames: (value: Record<string, string>) => void; newName: string; setNewName: (value: string) => void; message: string; close: () => void; rename: (column: Column) => Promise<void>; remove: (column: Column) => Promise<void>; add: () => Promise<void> }) {
-  return <div className="demand-editor-layer" role="dialog" aria-modal="true" aria-label="Editar colunas"><button className="demand-editor-backdrop" type="button" onClick={close} aria-label="Fechar" /><section className="demand-editor column-editor"><div className="panel-heading"><div><p className="eyebrow">Quadro</p><h2>Colunas</h2><p>Crie, renomeie ou remova colunas. Ao excluir, as demandas seguem para a próxima coluna disponível.</p></div><button className="button button-quiet" type="button" onClick={close}>Fechar</button></div><div className="column-editor-list">{columns.map((column) => <div key={column.id}><input aria-label={"Nome da coluna " + column.name} value={names[column.id] ?? column.name} onChange={(event) => setNames({ ...names, [column.id]: event.target.value })} /><button className="button button-secondary" type="button" onClick={() => void rename(column)}>Salvar</button><button className="button button-danger-quiet" type="button" onClick={() => void remove(column)}>Excluir</button></div>)}</div><div className="column-add"><input aria-label="Nome da nova coluna" placeholder="Nova coluna" value={newName} onChange={(event) => setNewName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void add()} /><button className="button button-dark" type="button" onClick={() => void add()}>+ Coluna</button></div>{message ? <p className="error-message">{message}</p> : null}</section></div>;
-}
-
-function MembersEditor({ people, memberIds, toggle, message, close, save }: { people: Person[]; memberIds: string[]; toggle: (id: string) => void; message: string; close: () => void; save: () => Promise<void> }) {
-  return <div className="demand-editor-layer" role="dialog" aria-modal="true" aria-label="Pessoas do quadro"><button className="demand-editor-backdrop" type="button" onClick={close} aria-label="Fechar" /><section className="demand-editor member-editor"><div className="panel-heading"><div><p className="eyebrow">Acesso ao quadro</p><h2>Pessoas do quadro</h2><p>Somente as pessoas selecionadas poderão abrir e movimentar demandas aqui.</p></div><button className="button button-quiet" type="button" onClick={close}>Fechar</button></div><div className="member-editor-list">{people.map((person) => <label key={person.id}><input type="checkbox" checked={memberIds.includes(person.id)} onChange={() => toggle(person.id)} /><span>{initials(person.name)}</span><strong>{person.name}</strong><small>{person.email}</small></label>)}</div>{message ? <p className="error-message">{message}</p> : null}<div className="creation-actions"><button className="button button-dark" type="button" onClick={() => void save()}>Salvar acesso</button></div></section></div>;
+  return <form className="demand-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
+    <p className="section-lead sheet-lead">{selected ? "Ajuste a atividade" : "O que precisa acontecer?"}</p>
+    <div className="form-field"><label htmlFor="demand-title">Atividade</label><input className="control" id="demand-title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} data-autofocus /></div>
+    <div className="form-field"><label htmlFor="demand-description">Detalhes</label><textarea className="control" id="demand-description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={4} /></div>
+    <div className="form-grid">
+      <div className="form-field"><label htmlFor="demand-column">Coluna</label><select className="control" id="demand-column" value={form.columnId} onChange={(event) => setForm({ ...form, columnId: event.target.value })}>{columns.map((column) => <option key={column.id} value={column.id}>{column.name}</option>)}</select></div>
+      <div className="form-field"><label htmlFor="demand-time">Data e horário</label><input className="control" id="demand-time" type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })} /><span className="field-hint">Horário de Maceió.</span></div>
+    </div>
+    <fieldset className="assignees">
+      <legend className="form-label">Responsáveis</legend>
+      <div className="form-field"><label className="visually-hidden" htmlFor="demand-assignee-search">Buscar colaborador</label><div className="search-field"><Icon name="search" /><input className="control" id="demand-assignee-search" type="search" placeholder="Buscar colaborador por nome ou e-mail" value={search} onChange={(event) => setSearch(event.target.value)} /></div></div>
+      {selectedPeople.length ? <div className="assignee-selected">{selectedPeople.map((person) => <button className="chip" type="button" key={person.id} onClick={() => toggleAssignee(person.id)} aria-label={`Remover ${person.name}`}><span className="avatar avatar-sm" aria-hidden="true">{initials(person.name)}</span>{person.name}<Icon name="close" className="icon-sm" /></button>)}</div> : <p className="field-hint">Nenhum responsável selecionado.</p>}
+      <ul className="person-list">{people.length ? people.map((person) => { const isSelected = form.assigneeIds.includes(person.id); return <li key={person.id}><button className="person-option" type="button" onClick={() => toggleAssignee(person.id)} aria-pressed={isSelected}>
+        <span className="avatar" aria-hidden="true">{initials(person.name)}</span>
+        <span className="activity-copy"><strong>{person.name}</strong><span>{person.email}</span></span>
+        <Icon name={isSelected ? "check" : "plus"} className="person-option-mark" />
+      </button></li>; }) : <li className="field-hint">Nenhum colaborador encontrado.</li>}</ul>
+    </fieldset>
+    <Feedback error={message} />
+    <div className="btn-row btn-row-split sheet-actions">
+      <button className="btn btn-quiet" type="button" onClick={close}>Cancelar</button>
+      <button className="btn btn-primary" type="submit" disabled={saving} aria-busy={saving}>{saving ? "Salvando…" : selected ? "Salvar alterações" : "Criar demanda"}</button>
+    </div>
+  </form>;
 }

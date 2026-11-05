@@ -1,11 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
 
 type Result = { resetUrl: string; expiresAt: string; emailSent: boolean; emailError: string | null; sentByEmail: boolean };
 
 const expiryFormat = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Maceio", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
+// Ferramenta pouco usada: fica recolhida no perfil e abre no próprio fluxo da página.
 export function StudentPasswordResetLink({ studentId, studentEmail, active }: { studentId: string; studentEmail: string; active: boolean }) {
   const [pending, setPending] = useState<"link" | "email" | null>(null);
   const [result, setResult] = useState<Result | null>(null);
@@ -47,18 +50,34 @@ export function StudentPasswordResetLink({ studentId, studentEmail, active }: { 
     setCopied(true);
   }
 
-  return <section className="panel student-reset-link">
-    <div className="panel-heading"><div><p className="eyebrow">Acesso do aluno</p><h2>Redefinição de senha</h2><p>Gere um link para o aluno criar uma nova senha e envie por WhatsApp ou outro canal quando o e-mail não chegar.</p></div></div>
-    {active ? <div className="student-reset-link-actions">
-      <button className="button button-dark" type="button" onClick={() => void generate(false)} disabled={pending !== null}>{pending === "link" ? "Gerando..." : "Gerar link"}</button>
-      <button className="button button-quiet" type="button" onClick={() => void generate(true)} disabled={pending !== null}>{pending === "email" ? "Enviando..." : "Gerar e enviar por e-mail"}</button>
-    </div> : <p className="student-account-status-note">Reative o aluno para gerar um link de redefinição de senha.</p>}
-    {error ? <p className="error-message">{error}</p> : null}
-    {result ? <div className="student-reset-link-result">
-      <label htmlFor={`reset-link-${studentId}`}>Link de redefinição</label>
-      <div><input id={`reset-link-${studentId}`} readOnly value={result.resetUrl} onFocus={(event) => event.target.select()} ref={linkInput} /><button className="button button-dark" type="button" onClick={() => void copy()}>{copied ? "Copiado ✓" : "Copiar"}</button></div>
-      <small>Válido até {expiryFormat.format(new Date(result.expiresAt))} e apenas para um uso. Gerar um novo link invalida os anteriores.</small>
-      {result.sentByEmail ? result.emailSent ? <p className="success-message">Link também enviado para {studentEmail}.</p> : <p className="error-message">O e-mail não foi enviado. {result.emailError ?? "Falha no envio."} Copie o link acima e envie manualmente.</p> : null}
-    </div> : null}
-  </section>;
+  const inputId = `reset-link-${studentId}`;
+
+  return <details className="disclosure" open={Boolean(result) || undefined}>
+    <summary>
+      <span>
+        <span className="section-title">Redefinição de senha</span>
+        <span className="section-lead disclosure-lead">Gere um link para o aluno criar uma nova senha e envie por WhatsApp ou outro canal quando o e-mail não chegar.</span>
+      </span>
+      <Icon name="chevronRight" />
+    </summary>
+    <div className="disclosure-body">
+      {active ? <div className="btn-row">
+        <button className="btn btn-secondary" type="button" onClick={() => void generate(false)} disabled={pending !== null} aria-busy={pending === "link"}><Icon name="link" />{pending === "link" ? "Gerando..." : "Gerar link"}</button>
+        <button className="btn btn-quiet" type="button" onClick={() => void generate(true)} disabled={pending !== null} aria-busy={pending === "email"}><Icon name="mail" />{pending === "email" ? "Enviando..." : "Gerar e enviar por e-mail"}</button>
+      </div> : <p className="field-hint">Reative o aluno para gerar um link de redefinição de senha.</p>}
+      {result ? <div className="form-field reset-link-result">
+        <label htmlFor={inputId}>Link de redefinição</label>
+        <div className="control-group">
+          <input className="control" id={inputId} readOnly value={result.resetUrl} onFocus={(event) => event.target.select()} ref={linkInput} aria-describedby={`${inputId}-hint`} />
+          <button className="btn btn-secondary" type="button" onClick={() => void copy()}><Icon name={copied ? "check" : "copy"} />{copied ? "Copiado" : "Copiar"}</button>
+        </div>
+        <p className="field-hint" id={`${inputId}-hint`}>Válido até {expiryFormat.format(new Date(result.expiresAt))} e apenas para um uso. Gerar um novo link invalida os anteriores.</p>
+        <span className="visually-hidden" aria-live="polite">{copied ? "Link copiado." : ""}</span>
+      </div> : null}
+      <Feedback
+        success={result?.sentByEmail && result.emailSent ? `Link também enviado para ${studentEmail}.` : undefined}
+        error={error || (result?.sentByEmail && !result.emailSent ? `O e-mail não foi enviado. ${result.emailError ?? "Falha no envio."} Copie o link acima e envie manualmente.` : undefined)}
+      />
+    </div>
+  </details>;
 }

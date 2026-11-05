@@ -1,6 +1,9 @@
 "use client";
 
 import { useId, useState } from "react";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
+import { PageHeader } from "@/components/ui/page-header";
 
 type TermStatus = "PENDING" | "SUBMITTED" | "REJECTED";
 
@@ -35,17 +38,20 @@ export function LiabilityTermAcceptance({ status, reviewNote, downloadError }: {
     }
   }
 
-  if (submitted) return <section className="liability-term-panel"><header className="liability-term-heading"><p className="eyebrow">Termo enviado</p><h1>Aguardando validação.</h1><p>Recebemos seu PDF assinado. A equipe Pace Lab fará a validação do documento antes de liberar sua área.</p></header><section className="panel term-waiting-panel"><strong>Documento em análise</strong><p>Você não precisa realizar nenhuma outra ação agora.</p></section></section>;
+  if (submitted) return <section className="term-flow">
+    <PageHeader context={{ label: "Termo enviado" }} title="Aguardando validação." lead="Recebemos seu PDF assinado. A equipe Pace Lab fará a validação do documento antes de liberar sua área." />
+    <div className="message" data-tone="info" role="status"><Icon name="info" /><div><strong>Documento em análise</strong><p>Você não precisa realizar nenhuma outra ação agora.</p></div></div>
+  </section>;
 
-  return <section className="liability-term-panel">
-    <header className="liability-term-heading"><p className="eyebrow">Termo obrigatório</p><h1>Assine seu termo digitalmente.</h1><p>Baixe o documento, assine gratuitamente com sua conta GOV.BR e envie o PDF assinado para validação da Pace Lab.</p></header>
-    {status === "REJECTED" ? <div className="notice term-rejected-notice"><strong>Precisamos de um novo envio</strong><p>{reviewNote || "O documento não pôde ser validado. Confira a assinatura e envie novamente."}</p></div> : null}
-    <ol className="term-signing-steps">
-      <li><span>1</span><div><strong>Baixe o termo</strong><small>O PDF já vem preenchido com seus dados. Confira as informações e guarde uma cópia.</small><a className="term-step-action term-download-action" href="/api/student/liability-term/download" download><span>Baixar termo preenchido</span><b aria-hidden="true">↓</b></a></div></li>
-      <li><span>2</span><div><strong>Assine no GOV.BR</strong><small>Use sua conta GOV.BR nível prata ou ouro para assinar o PDF.</small><a className="term-step-action term-gov-action" href="https://assinador.iti.br" target="_blank" rel="noreferrer"><span>Abrir Assinador GOV.BR</span><b aria-hidden="true">↗</b></a></div></li>
-      <li><span>3</span><div><strong>Envie o PDF assinado</strong><small>Envie o arquivo baixado após a assinatura. Aceitamos PDF de até 10 MB.</small><input id={fileInputId} className="term-file-input" type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /><label className="term-step-action term-upload-action" htmlFor={fileInputId}><span>{file ? "Trocar PDF assinado" : "Selecionar PDF assinado"}</span><b aria-hidden="true">↑</b></label>{file ? <em className="term-file-name">{file.name}</em> : <em className="term-file-hint">Nenhum PDF selecionado ainda.</em>}</div></li>
+  return <section className="term-flow">
+    <PageHeader context={{ label: "Termo obrigatório" }} title="Assine seu termo digitalmente." lead="Baixe o documento, assine gratuitamente com sua conta GOV.BR e envie o PDF assinado para validação da Pace Lab." />
+    {status === "REJECTED" ? <div className="message" data-tone="danger"><Icon name="alert" /><div><strong>Precisamos de um novo envio</strong><p>{reviewNote || "O documento não pôde ser validado. Confira a assinatura e envie novamente."}</p></div></div> : null}
+    <ol className="term-steps">
+      <li><span className="term-step-number" aria-hidden="true">1</span><div className="term-step-copy"><strong>Baixe o termo</strong><small>O PDF já vem preenchido com seus dados. Confira as informações e guarde uma cópia.</small><a className="btn btn-secondary" href="/api/student/liability-term/download" download><Icon name="file" />Baixar termo preenchido</a></div></li>
+      <li><span className="term-step-number" aria-hidden="true">2</span><div className="term-step-copy"><strong>Assine no GOV.BR</strong><small>Use sua conta GOV.BR nível prata ou ouro para assinar o PDF.</small><a className="btn btn-secondary" href="https://assinador.iti.br" target="_blank" rel="noreferrer">Abrir Assinador GOV.BR<Icon name="external" className="icon-sm" /><span className="visually-hidden"> (abre em nova aba)</span></a></div></li>
+      <li><span className="term-step-number" aria-hidden="true">3</span><div className="term-step-copy"><strong>Envie o PDF assinado</strong><small>Envie o arquivo baixado após a assinatura. Aceitamos PDF de até 10 MB.</small><input id={fileInputId} className="visually-hidden term-file-field" type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /><label className="btn btn-secondary term-upload" htmlFor={fileInputId}><Icon name="plus" />{file ? "Trocar PDF assinado" : "Selecionar PDF assinado"}</label>{file ? <span className="term-file-chosen"><Icon name="check" className="icon-sm" />{file.name}</span> : <span className="field-hint">Nenhum PDF selecionado ainda.</span>}</div></li>
     </ol>
-    {error ? <p className="error-message">{error}</p> : null}
-    <button className="button button-dark term-submit-action" type="button" onClick={upload} disabled={pending || !file}>{pending ? "Enviando documento..." : "Enviar documento para validação"}</button>
+    <Feedback error={error} />
+    <button className="btn btn-primary term-submit" type="button" onClick={upload} disabled={pending || !file} aria-busy={pending}>{pending ? "Enviando documento..." : "Enviar documento para validação"}</button>
   </section>;
 }

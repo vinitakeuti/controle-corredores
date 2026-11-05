@@ -1,0 +1,102 @@
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+/* Reset: padrões de elemento. Os componentes definem cor, fonte e sublinhado por classe;
+   links em texto corrido usam a classe .link. */
+@layer reset {
+  *,
+  *::before,
+  *::after { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  html,
+  body { min-height: 100%; }
+
+  body {
+    margin: 0;
+    color: var(--text);
+    background-color: var(--bg);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  select,
+  textarea { font: inherit; color: inherit; }
+
+  a { color: inherit; text-decoration: none; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  button { cursor: pointer; }
+  input[type="date"],
+  input[type="month"],
+  input[type="datetime-local"] { color-scheme: light; }
+}
+
+/* Base: o que vale para todas as telas, inclusive as antigas (foco, seleção, utilitários). */
+@layer base {
+  ::selection { background: rgba(225, 93, 55, 0.24); color: var(--text); }
+
+  :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+  input,
+  textarea { caret-color: var(--accent-strong); }
+
+  .link { color: var(--accent-text); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .link:hover { color: var(--accent-strong-hover); }
+
+  .skip-link {
+    position: fixed;
+    top: var(--space-2);
+    left: var(--space-2);
+    z-index: calc(var(--z-overlay) + 1);
+    padding: var(--space-3) var(--space-4);
+    background: var(--sidebar);
+    color: var(--on-dark);
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: var(--radius);
+    transform: translateY(-160%);
+    transition: transform var(--dur-1) var(--ease-out);
+  }
+  .skip-link:focus-visible { transform: none; outline-color: var(--accent); }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Wordmark: o SVG é preto; em superfície escura é invertido para branco, sem alterar o desenho. */
+  .brand-wordmark { display: block; width: fit-content; line-height: 0; }
+  .brand-wordmark-image { display: block; max-width: 100%; height: auto; }
+  .brand-wordmark-image[data-tone="light"] { filter: invert(1); }
+
+  /* Título de marca: condensado, caixa alta, termina em ponto. */
+  .display {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--display-md);
+    line-height: 0.95;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 559px) {
+    .display { font-size: var(--display-sm); }
+  }
+
+  /* Movimento reduzido: cada componente troca deslocamentos por mudança de cor ou opacidade. */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+}

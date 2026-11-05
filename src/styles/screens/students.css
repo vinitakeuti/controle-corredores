@@ -1,0 +1,31 @@
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+/* Alunos: diretório (/admin/alunos) e novo aluno (/admin/alunos/novo) */
+@layer screens {
+  .directory-section { border-top: 0; padding-top: var(--space-2); }
+  .directory-list-table td:first-child { min-width: 220px; }
+  .students-email { max-width: 240px; overflow: hidden; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+
+  .create-options .choice-list { max-width: 720px; }
+  .create-actions-start { margin-top: var(--space-4); }
+  .create-flow { border-top: 0; padding-top: var(--space-2); }
+  .create-mode-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin: 0 0 var(--space-4) calc(var(--space-4) * -1); }
+  .create-stage { max-width: 760px; }
+  .create-stage .section-title { font-size: var(--text-xl); }
+  .create-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-5); }
+  .create-field-wide { grid-column: 1 / -1; }
+  .create-actions { margin-top: var(--space-5); }
+  .create-review dd { overflow-wrap: anywhere; }
+  .create-credentials { margin-bottom: var(--space-4); }
+  .create-credentials dd { overflow-wrap: anywhere; }
+  .create-password { font-family: var(--font-mono); font-size: var(--text-lg); }
+
+  @media (max-width: 559px) {
+    .create-fields { grid-template-columns: 1fr; }
+    .create-mode-bar { margin-left: 0; }
+    .create-actions { flex-direction: column-reverse; align-items: stretch; }
+    .create-actions .btn-row { flex-direction: column-reverse; align-items: stretch; }
+    .create-actions .btn { width: 100%; }
+    .create-credentials { grid-template-columns: 1fr; }
+    .create-credentials > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line-soft); }
+  }
+}

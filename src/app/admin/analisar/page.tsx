@@ -1,13 +1,18 @@
 import { Prisma, SubscriptionStatus, UserRole } from "@prisma/client";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { Icon } from "@/components/ui/icon";
+import { PageHeader } from "@/components/ui/page-header";
+import { Pagination } from "@/components/ui/pagination";
+import { StatusPill, toneForLabel, type Tone } from "@/components/ui/status-pill";
 import { requireFeature } from "@/lib/auth";
-import { formatCurrency, formatDate, subscriptionLabel } from "@/lib/format";
+import { formatCurrency, formatDate, formatShortDate, subscriptionLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 type AnalyzeSearchParams = { status?: string; page?: string; q?: string; due?: string };
 type ListStatus = "on-time" | "overdue" | "awaiting-payment" | "due-date" | "special-price" | "courtesy" | "manual-pix" | "verification" | "term-missing";
 const PAGE_SIZE = 12;
+const numberFormat = new Intl.NumberFormat("pt-BR");
 
 const paymentTabs: { id: ListStatus; label: string }[] = [
   { id: "on-time", label: "Em dia" },
@@ -46,12 +51,12 @@ function dueDateRange(value?: string) {
   return { value, start, end: new Date(Date.UTC(year, month - 1, day + 1, 3)) };
 }
 
-function verificationLabel(status: string, requiredAt: Date | null) {
-  if (!requiredAt) return { label: "Não exigido", tone: "muted" };
-  if (status === "APPROVED") return { label: "Validado", tone: "ok" };
-  if (status === "SUBMITTED") return { label: "Aguardando validação", tone: "pending" };
-  if (status === "REJECTED") return { label: "Novo envio solicitado", tone: "alert" };
-  return { label: "Aguardando envio", tone: "muted" };
+function verificationLabel(status: string, requiredAt: Date | null): { label: string; tone: Tone } {
+  if (!requiredAt) return { label: "Não exigido", tone: "neutral" };
+  if (status === "APPROVED") return { label: "Validado", tone: "positive" };
+  if (status === "SUBMITTED") return { label: "Aguardando validação", tone: "warning" };
+  if (status === "REJECTED") return { label: "Novo envio solicitado", tone: "danger" };
+  return { label: "Aguardando envio", tone: "warning" };
 }
 
 export default async function AnalyzePage({ searchParams }: { searchParams: Promise<AnalyzeSearchParams> }) {
@@ -105,71 +110,156 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
   };
   const attentionTotal = totals.overdue + totals["awaiting-payment"] + totals["term-missing"] + totals.verification;
   const isDueDateView = status === "due-date";
+  const due = selectedDueDate?.value;
+
+  const priorities: { id: ListStatus; label: string; note: string; tone?: "danger" | "positive" }[] = [
+    { id: "on-time", label: "Em dia", note: "Assinaturas regulares", tone: "positive" },
+    { id: "overdue", label: "Em atraso", note: "Cobranças para acompanhar", tone: "danger" },
+    { id: "awaiting-payment", label: "Sem pagamento", note: "Cadastros ainda não convertidos" },
+    { id: "term-missing", label: "Sem termo enviado", note: "Envio pendente do aluno" },
+    { id: "verification", label: "Validar termo", note: "PDFs aguardando conferência" },
+  ];
 
   return (
     <AppShell user={user} current="analysis">
-      <header className="page-heading analysis-page-heading">
-        <div><p className="eyebrow">Análise de dados</p><h1>Saúde da base.</h1><p>Priorize pendências, acompanhe condições comerciais e mantenha os termos em dia.</p></div>
-        <div className="date-now">{attentionTotal} item(ns) pedem atenção</div>
-      </header>
+      <PageHeader
+        context={{ label: "Análise de dados" }}
+        title="Saúde da base."
+        lead="Priorize pendências, acompanhe condições comerciais e mantenha os termos em dia."
+        actions={<StatusPill tone={attentionTotal ? "warning" : "positive"}>{numberFormat.format(attentionTotal)} {attentionTotal === 1 ? "item pede" : "itens pedem"} atenção</StatusPill>}
+      />
 
-      <section className="analysis-overview" aria-labelledby="analysis-overview-title">
-        <div className="analysis-overview-copy">
-          <p className="eyebrow">Panorama</p>
-          <h2 id="analysis-overview-title">O que precisa acontecer agora?</h2>
-          <p>Use os atalhos para abrir as listas prioritárias. Os números consideram apenas alunos ativos.</p>
-        </div>
-        <div className="analysis-health-cards">
-          <Link className={`analysis-health-card is-good ${status === "on-time" ? "is-selected" : ""}`} href={buildHref("on-time", 1, query, selectedDueDate?.value)}><span>Em dia</span><strong>{totals["on-time"]}</strong><small>assinaturas regulares</small></Link>
-          <Link className={`analysis-health-card is-alert ${status === "overdue" ? "is-selected" : ""}`} href={buildHref("overdue", 1, query, selectedDueDate?.value)}><span>Em atraso</span><strong>{totals.overdue}</strong><small>cobranças para acompanhar</small></Link>
-          <Link className={`analysis-health-card ${status === "awaiting-payment" ? "is-selected" : ""}`} href={buildHref("awaiting-payment", 1, query, selectedDueDate?.value)}><span>Sem pagamento</span><strong>{totals["awaiting-payment"]}</strong><small>cadastros ainda não convertidos</small></Link>
-          <Link className={`analysis-health-card is-term ${status === "term-missing" ? "is-selected" : ""}`} href={buildHref("term-missing", 1, query, selectedDueDate?.value)}><span>Sem termo enviado</span><strong>{totals["term-missing"]}</strong><small>envio pendente do aluno</small></Link>
-          <Link className={`analysis-health-card is-term ${status === "verification" ? "is-selected" : ""}`} href={buildHref("verification", 1, query, selectedDueDate?.value)}><span>Validar termo</span><strong>{totals.verification}</strong><small>PDFs aguardando conferência</small></Link>
+      <section className="section-block analysis-priorities" aria-labelledby="analysis-overview-title">
+        <div className="section-head"><div><h2 className="section-title" id="analysis-overview-title">O que precisa acontecer agora?</h2><p className="section-lead">Use os atalhos para abrir as listas prioritárias. Os números consideram apenas alunos ativos.</p></div></div>
+        <nav className="metric-strip analysis-strip" data-count={5} aria-label="Listas prioritárias">
+          {priorities.map((item) => (
+            <Link key={item.id} className="metric" data-tone={item.tone} href={buildHref(item.id, 1, query, due)} aria-current={status === item.id ? "page" : undefined}>
+              <span className="metric-label">{item.label}</span>
+              <strong className="metric-value">{numberFormat.format(totals[item.id])}</strong>
+              <span className="metric-note">{item.note}</span>
+            </Link>
+          ))}
+        </nav>
+      </section>
+
+      <section className="section-block analysis-filters" aria-labelledby="analysis-filters-title">
+        <div className="section-head"><div><h2 className="section-title" id="analysis-filters-title">Explore a base por situação</h2></div></div>
+        <div className="analysis-filter-grid">
+          <FilterGroup title="Pagamento" tabs={paymentTabs} status={status} totals={totals} query={query} due={due} />
+          <FilterGroup title="Condições comerciais" tabs={conditionTabs} status={status} totals={totals} query={query} due={due} />
+          <FilterGroup title="Termo de responsabilidade" tabs={termTabs} status={status} totals={totals} query={query} due={due} />
         </div>
       </section>
 
-      <section className="analysis-filter-bar" aria-label="Filtros da análise">
-        <div className="analysis-filter-title"><p className="eyebrow">Filtros</p><h2>Explore a base por situação</h2></div>
-        <div className="analysis-filter-groups">
-          <FilterGroup title="Pagamento" tabs={paymentTabs} status={status} totals={totals} query={query} due={selectedDueDate?.value} />
-          <FilterGroup title="Condições comerciais" tabs={conditionTabs} status={status} totals={totals} query={query} due={selectedDueDate?.value} />
-          <FilterGroup title="Termo de responsabilidade" tabs={termTabs} status={status} totals={totals} query={query} due={selectedDueDate?.value} />
-        </div>
-      </section>
-
-      <section className="analysis-results">
-        <div className="analysis-toolbar">
-          <div><p className="eyebrow">Lista selecionada</p><h2>{titles[status].title}</h2><p>{titles[status].description}{selectedDueDate ? ` Filtrando ${formatDate(selectedDueDate.start)}.` : ""} Página {currentPage} de {totalPages}.</p></div>
-          <div className="analysis-toolbar-actions">
-            {isDueDateView ? <form className="analysis-due-date-filter" method="get"><input type="hidden" name="status" value="due-date" />{query ? <input type="hidden" name="q" value={query} /> : null}<label htmlFor="analysis-due-date"><span>Vencimento em</span><input id="analysis-due-date" name="due" type="date" defaultValue={selectedDueDate?.value ?? ""} /></label><button className="button button-secondary" type="submit">Filtrar data</button>{selectedDueDate ? <Link href={buildHref("due-date", 1, query)} className="analysis-due-date-clear">Ver todos</Link> : null}</form> : null}
-            <form className="student-search" method="get"><input type="hidden" name="status" value={status} />{isDueDateView && selectedDueDate ? <input type="hidden" name="due" value={selectedDueDate.value} /> : null}<label className="sr-only" htmlFor="student-search">Buscar aluno</label><input id="student-search" name="q" type="search" placeholder="Buscar nome ou e-mail" defaultValue={query} /><button className="button button-secondary" type="submit">Buscar</button></form>
+      <section className="section-block analysis-list" aria-labelledby="analysis-results-title">
+        <div className="section-head">
+          <div>
+            <h2 className="section-title" id="analysis-results-title">{titles[status].title}</h2>
+            <p className="section-lead">{titles[status].description}{selectedDueDate ? ` Filtrando ${formatDate(selectedDueDate.start)}.` : ""}</p>
           </div>
         </div>
 
-        <div className="students-table-shell"><p className="analysis-table-hint">Deslize a tabela para ver todos os detalhes.</p><table className="students-table analysis-table"><thead><tr><th>Aluno</th><th>Plano</th>{isDueDateView ? <th>Vencimento</th> : null}<th>Condição</th><th>Valor mensal</th><th>Pagamento</th><th>Termo</th></tr></thead><tbody>
-          {students.length === 0 ? <tr><td className="table-empty" colSpan={isDueDateView ? 7 : 6}>Nenhum aluno encontrado.</td></tr> : students.map((student) => {
-            const subscription = student.subscription;
-            const verification = verificationLabel(student.liabilityTermStatus, student.liabilityTermRequiredAt);
-            const paymentStatus = !subscription ? "Sem assinatura" : subscription.isCourtesy ? "Cortesia ativa" : subscription.status === SubscriptionStatus.INCOMPLETE ? "Aguardando pagamento" : subscriptionLabel(subscription.status);
-            const paymentTone = subscription?.status === SubscriptionStatus.PAST_DUE || subscription?.status === SubscriptionStatus.INCOMPLETE ? "pill-coral" : "";
-            return <tr key={student.id}>
-              <td data-label="Aluno"><Link className="student-primary student-profile-link" href={`/admin/alunos/${student.id}`}>{student.name}</Link><div className="student-secondary">{student.email}</div></td>
-              <td data-label="Plano"><div className="analysis-plan-name">{subscription?.planName ?? "Ainda não definido"}</div><div className="student-secondary">{subscription?.isCourtesy ? "Cortesia" : subscription?.manualMonthlyBilling ? "Cobrança mensal" : subscription?.nextBillingAt ? `Próxima: ${formatDate(subscription.nextBillingAt)}` : "Sem cobrança agendada"}</div></td>
-              {isDueDateView ? <td data-label="Vencimento"><div className="analysis-due-date"><strong>{subscription?.nextBillingAt ? formatDate(subscription.nextBillingAt) : "—"}</strong><small>{subscription?.manualMonthlyBilling ? "Cobrança mensal manual" : "Próxima cobrança"}</small></div></td> : null}
-              <td data-label="Condição"><div className="analysis-condition-pills">{subscription?.isCourtesy ? <span className="pill">Cortesia</span> : null}{subscription?.hasCustomPrice ? <span className="pill pill-coral">Valor exclusivo</span> : null}{subscription?.manualMonthlyBilling ? <span className="pill pill-manual">Pix manual</span> : null}{!subscription?.isCourtesy && !subscription?.hasCustomPrice && !subscription?.manualMonthlyBilling ? <span className="pill pill-muted">Padrão</span> : null}</div></td>
-              <td data-label="Valor mensal"><strong className="analysis-price">{subscription?.isCourtesy ? "Isento" : subscription ? formatCurrency(subscription.priceCents) : "—"}</strong></td>
-              <td data-label="Pagamento"><span className={`pill ${paymentTone}`}>{paymentStatus}</span></td>
-              <td data-label="Termo"><span className={`pill verification-pill verification-${verification.tone}`}>{verification.label}</span></td>
-            </tr>;
-          })}
-        </tbody></table></div>
+        <div className="toolbar">
+          <form className="toolbar-search" method="get" role="search" aria-label="Buscar na lista selecionada">
+            <input type="hidden" name="status" value={status} />
+            {isDueDateView && selectedDueDate ? <input type="hidden" name="due" value={selectedDueDate.value} /> : null}
+            <div className="search-field">
+              <label className="visually-hidden" htmlFor="student-search">Buscar aluno</label>
+              <Icon name="search" />
+              <input className="control" id="student-search" name="q" type="search" placeholder="Buscar nome ou e-mail" defaultValue={query} />
+            </div>
+            <button className="btn btn-secondary" type="submit">Buscar</button>
+          </form>
+          {isDueDateView ? <form className="analysis-due-filter" method="get">
+            <input type="hidden" name="status" value="due-date" />
+            {query ? <input type="hidden" name="q" value={query} /> : null}
+            <div className="form-field">
+              <label htmlFor="analysis-due-date">Vencimento em</label>
+              <input className="control" id="analysis-due-date" name="due" type="date" defaultValue={selectedDueDate?.value ?? ""} />
+            </div>
+            <button className="btn btn-secondary" type="submit"><Icon name="calendar" />Filtrar data</button>
+            {selectedDueDate ? <Link className="btn btn-quiet" href={buildHref("due-date", 1, query)}>Ver todos</Link> : null}
+          </form> : null}
+        </div>
 
-        <nav className="pagination" aria-label="Paginação da lista de alunos">{currentPage > 1 ? <Link className="pagination-link" href={buildHref(status, currentPage - 1, query, selectedDueDate?.value)}>Anterior</Link> : <span className="pagination-link disabled">Anterior</span>}<span className="pagination-status">{currentPage} / {totalPages}</span>{currentPage < totalPages ? <Link className="pagination-link" href={buildHref(status, currentPage + 1, query, selectedDueDate?.value)}>Próxima</Link> : <span className="pagination-link disabled">Próxima</span>}</nav>
+        {students.length === 0 ? <div className="state-empty">
+          <strong>Nenhum aluno encontrado.</strong>
+          <p>{query ? `Nada corresponde a “${query}” nesta lista.` : "Esta lista está vazia no momento."}</p>
+          {query || selectedDueDate ? <Link className="btn btn-secondary" href={buildHref(status, 1, "")}>Limpar busca</Link> : null}
+        </div> : <>
+          <div className="data-table-wrap responsive-table">
+            <table className="data-table analysis-list-table">
+              <caption className="visually-hidden">{titles[status].title}, página {currentPage} de {totalPages}</caption>
+              <thead><tr><th scope="col">Aluno</th><th scope="col">Plano</th>{isDueDateView ? <th scope="col">Vencimento</th> : null}<th scope="col">Condição</th><th scope="col" className="num">Valor mensal</th><th scope="col">Pagamento</th><th scope="col">Termo</th></tr></thead>
+              <tbody>{students.map((student) => {
+                const row = describe(student);
+                return <tr key={student.id}>
+                  <td><Link className="row-link" href={`/admin/alunos/${student.id}`}><span className="cell-primary">{student.name}</span><span className="cell-secondary analysis-email">{student.email}</span></Link></td>
+                  <td><span className="cell-primary analysis-plan">{row.planName}</span><span className="cell-secondary">{row.planNote}</span></td>
+                  {isDueDateView ? <td><span className="cell-primary">{row.nextBilling ? formatShortDate(row.nextBilling) : "—"}</span><span className="cell-secondary">{row.dueNote}</span></td> : null}
+                  <td><span className="pill-group">{row.conditions.map((condition) => <StatusPill key={condition.label} tone={condition.tone}>{condition.label}</StatusPill>)}</span></td>
+                  <td className="num">{row.price}</td>
+                  <td><StatusPill tone={row.paymentTone}>{row.paymentStatus}</StatusPill></td>
+                  <td><StatusPill tone={row.verification.tone}>{row.verification.label}</StatusPill></td>
+                </tr>;
+              })}</tbody>
+            </table>
+          </div>
+          <ul className="data-rows responsive-rows" aria-label={`${titles[status].title}, página ${currentPage} de ${totalPages}`}>
+            {students.map((student) => {
+              const row = describe(student);
+              return <li key={student.id}><Link className="data-row-link" href={`/admin/alunos/${student.id}`}>
+                <span className="row-title">{student.name}</span>
+                <StatusPill tone={row.paymentTone}>{row.paymentStatus}</StatusPill>
+                <span className="row-meta">
+                  <span>{row.planName}</span>
+                  <span>{row.price}</span>
+                  <span>{isDueDateView && row.nextBilling ? `Vence ${formatDate(row.nextBilling)}` : row.planNote}</span>
+                </span>
+                <span className="row-meta analysis-row-pills">
+                  {row.conditions.map((condition) => <StatusPill key={condition.label} tone={condition.tone}>{condition.label}</StatusPill>)}
+                  <StatusPill tone={row.verification.tone}>Termo: {row.verification.label}</StatusPill>
+                </span>
+              </Link></li>;
+            })}
+          </ul>
+        </>}
+
+        <Pagination page={currentPage} totalPages={totalPages} total={selectedTotal} pageSize={PAGE_SIZE} itemLabel="alunos" label="Paginação da lista de alunos" hrefFor={(page) => buildHref(status, page, query, due)} />
       </section>
     </AppShell>
   );
 }
 
+type StudentRow = Prisma.UserGetPayload<{ include: { subscription: true } }>;
+
+function describe(student: StudentRow) {
+  const subscription = student.subscription;
+  const paymentStatus = !subscription ? "Sem assinatura" : subscription.isCourtesy ? "Cortesia ativa" : subscription.status === SubscriptionStatus.INCOMPLETE ? "Aguardando pagamento" : subscriptionLabel(subscription.status);
+  const paymentTone: Tone = subscription?.status === SubscriptionStatus.PAST_DUE ? "danger" : subscription?.status === SubscriptionStatus.INCOMPLETE ? "warning" : subscription?.isCourtesy ? "info" : toneForLabel(paymentStatus);
+  const conditions: { label: string; tone: Tone }[] = [];
+  if (subscription?.isCourtesy) conditions.push({ label: "Cortesia", tone: "info" });
+  if (subscription?.hasCustomPrice) conditions.push({ label: "Valor exclusivo", tone: "info" });
+  if (subscription?.manualMonthlyBilling) conditions.push({ label: "Pix manual", tone: "info" });
+  if (!conditions.length) conditions.push({ label: "Padrão", tone: "neutral" });
+  return {
+    planName: subscription?.planName ?? "Ainda não definido",
+    planNote: subscription?.isCourtesy ? "Cortesia" : subscription?.manualMonthlyBilling ? "Cobrança mensal" : subscription?.nextBillingAt ? `Próxima: ${formatDate(subscription.nextBillingAt)}` : "Sem cobrança agendada",
+    nextBilling: subscription?.nextBillingAt ?? null,
+    dueNote: subscription?.manualMonthlyBilling ? "Cobrança mensal manual" : "Próxima cobrança",
+    price: subscription?.isCourtesy ? "Isento" : subscription ? formatCurrency(subscription.priceCents) : "—",
+    paymentStatus,
+    paymentTone,
+    conditions,
+    verification: verificationLabel(student.liabilityTermStatus, student.liabilityTermRequiredAt),
+  };
+}
+
 function FilterGroup({ title, tabs, status, totals, query, due }: { title: string; tabs: { id: ListStatus; label: string }[]; status: ListStatus; totals: Record<ListStatus, number>; query: string; due?: string }) {
-  return <div className="analysis-filter-group"><p>{title}</p><div>{tabs.map((tab) => <Link className={status === tab.id ? "active" : ""} href={buildHref(tab.id, 1, query, due)} key={tab.id}><span>{tab.label}</span><b>{totals[tab.id]}</b></Link>)}</div></div>;
+  return <div className="analysis-filter-set">
+    <p className="analysis-filter-label">{title}</p>
+    <nav className="chips" aria-label={title}>
+      {tabs.map((tab) => <Link className="chip" href={buildHref(tab.id, 1, query, due)} key={tab.id} aria-current={status === tab.id ? "true" : undefined}>{tab.label}<span className="chip-count">{numberFormat.format(totals[tab.id])}</span></Link>)}
+    </nav>
+  </div>;
 }

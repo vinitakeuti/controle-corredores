@@ -1,0 +1,74 @@
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+/* Visão geral (/admin): números do mês num bloco só, prévia curta da agenda, atividade do mês */
+@layer screens {
+  /* Cabeçalho do bloco de números: título à esquerda; "Atualizado agora" e o olho à direita */
+  .overview-quick { border-top: 0; padding-top: var(--space-2); }
+  .overview-quick-head { align-items: center; }
+  .overview-quick-tools { display: flex; align-items: center; gap: var(--space-3); }
+  .overview-updated { color: var(--text-muted); font-size: var(--text-xs); }
+  /* Ocultar/exibir valores: preferência de leitura, não ação da página; discreto e com alvo de 44px. */
+  .privacy-toggle { gap: 6px; margin-inline-end: calc(-1 * var(--space-2)); padding: 0 var(--space-2); color: var(--text-secondary); font-weight: 500; }
+  .privacy-toggle:hover { color: var(--text); }
+  .privacy-toggle .icon { width: 18px; height: 18px; }
+
+  /* Uma faixa, duas linhas: dinheiro (2 métricas largas) em cima, alunos (3) embaixo */
+  .overview-metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .overview-metrics .metric[data-size="money"] { grid-column: span 3; }
+  .overview-metrics[data-money="1"] .metric[data-size="money"] { grid-column: span 6; }
+  .overview-metrics .metric[data-size="money"] .metric-value { font-size: clamp(2.25rem, 4vw, 3.25rem); }
+  .overview-metrics .metric:not([data-size]) { grid-column: span 2; border-top: 1px solid var(--line-soft); }
+  /* Divisórias explícitas: as regras genéricas da faixa (ímpar/par) não servem para duas linhas de tamanhos diferentes */
+  .overview-metrics .metric:not([data-size]) + .metric:not([data-size]) { border-left: 1px solid var(--line); }
+  .overview-metrics .metric[data-size="money"] + .metric[data-size="money"] { border-left: 1px solid var(--line); }
+  .overview-metrics .metric[data-size="money"] + .metric:not([data-size]) { border-left: 0; }
+
+  /* Prévia da agenda: cartão pequeno, 3 compromissos lado a lado */
+  .upcoming-card { margin: var(--space-2) 0 var(--space-6); padding: var(--space-3) var(--space-5) var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .upcoming-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .upcoming-heading { margin: 0; font-size: var(--text-md); font-weight: 700; }
+  .upcoming-more { display: inline-flex; align-items: center; gap: 4px; min-height: var(--control-h); margin-right: calc(-1 * var(--space-2)); padding: 0 var(--space-2); color: var(--text-secondary); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
+  .upcoming-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
+  .upcoming-list > li { min-width: 0; }
+  .upcoming-list > li + li { padding-left: var(--space-4); border-left: 1px solid var(--line-soft); }
+  .upcoming-list > li:not(:last-child) .upcoming-item { padding-right: var(--space-4); }
+  .upcoming-item { display: grid; gap: 2px; padding: var(--space-1) 0; color: var(--text); text-decoration: none; }
+  .upcoming-when { color: var(--text-muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+  .upcoming-day[data-today] { color: var(--accent-text); font-weight: 600; }
+  .upcoming-title { overflow: hidden; font-size: var(--text-sm); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+  .upcoming-area { overflow: hidden; color: var(--text-muted); font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
+  .upcoming-empty { margin: 0; color: var(--text-muted); font-size: var(--text-sm); }
+  @media (hover: hover) and (pointer: fine) {
+    .upcoming-more:hover { color: var(--accent-text); }
+    .upcoming-item:hover .upcoming-title { color: var(--accent-text); }
+  }
+
+  /* Atividade do mês: a régua do bloco de números e o cartão já separam as seções */
+  .overview-columns > .section-block { border-top: 0; }
+  .overview-columns { display: grid; gap: 0 var(--space-7); }
+  @media (min-width: 1100px) {
+    .overview-columns { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+  }
+
+  /* Celular: dinheiro um por linha; alunos dois por linha (o terceiro ocupa a linha) */
+  @media (max-width: 559px) {
+    .overview-quick-head { align-items: flex-start; }
+    /* Mais compacto no celular: valores menores e menos respiro vertical em cada número */
+    .overview-metrics .metric { padding-top: var(--space-3); padding-bottom: var(--space-4); }
+    .overview-metrics .metric[data-size="money"] .metric-value { font-size: 2rem; }
+    .overview-metrics .metric:not([data-size]) .metric-value { font-size: 1.75rem; }
+    .overview-metrics .metric[data-size="money"] { grid-column: span 6; border-left: 0; }
+    .overview-metrics .metric[data-size="money"] + .metric[data-size="money"] { border-top: 1px solid var(--line-soft); }
+    .overview-metrics .metric:not([data-size]) { grid-column: span 3; }
+    .overview-metrics .metric:not([data-size]) + .metric:not([data-size]):last-child { grid-column: span 6; border-left: 0; }
+    .overview-metrics .metric[data-size="money"] + .metric[data-size="money"] { border-left: 0; }
+    .upcoming-card { padding: var(--space-3) var(--space-4) var(--space-2); }
+    .upcoming-list { grid-template-columns: minmax(0, 1fr); }
+    .upcoming-list > li + li { padding-left: 0; border-top: 1px solid var(--line-soft); border-left: 0; }
+    .upcoming-list > li:not(:last-child) .upcoming-item { padding-right: 0; }
+    /* Quando e área na mesma linha; título embaixo */
+    .upcoming-item { grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--space-3); padding: var(--space-2) 0; }
+    .upcoming-when { order: 1; }
+    .upcoming-area { order: 2; }
+    .upcoming-title { order: 3; grid-column: 1 / -1; }
+  }
+}

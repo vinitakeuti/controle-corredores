@@ -1,0 +1,36 @@
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+/* Vendas (/admin/vendas) e análise de vendas (/admin/vendas/analise) */
+@layer screens {
+  .sales-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; gap: var(--space-3); margin-bottom: var(--space-5); }
+  .sales-summary { margin-bottom: var(--space-2); }
+  .sales-summary .metric-value { font-size: clamp(1.75rem, 2.6vw, 2.5rem); }
+  .sales-list { border-top: 0; }
+  .sales-email { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .owner-select-control { min-width: 170px; min-height: 36px; padding-top: 6px; padding-bottom: 6px; font-size: var(--text-sm); }
+  .sales-row-owner { grid-column: 1 / -1; margin-top: var(--space-2); }
+  .sales-row-owner .owner-select-control { width: 100%; min-height: var(--control-h); font-size: var(--text-md); }
+
+  .sales-period { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-4); }
+  .sales-period .chips { margin-bottom: 0; }
+  .sales-range { margin: 0; color: var(--text-muted); font-size: var(--text-sm); }
+  .sales-ranking { border-top: 0; }
+  .ranking { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+  .ranking-row { display: grid; grid-template-columns: 56px minmax(200px, 1fr) minmax(0, 2fr); align-items: center; gap: var(--space-4); padding: var(--space-4) 0; border-bottom: 1px solid var(--line-soft); }
+  .ranking-position { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--text-secondary); }
+  .ranking-row:first-child .ranking-position { color: var(--accent-strong); }
+  .ranking-person { display: grid; gap: 2px; min-width: 0; }
+  .ranking-person strong { font-weight: 700; }
+  .ranking-person span, .ranking-person small { overflow: hidden; color: var(--text-muted); font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
+  .ranking-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--space-3); margin: 0; }
+  .ranking-stats dt { color: var(--text-muted); font-size: var(--text-xs); }
+  .ranking-stats dd { margin: 2px 0 0; font-size: var(--text-sm); font-weight: 700; }
+  .ranking-stats dd span { color: var(--text-muted); font-weight: 500; }
+  .ranking-commission dd { color: var(--positive); }
+
+  @media (max-width: 899px) {
+    .sales-filters { grid-template-columns: 1fr 1fr; }
+    .sales-filters .btn { grid-column: 1 / -1; }
+    .ranking-row { grid-template-columns: 48px minmax(0, 1fr); }
+    .ranking-stats { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
+  }
+}

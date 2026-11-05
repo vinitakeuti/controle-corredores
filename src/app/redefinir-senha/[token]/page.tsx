@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
-import { Brand } from "@/components/brand";
+import { AuthHeading, AuthLayout } from "@/components/auth-layout";
 import { PasswordResetConfirmForm } from "@/components/password-reset-confirm-form";
 import { prisma } from "@/lib/prisma";
 import { hashOpaqueToken } from "@/lib/tokens";
@@ -34,11 +34,24 @@ async function findResetAccount(token: string) {
 export default async function PasswordResetConfirmPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const account = await findResetAccount(token);
-  const identity = <section className="login-identity"><Brand /><div><p className="eyebrow">Pace Lab</p><h1>Seu próximo treino começa aqui.</h1><p>Escolha uma nova senha e retome sua jornada.</p></div><small>PACE LAB · ACADEMIA DO CORREDOR</small></section>;
+  const brandTitle = "Seu próximo treino começa aqui.";
+  const brandLead = "Escolha uma nova senha e retome sua jornada.";
 
   if (!account) {
-    return <main className="login-page"><div className="login-layout">{identity}<section className="login-card"><p className="eyebrow">Link indisponível</p><h1>Este link não vale mais.</h1><p>Ele expirou ou já foi utilizado. Peça um novo link à equipe Pace Lab ou solicite outro pelo seu e-mail.</p><Link className="button button-primary reset-unavailable-action" href="/recuperar-senha">Solicitar novo link</Link><p className="login-helper"><Link href="/login">Voltar para o login</Link></p></section></div></main>;
+    return <AuthLayout brandTitle={brandTitle} brandLead={brandLead}>
+      <AuthHeading context="Link indisponível" title="Este link não vale mais." lead="Ele expirou ou já foi utilizado. Peça um novo link à equipe Pace Lab ou solicite outro pelo seu e-mail." />
+      <Link className="btn btn-primary btn-block" href="/recuperar-senha">Solicitar novo link</Link>
+      <p className="auth-helper"><Link className="link" href="/login">Voltar para o login</Link></p>
+    </AuthLayout>;
   }
 
-  return <main className="login-page"><div className="login-layout">{identity}<section className="login-card"><p className="eyebrow">Nova senha</p><h1>Olá, {firstName(account.name)}.</h1><p>Defina uma nova senha para acessar sua conta. Use pelo menos oito caracteres.</p><div className="reset-account" aria-label="Conta que terá a senha redefinida"><span className="reset-account-avatar" aria-hidden="true">{initials(account.name)}</span><div><small>{account.role === UserRole.STUDENT ? "Sua conta de aluno" : "Sua conta da equipe"}</small><strong>{account.name}</strong><span>{maskEmail(account.email)}</span></div></div><PasswordResetConfirmForm token={token} email={account.email} /><p className="login-helper">Não é você? <Link href="/login">Voltar para o login</Link></p></section></div></main>;
+  return <AuthLayout brandTitle={brandTitle} brandLead={brandLead}>
+    <AuthHeading context="Nova senha" title={`Olá, ${firstName(account.name)}.`} lead="Defina uma nova senha para acessar sua conta. Use pelo menos oito caracteres." />
+    <div className="reset-identity" aria-label="Conta que terá a senha redefinida">
+      <span className="avatar reset-identity-avatar" aria-hidden="true">{initials(account.name)}</span>
+      <div className="activity-copy"><span className="reset-identity-kind">{account.role === UserRole.STUDENT ? "Sua conta de aluno" : "Sua conta da equipe"}</span><strong>{account.name}</strong><span>{maskEmail(account.email)}</span></div>
+    </div>
+    <PasswordResetConfirmForm token={token} email={account.email} />
+    <p className="auth-helper">Não é você? <Link className="link" href="/login">Voltar para o login</Link></p>
+  </AuthLayout>;
 }

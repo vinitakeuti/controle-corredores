@@ -6,6 +6,10 @@ import type { AppmaxIntegrationSummary } from "@/lib/appmax-integration";
 import type { IntegrationDirectory, IntegrationDirectoryItem, IntegrationProviderKey } from "@/lib/integration-directory";
 import { AsaasIntegrationForm } from "@/components/asaas-integration-form";
 import { AppmaxIntegrationForm } from "@/components/appmax-integration-form";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusPill, type Tone } from "@/components/ui/status-pill";
 
 type Props = {
   initialDirectory: IntegrationDirectory;
@@ -22,11 +26,10 @@ function statusLabel(item: IntegrationDirectoryItem) {
   return "Não configurado";
 }
 
-function statusClass(item: IntegrationDirectoryItem) {
-  if (item.active) return "is-active";
-  if (item.configured) return "is-configured";
-  if (!item.available) return "is-coming";
-  return "is-pending";
+function statusTone(item: IntegrationDirectoryItem): Tone {
+  if (item.active) return "positive";
+  if (item.configured) return "info";
+  return "neutral";
 }
 
 export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, initialAsaasSummary }: Props) {
@@ -82,55 +85,56 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, init
 
   const appmax = directory.items.find((item) => item.provider === "APPMAX");
   const asaas = directory.items.find((item) => item.provider === "ASAAS");
+  const activeItem = directory.items.find((item) => item.provider === directory.activeProvider);
+  const paymentCount = directory.items.filter((item) => item.category === "Gateways & vendas").length;
+  const feedbackIsError = feedback !== null && feedback !== "Provedor ativo atualizado. O checkout usará esta conexão.";
 
   return (
-    <div className="integrations-page">
-      <header className="integrations-center-heading">
-        <div>
-          <p className="eyebrow">Configurações</p>
-          <h1>Central de integrações</h1>
-          <p>Gerencie gateways, credenciais e o provedor responsável pelos pagamentos.</p>
+    <div className="integrations">
+      <PageHeader context={{ label: "Pagamentos" }} title="Central de integrações." lead="Gerencie gateways, credenciais e o provedor responsável pelos pagamentos." actions={<StatusPill tone="neutral">Somente administradores</StatusPill>} />
+
+      {selectedProvider === "APPMAX" && appmax ? <section className="section-block provider-panel" aria-labelledby="integration-config-title">
+        <button className="btn btn-quiet provider-back" type="button" onClick={() => setSelectedProvider(null)}><Icon name="arrowLeft" />Voltar ao diretório</button>
+        <div className="section-head"><div><h2 className="section-title" id="integration-config-title">Appmax</h2><p className="section-lead">Atualize credenciais e preferências sem sair da central.</p></div><StatusPill tone={statusTone(appmax)}>{statusLabel(appmax)}</StatusPill></div>
+        <AppmaxIntegrationForm embedded initialSummary={appmaxSummary} onSummaryChange={(nextSummary) => { setAppmaxSummary(nextSummary); void refreshDirectory(); }} />
+      </section> : selectedProvider === "ASAAS" && asaas ? <section className="section-block provider-panel" aria-labelledby="integration-config-title">
+        <button className="btn btn-quiet provider-back" type="button" onClick={() => setSelectedProvider(null)}><Icon name="arrowLeft" />Voltar ao diretório</button>
+        <div className="section-head"><div><h2 className="section-title" id="integration-config-title">Asaas</h2><p className="section-lead">Configure a chave da API e a autenticação do webhook.</p></div><StatusPill tone={statusTone(asaas)}>{statusLabel(asaas)}</StatusPill></div>
+        <AsaasIntegrationForm embedded initialSummary={asaasSummary} onSummaryChange={(nextSummary) => { setAsaasSummary(nextSummary); void refreshDirectory(); }} />
+      </section> : <>
+        <div className="message integration-active" data-tone={activeItem ? "positive" : "warning"}>
+          <Icon name={activeItem ? "check" : "alert"} />
+          <span>{activeItem ? <>Provedor ativo: <strong>{activeItem.name}</strong>. O checkout usa esta conexão.</> : "Nenhum provedor ativo."}</span>
         </div>
-        <div className="integration-access-note"><span className="integration-status-dot" /> Somente administradores</div>
-      </header>
 
-      <div className="integration-center-layout">
-        <aside className="integration-catalog-sidebar" aria-label="Filtros de integrações">
-          <label className="integration-search"><span aria-hidden="true">⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar integração..." aria-label="Buscar integração" /></label>
-          <p className="integration-sidebar-label">Filtros</p>
-          <button className={`integration-filter ${filter === "all" ? "active" : ""}`} type="button" onClick={() => setFilter("all")}><span aria-hidden="true">▦</span> Todos os apps <strong>{directory.items.length}</strong></button>
-          <button className={`integration-filter ${filter === "payments" ? "active" : ""}`} type="button" onClick={() => setFilter("payments")}><span aria-hidden="true">▣</span> Gateways &amp; vendas <strong>{directory.items.filter((item) => item.category === "Gateways & vendas").length}</strong></button>
-
-          <div className="integration-sidebar-divider" />
-          <p className="integration-sidebar-label">Ativa</p>
-          {directory.activeProvider ? <div className="integration-active-provider"><span className="integration-mini-mark">{directory.items.find((item) => item.provider === directory.activeProvider)?.abbreviation ?? "•"}</span><span>{directory.items.find((item) => item.provider === directory.activeProvider)?.name ?? directory.activeProvider}</span><i /></div> : <p className="integration-sidebar-empty">Nenhum provedor ativo.</p>}
-          <p className="integration-sidebar-label integration-sidebar-bottom-label">Opções gerais</p>
-          <div className="integration-general-option"><span>▤</span> Logs de webhook</div>
-          <div className="integration-general-option muted"><span>⚙</span> Manutenção do BD</div>
-        </aside>
-
-        <main className="integration-directory">
-          <div className="integration-directory-heading"><div><h2>Diretório de aplicativos ({directory.items.length})</h2><p>Conexões disponíveis para o controle financeiro da assessoria.</p></div><span>Mostrando {items.length} de {directory.items.length}</span></div>
-          {feedback ? <p className="integration-center-feedback" role="status">{feedback}</p> : null}
-          <div className="integration-app-grid">
-            {items.map((item) => <article className={`integration-app-card ${item.active ? "active" : ""}`} key={item.provider}>
-              <div className="integration-app-card-top"><div className={`integration-app-icon ${item.available ? "appmax" : "placeholder"}`}>{item.abbreviation}</div><span className={`integration-card-status ${statusClass(item)}`}><i />{statusLabel(item)}</span></div>
-              <div className="integration-app-card-copy"><h3>{item.name}</h3><p className="integration-app-category">{item.category}</p><p>{item.description}</p></div>
-              <div className="integration-app-card-actions">{item.available ? <button className="integration-manage-link" type="button" onClick={() => setSelectedProvider(item.provider)}>{item.configured ? "Gerenciar" : "Configurar"} <span aria-hidden="true">→</span></button> : <span className="integration-coming-link">Disponível em breve</span>}{item.configured && !item.active ? <button className="integration-activate-link" type="button" onClick={() => activate(item.provider)} disabled={pendingProvider !== null}>{pendingProvider === item.provider ? "Ativando..." : "Ativar"}</button> : null}</div>
-            </article>)}
+        <section className="section-block integration-directory-block" aria-labelledby="integration-directory-title">
+          <div className="section-head"><div><h2 className="section-title" id="integration-directory-title">Diretório de aplicativos ({directory.items.length})</h2><p className="section-lead">Conexões disponíveis para o controle financeiro da assessoria.</p></div><span className="field-hint">Mostrando {items.length} de {directory.items.length}</span></div>
+          <div className="toolbar">
+            <div className="search-field integration-search-field"><label className="visually-hidden" htmlFor="integration-search">Buscar integração</label><Icon name="search" /><input className="control" id="integration-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar integração..." /></div>
+            <div className="chips integration-filter-chips" role="group" aria-label="Filtros">
+              <button className="chip" type="button" aria-pressed={filter === "all"} data-active={filter === "all" || undefined} onClick={() => setFilter("all")}>Todos os apps<span className="chip-count">{directory.items.length}</span></button>
+              <button className="chip" type="button" aria-pressed={filter === "payments"} data-active={filter === "payments" || undefined} onClick={() => setFilter("payments")}>Gateways &amp; vendas<span className="chip-count">{paymentCount}</span></button>
+            </div>
           </div>
+          <Feedback success={feedback && !feedbackIsError ? feedback : undefined} error={feedbackIsError ? feedback : undefined} />
+          {items.length ? <ul className="provider-list">
+            {items.map((item) => <li className="provider-row" key={item.provider} data-active={item.active || undefined}>
+              <span className="provider-mark" aria-hidden="true">{item.abbreviation}</span>
+              <span className="provider-copy"><strong>{item.name}</strong><span className="provider-category">{item.category}</span><span>{item.description}</span></span>
+              <StatusPill tone={statusTone(item)}>{statusLabel(item)}</StatusPill>
+              <span className="btn-row provider-row-actions">
+                {item.configured && !item.active ? <button className="btn btn-secondary" type="button" onClick={() => activate(item.provider)} disabled={pendingProvider !== null} aria-busy={pendingProvider === item.provider}>{pendingProvider === item.provider ? "Ativando..." : "Ativar"}</button> : null}
+                {item.available ? <button className="btn btn-secondary" type="button" onClick={() => setSelectedProvider(item.provider)}>{item.configured ? "Gerenciar" : "Configurar"}<Icon name="chevronRight" className="icon-sm" /></button> : <span className="field-hint">Disponível em breve</span>}
+              </span>
+            </li>)}
+          </ul> : <div className="state-empty"><strong>Nenhuma integração encontrada.</strong><p>Busque por outro nome ou mostre todos os apps.</p></div>}
+        </section>
 
-          {selectedProvider === "APPMAX" && appmax ? <section className="integration-config-panel" aria-labelledby="integration-config-title">
-            <div className="integration-config-panel-heading"><div><button className="integration-back-link" type="button" onClick={() => setSelectedProvider(null)}>← Voltar ao diretório</button><p className="eyebrow">Configuração do provedor</p><h2 id="integration-config-title">Appmax</h2><p>Atualize credenciais e preferências sem sair da central.</p></div><span className={`integration-card-status ${statusClass(appmax)}`}><i />{statusLabel(appmax)}</span></div>
-            <AppmaxIntegrationForm embedded initialSummary={appmaxSummary} onSummaryChange={(nextSummary) => { setAppmaxSummary(nextSummary); void refreshDirectory(); }} />
-          </section> : null}
-
-          {selectedProvider === "ASAAS" && asaas ? <section className="integration-config-panel" aria-labelledby="integration-config-title">
-            <div className="integration-config-panel-heading"><div><button className="integration-back-link" type="button" onClick={() => setSelectedProvider(null)}>← Voltar ao diretório</button><p className="eyebrow">Configuração do provedor</p><h2 id="integration-config-title">Asaas</h2><p>Configure a chave da API e a autenticação do webhook.</p></div><span className={`integration-card-status ${statusClass(asaas)}`}><i />{statusLabel(asaas)}</span></div>
-            <AsaasIntegrationForm embedded initialSummary={asaasSummary} onSummaryChange={(nextSummary) => { setAsaasSummary(nextSummary); void refreshDirectory(); }} />
-          </section> : null}
-        </main>
-      </div>
+        <section className="section-block" aria-labelledby="integration-general-title">
+          <div className="section-head"><div><h2 className="section-title" id="integration-general-title">Opções gerais</h2></div></div>
+          <ul className="integration-general"><li><Icon name="file" />Logs de webhook</li><li><Icon name="settings" />Manutenção do BD</li></ul>
+        </section>
+      </>}
     </div>
   );
 }
