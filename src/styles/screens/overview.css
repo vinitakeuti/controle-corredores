@@ -2,6 +2,11 @@
 /* Visão geral (/admin) */
 @layer screens {
   .overview-updated { align-self: center; color: var(--text-muted); font-size: var(--text-xs); }
+  /* Ocultar/exibir valores: preferência de leitura, não ação da página. Fica discreto ao lado de
+     "Atualizado agora", sem borda nem fundo, e mantém o alvo de 44px. */
+  .privacy-toggle { gap: 6px; margin-inline-end: calc(-1 * var(--space-2)); padding: 0 var(--space-2); color: var(--text-secondary); font-weight: 500; }
+  .privacy-toggle:hover { color: var(--text); }
+  .privacy-toggle .icon { width: 18px; height: 18px; }
   .overview-results { border-top: 0; padding-top: var(--space-2); }
   .overview-results .metric-value { font-size: clamp(2.25rem, 4vw, 3.25rem); }
   /* A régua inferior da faixa de métricas já separa a seção seguinte. */

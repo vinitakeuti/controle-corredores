@@ -28,7 +28,7 @@ export function FinancialVisibilityToggle() {
   const label = hidden ? "Exibir valores financeiros" : "Ocultar valores financeiros";
 
   return (
-    <button className="btn btn-secondary" type="button" onClick={toggle} title={label}>
+    <button className="btn btn-quiet privacy-toggle" type="button" onClick={toggle} title={label}>
       <Icon name={hidden ? "eye" : "eyeOff"} />{hidden ? "Exibir valores" : "Ocultar valores"}
     </button>
   );
