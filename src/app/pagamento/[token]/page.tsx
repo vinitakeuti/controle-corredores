@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PaymentLinkStatus, UserRole } from "@prisma/client";
-import { Brand } from "@/components/brand";
 import { CheckoutAccessForm } from "@/components/checkout-access-form";
 import { CheckoutPayment } from "@/components/checkout-payment";
 import { StudentSubscriptionFlow } from "@/components/student-subscription-flow";
+import { Icon } from "@/components/ui/icon";
+import { PageHeader } from "@/components/ui/page-header";
 import { getCurrentUser } from "@/lib/auth";
 import { getPaymentCheckoutConfig } from "@/lib/payment-gateway";
 import { getActivePlans } from "@/lib/plans";
@@ -25,14 +26,24 @@ export default async function PaymentPage({ params }: { params: Promise<{ token:
   const plans = await getActivePlans();
 
   return (
-    <main className="checkout-page">
-      <div className="checkout-shell">
-        <Brand href="/" />
-        <div className="checkout-frame">
-          {link.status === PaymentLinkStatus.COMPLETED ? <div className="checkout-success"><p className="eyebrow">Pagamento confirmado</p><h1>Sua assinatura está ativa.</h1><p>Você já pode acessar a área do aluno.</p><Link className="button button-primary" href="/aluno">Acessar área do aluno</Link></div> : isForeignUser ? <div className="checkout-message"><p className="eyebrow">Link individual</p><h1>Este link pertence a outro acesso.</h1><p>Abra o link usando a conta que foi cadastrada para este pagamento.</p></div> : !link.userId ? <><div className="checkout-intro"><p className="eyebrow">Primeiro acesso</p><h1>Crie seu acesso.</h1><p>Preencha seus dados para continuar e escolha seu plano antes do pagamento.</p></div><CheckoutAccessForm token={token} mode="register" /></> : !currentUser ? <><div className="checkout-intro"><p className="eyebrow">Pagamento reservado</p><h1>Entre para continuar.</h1><p>Use o e-mail e a senha enviados pela assessoria.</p></div><CheckoutAccessForm token={token} mode="login" initialEmail={link.user?.email ?? ""} /></> : isLinkedUser && currentUser.role === UserRole.STUDENT ? <>{plans.length ? <StudentSubscriptionFlow token={token} plans={plans} initialPlanId={link.user?.subscription?.planId ?? null} name={link.user?.name ?? currentUser.name} cpf={link.user?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={link.user?.subscription?.allowedMethods ?? link.allowedMethods} automaticPixEnabled={link.user?.subscription?.automaticPixEnabled} /> : link.user?.subscription?.planId ? <CheckoutPayment token={token} name={link.user?.name ?? currentUser.name} cpf={link.user?.cpf ?? ""} amountCents={link.amountCents} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={link.user?.subscription?.allowedMethods ?? link.allowedMethods} automaticPixEnabled={link.user?.subscription?.automaticPixEnabled} /> : <div className="checkout-message"><p className="eyebrow">Planos indisponíveis</p><h1>Estamos preparando os planos.</h1><p>Aguarde a assessoria publicar as opções para continuar.</p></div>}</> : <div className="checkout-message"><p className="eyebrow">Acesso restrito</p><h1>Não foi possível abrir este checkout.</h1><p>Use a conta do aluno vinculada ao link.</p></div>}
-        </div>
-        <p className="checkout-footer">Ambiente seguro para cadastro e pagamento.</p>
+    <main className="checkout" id="conteudo">
+      <header className="checkout-bar brand-surface">
+        <a className="shell-wordmark" href="/" aria-label="Pace Lab, página inicial"><img src="/assets/images/pace-lab.svg" alt="" width={72} height={72} /></a>
+        <span className="checkout-secure"><Icon name="check" className="icon-sm" />Ambiente seguro</span>
+      </header>
+      <div className="checkout-body">
+        {link.status === PaymentLinkStatus.COMPLETED ? <section className="checkout-done">
+          <PageHeader context={{ label: "Pagamento confirmado" }} title="Sua assinatura está ativa." lead="Você já pode acessar a área do aluno." />
+          <Link className="btn btn-primary" href="/aluno">Acessar área do aluno<Icon name="arrowRight" /></Link>
+        </section> : isForeignUser ? <PageHeader context={{ label: "Link individual" }} title="Este link pertence a outro acesso." lead="Abra o link usando a conta que foi cadastrada para este pagamento." /> : !link.userId ? <>
+          <PageHeader context={{ label: "Primeiro acesso" }} title="Crie seu acesso." lead="Preencha seus dados para continuar e escolha seu plano antes do pagamento." />
+          <CheckoutAccessForm token={token} mode="register" />
+        </> : !currentUser ? <>
+          <PageHeader context={{ label: "Pagamento reservado" }} title="Entre para continuar." lead="Use o e-mail e a senha enviados pela assessoria." />
+          <CheckoutAccessForm token={token} mode="login" initialEmail={link.user?.email ?? ""} />
+        </> : isLinkedUser && currentUser.role === UserRole.STUDENT ? <>{plans.length ? <StudentSubscriptionFlow token={token} plans={plans} initialPlanId={link.user?.subscription?.planId ?? null} name={link.user?.name ?? currentUser.name} cpf={link.user?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={link.user?.subscription?.allowedMethods ?? link.allowedMethods} automaticPixEnabled={link.user?.subscription?.automaticPixEnabled} /> : link.user?.subscription?.planId ? <CheckoutPayment token={token} name={link.user?.name ?? currentUser.name} cpf={link.user?.cpf ?? ""} amountCents={link.amountCents} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={link.user?.subscription?.allowedMethods ?? link.allowedMethods} automaticPixEnabled={link.user?.subscription?.automaticPixEnabled} /> : <PageHeader context={{ label: "Planos indisponíveis" }} title="Estamos preparando os planos." lead="Aguarde a assessoria publicar as opções para continuar." />}</> : <PageHeader context={{ label: "Acesso restrito" }} title="Não foi possível abrir este checkout." lead="Use a conta do aluno vinculada ao link." />}
       </div>
+      <p className="checkout-foot">Ambiente seguro para cadastro e pagamento.</p>
     </main>
   );
 }

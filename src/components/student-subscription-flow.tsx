@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckoutPayment, type CheckoutPaymentChoice } from "@/components/checkout-payment";
 import { StudentPlanPicker } from "@/components/student-plan-picker";
+import { Icon } from "@/components/ui/icon";
 import { formatCurrency } from "@/lib/format";
 
 type Method = "PIX" | "BOLETO" | "CARD";
@@ -92,29 +93,38 @@ export function StudentSubscriptionFlow({
     setStage("method");
   }
 
+  const steps = [
+    { id: "plan", label: "Plano" },
+    { id: "method", label: "Pagamento" },
+    { id: "payment", label: "Concluir" },
+  ] as const;
+  const stageIndex = steps.findIndex((item) => item.id === stage);
+
   return (
-    <section className="student-subscription-flow" data-tutorial-anchor="student-payment">
-      <ol className="subscription-steps" aria-label="Etapas da assinatura">
-        <li className={stage === "plan" ? "active" : "complete"}><span>1</span>Plano</li>
-        <li className={stage === "method" ? "active" : stage === "payment" ? "complete" : ""}><span>2</span>Pagamento</li>
-        <li className={stage === "payment" ? "active" : ""}><span>3</span>Concluir</li>
+    <section className="subscription-flow" data-tutorial-anchor="student-payment">
+      <ol className="stepper" aria-label="Etapas da assinatura">
+        {steps.map((item, index) => {
+          const state = index === stageIndex ? "current" : index < stageIndex ? "done" : "todo";
+          return <li className="stepper-item" data-state={state} key={item.id} aria-current={state === "current" ? "step" : undefined}><span><span className="stepper-index">{state === "done" ? <Icon name="check" className="icon-sm" /> : index + 1}</span>{item.label}</span></li>;
+        })}
       </ol>
       {stage === "plan" ? <StudentPlanPicker plans={plans} currentPlanId={initialPlanId} confirmLabel="Prosseguir" onPlanSelected={continueWithPlan} /> : null}
 
-      {stage === "method" && selectedPlan ? <div className="subscription-flow-stage">
-        <div className="panel-heading">
-          <div><p className="eyebrow">Etapa 2 de 3</p><h2>Como você prefere pagar?</h2><p>Selecione uma opção para continuar.</p></div>
-        </div>
-        <div className="selected-plan-summary"><div><small>{manualMonthlyBilling ? "Cobrança mensal manual" : customPriceCents !== null ? "Condição exclusiva" : "Plano escolhido"}</small><strong>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]}</strong></div><b>{formatCurrency(chargeCents)}<small>{manualMonthlyBilling ? "Cobrança a cada mês" : selectedPlan.period === "MONTHLY" ? "Pagamento à vista" : `${formatCurrency(selectedPriceCents)} por mês · até ${periodMonths[selectedPlan.period]}x no cartão`}</small></b></div>
-        {choices.length ? <div className="subscription-method-options" role="radiogroup" aria-label="Método de pagamento">
-          {choices.map((choice) => <button className={method === choice.id ? "active" : ""} type="button" role="radio" aria-checked={method === choice.id} key={choice.id} onClick={() => setMethod(choice.id)}><strong>{choice.title}</strong><span>{choice.description}</span></button>)}
-        </div> : <div className="payment-configuration-notice"><strong>Nenhum método disponível</strong><p>Peça à assessoria para liberar uma forma de pagamento.</p></div>}
-        <div className="creation-actions subscription-flow-actions">{lockPlan ? null : <button className="button button-quiet" type="button" onClick={() => setStage("plan")}>Voltar</button>}<button className="button button-dark" type="button" disabled={!method} onClick={() => setStage("payment")}>Prosseguir para pagamento</button></div>
+      {stage === "method" && selectedPlan ? <div className="flow-stage">
+        <div className="section-head"><div><h2 className="section-title">Como você prefere pagar?</h2><p className="section-lead">Selecione uma opção para continuar.</p></div></div>
+        <dl className="summary-strip flow-summary">
+          <div><dt>{manualMonthlyBilling ? "Cobrança mensal manual" : customPriceCents !== null ? "Condição exclusiva" : "Plano escolhido"}</dt><dd>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]}</dd></div>
+          <div><dt>{manualMonthlyBilling ? "Cobrança a cada mês" : selectedPlan.period === "MONTHLY" ? "Pagamento à vista" : `${formatCurrency(selectedPriceCents)} por mês · até ${periodMonths[selectedPlan.period]}x no cartão`}</dt><dd className="summary-figure">{formatCurrency(chargeCents)}</dd></div>
+        </dl>
+        {choices.length ? <div className="pay-methods pay-methods-stacked" role="radiogroup" aria-label="Método de pagamento">
+          {choices.map((choice) => <button className="method-option" type="button" role="radio" aria-checked={method === choice.id} key={choice.id} onClick={() => setMethod(choice.id)}><strong>{choice.title}</strong><span>{choice.description}</span></button>)}
+        </div> : <div className="message" data-tone="warning"><Icon name="alert" /><div><strong>Nenhum método disponível</strong><p>Peça à assessoria para liberar uma forma de pagamento.</p></div></div>}
+        <div className="btn-row btn-row-split flow-actions">{lockPlan ? <span /> : <button className="btn btn-quiet" type="button" onClick={() => setStage("plan")}><Icon name="arrowLeft" />Voltar</button>}<button className="btn btn-primary" type="button" disabled={!method} onClick={() => setStage("payment")}>Prosseguir para pagamento<Icon name="arrowRight" /></button></div>
       </div> : null}
 
-      {stage === "payment" && selectedPlan && method ? <div className="subscription-flow-stage">
-        <div className="subscription-flow-payment-heading"><div><p className="eyebrow">Etapa 3 de 3</p><h2>Conclua seu pagamento</h2><p>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]} · {manualMonthlyBilling ? `Cobrança mensal de ${formatCurrency(chargeCents)}` : `Total de ${formatCurrency(chargeCents)}${selectedPlan.period === "MONTHLY" ? "" : ` (${formatCurrency(selectedPriceCents)} por mês)`}`}</p></div></div>
-        <button className="subscription-flow-change-method" type="button" onClick={() => setStage("method")}>← Trocar método de pagamento</button>
+      {stage === "payment" && selectedPlan && method ? <div className="flow-stage">
+        <div className="section-head"><div><h2 className="section-title">Conclua seu pagamento</h2><p className="section-lead">{selectedPlan.service.name} · {periodLabel[selectedPlan.period]} · {manualMonthlyBilling ? `Cobrança mensal de ${formatCurrency(chargeCents)}` : `Total de ${formatCurrency(chargeCents)}${selectedPlan.period === "MONTHLY" ? "" : ` (${formatCurrency(selectedPriceCents)} por mês)`}`}</p></div></div>
+        <button className="btn btn-quiet flow-back" type="button" onClick={() => setStage("method")}><Icon name="arrowLeft" />Trocar método de pagamento</button>
         <CheckoutPayment token={token} name={name} cpf={cpf} amountCents={chargeCents} gatewayEnabled={gatewayEnabled} activeProvider={activeProvider} appmaxExternalId={appmaxExternalId} recurrenceEnabled={manualMonthlyBilling ? false : recurrenceEnabled} allowedMethods={planMethods} automaticPixEnabled={manualMonthlyBilling ? false : selectedPlan.automaticPixEnabled} installmentLimit={manualMonthlyBilling ? 1 : periodMonths[selectedPlan.period]} embedded hideHeading hideMethodSelector initialMethod={method} />
       </div> : null}
     </section>

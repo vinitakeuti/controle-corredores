@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { Feedback } from "@/components/ui/feedback";
 
 export function PasswordChangeForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -20,5 +21,12 @@ export function PasswordChangeForm() {
     } catch { setError("Não foi possível conectar ao servidor."); } finally { setLoading(false); }
   }
 
-  return <form className="security-form" onSubmit={submit}><div className="checkout-form-grid"><div className="field"><label htmlFor="current-password">Senha atual</label><input id="current-password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required /></div><div className="field"><label htmlFor="new-password">Nova senha</label><input id="new-password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" minLength={8} required /></div></div>{error ? <p className="error-message">{error}</p> : null}{message ? <p className="success-message">{message}</p> : null}<button className="button button-secondary" type="submit" disabled={loading}>{loading ? "Salvando..." : "Alterar senha"}</button></form>;
+  return <form className="password-form" onSubmit={submit}>
+    <div className="form-grid">
+      <div className="form-field"><label htmlFor="current-password">Senha atual</label><input className="control" id="current-password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required /></div>
+      <div className="form-field"><label htmlFor="new-password">Nova senha</label><input className="control" id="new-password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" minLength={8} required aria-describedby="new-password-hint" /><p className="field-hint" id="new-password-hint">Mínimo de 8 caracteres.</p></div>
+    </div>
+    <Feedback success={message} error={error} />
+    <div className="btn-row"><button className="btn btn-secondary" type="submit" disabled={loading} aria-busy={loading}>{loading ? "Salvando..." : "Alterar senha"}</button></div>
+  </form>;
 }

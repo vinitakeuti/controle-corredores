@@ -763,3 +763,45 @@
   .tabs a[aria-current="page"] { color: var(--text); }
   .tabs a[aria-current="page"]::after { content: ""; position: absolute; right: 0; bottom: -1px; left: 0; height: 3px; background: var(--accent); transform: skewX(-12deg); }
 }
+
+@layer components {
+  /* Opções de pagamento (radio) */
+  .pay-methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-2); }
+  .pay-methods-stacked { grid-template-columns: 1fr; }
+  .method-option {
+    position: relative;
+    display: grid;
+    gap: 2px;
+    min-height: 64px;
+    padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 28px);
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line-control);
+    border-radius: var(--radius);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out);
+  }
+  .method-option::before { content: ""; position: absolute; top: 50%; left: var(--space-4); width: 18px; height: 18px; border: 2px solid var(--line-control); border-radius: 50%; transform: translateY(-50%); }
+  .method-option strong { font-size: var(--text-md); }
+  .method-option span { color: var(--text-muted); font-size: var(--text-sm); }
+  .method-option:hover { border-color: var(--text-secondary); }
+  .method-option[aria-checked="true"] { background: var(--surface); border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+  .method-option[aria-checked="true"]::before { border-color: var(--accent-strong); background: radial-gradient(circle, var(--accent-strong) 0 4px, transparent 5px); }
+
+  /* Cartões de escolha com radio nativo */
+  .choice-set { min-width: 0; margin: 0 0 var(--space-5); padding: 0; border: 0; }
+  .choice-set > legend { display: grid; gap: 4px; margin-bottom: var(--space-3); padding: 0; }
+  .choice-cards { display: grid; gap: var(--space-2); }
+  .choice-cards-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .choice-card { position: relative; display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); background: var(--surface); border: 1px solid var(--line-control); border-radius: var(--radius); cursor: pointer; transition: border-color var(--dur-1) var(--ease-out); }
+  .choice-card:hover { border-color: var(--text-secondary); }
+  .choice-card input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent-strong); }
+  .choice-card:has(input:checked) { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+  .choice-card:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .choice-card-copy { display: grid; gap: 4px; min-width: 0; }
+  .choice-card-copy strong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--text-md); }
+  .choice-card-copy small { color: var(--text-muted); font-size: var(--text-sm); }
+  .choice-card-price { font-family: var(--font-display); font-size: 1.75rem; line-height: 1; }
+  .choice-card-price small { font-family: var(--font-body); font-size: var(--text-xs); }
+}

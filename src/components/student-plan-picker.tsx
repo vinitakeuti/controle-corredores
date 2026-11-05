@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
+import { StatusPill } from "@/components/ui/status-pill";
 
 type Plan = { id: string; period: "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL"; priceCents: number; allowedMethods: ("PIX" | "BOLETO" | "CARD")[]; automaticPixEnabled: boolean; isFeatured: boolean; service: { name: string } };
 const periodLabels = { MONTHLY: "Mensal", QUARTERLY: "Trimestral", SEMIANNUAL: "Semestral", ANNUAL: "Anual" };
@@ -59,34 +62,40 @@ export function StudentPlanPicker({ plans, currentPlanId, compact = false, confi
     } catch { setError("Não foi possível conectar ao servidor."); } finally { setPending(false); }
   }
 
-  if (isCheckoutFlow) return <section className="plan-picker plan-picker-checkout">
-    <section className="plan-service-selection" aria-labelledby="service-choice-title">
-      <div className="plan-choice-heading"><h2 id="service-choice-title">Escolha o serviço</h2><p>Qual plano você deseja contratar?</p></div>
-      <div className="plan-service-options" role="radiogroup" aria-label="Serviço">
-        {groupEntries.map(([service]) => <label className={selectedService === service ? "selected" : ""} key={service}>
+  if (isCheckoutFlow) return <section className="plan-choose">
+    <fieldset className="choice-set">
+      <legend><span className="section-title">Escolha o serviço</span><span className="section-lead">Qual plano você deseja contratar?</span></legend>
+      <div className="choice-cards">
+        {groupEntries.map(([service]) => <label className="choice-card" key={service}>
           <input type="radio" name="student-service" value={service} checked={selectedService === service} onChange={() => selectService(service)} />
-          <span><strong>{service}</strong><small>{serviceDescription(service)}</small></span>
-          <i aria-hidden="true" />
+          <span className="choice-card-copy"><strong>{service}</strong><small>{serviceDescription(service)}</small></span>
         </label>)}
       </div>
-    </section>
-    <section className="plan-duration-selection" aria-labelledby="duration-choice-title">
-      <div className="plan-choice-heading"><h2 id="duration-choice-title">Escolha a duração</h2><p>Defina por quanto tempo você quer seu plano.</p></div>
-      <div className="plan-duration-options" role="radiogroup" aria-label="Duração do plano">
-        {selectedServicePlans.map((plan) => <label className={selectedPlanId === plan.id ? "selected" : ""} key={plan.id}>
+    </fieldset>
+    <fieldset className="choice-set">
+      <legend><span className="section-title">Escolha a duração</span><span className="section-lead">Defina por quanto tempo você quer seu plano.</span></legend>
+      <div className="choice-cards choice-cards-grid">
+        {selectedServicePlans.map((plan) => <label className="choice-card" key={plan.id}>
           <input type="radio" name="student-plan" value={plan.id} checked={selectedPlanId === plan.id} onChange={() => setSelectedPlanId(plan.id)} />
-          <strong>{periodLabels[plan.period]}</strong>
-          <b>{money(plan.priceCents)}</b>
-          <small>por mês</small>
-          <em>{periodMonths[plan.period] === 1 ? "Pagamento único" : `${periodMonths[plan.period]}x no cartão`}</em>
-          {plan.isFeatured ? <span className="plan-featured-badge">Mais escolhido</span> : null}
-          <i aria-hidden="true" />
+          <span className="choice-card-copy">
+            <strong>{periodLabels[plan.period]}{plan.isFeatured ? <StatusPill tone="info">Mais escolhido</StatusPill> : null}</strong>
+            <span className="choice-card-price">{money(plan.priceCents)}<small> por mês</small></span>
+            <small>{periodMonths[plan.period] === 1 ? "Pagamento único" : `${periodMonths[plan.period]}x no cartão`}</small>
+          </span>
         </label>)}
       </div>
-    </section>
-    {error ? <p className="error-message">{error}</p> : null}
-    <div className="plan-picker-checkout-actions"><button className="button plan-picker-continue" type="button" onClick={save} disabled={pending}>{pending ? "Salvando..." : "Continuar para o pagamento"} <span aria-hidden="true">→</span></button><p>Pagamento seguro e dados protegidos</p></div>
+    </fieldset>
+    <Feedback error={error} />
+    <div className="plan-choose-actions"><button className="btn btn-primary" type="button" onClick={save} disabled={pending} aria-busy={pending}>{pending ? "Salvando..." : "Continuar para o pagamento"}<Icon name="arrowRight" /></button><p className="field-hint">Pagamento seguro e dados protegidos</p></div>
   </section>;
 
-  return <section className={`plan-picker ${compact ? "plan-picker-compact" : ""}`}><div className="panel-heading"><div><h2>{currentPlanId ? "Trocar plano" : "Escolha seu plano"}</h2><p>Selecione o serviço e a duração que fazem sentido para sua rotina.</p></div></div><div className="student-plan-options">{groupEntries.map(([service, options]) => <div className="student-plan-service" key={service}><h3>{service}</h3><div>{options.map((plan) => <label className={selectedPlanId === plan.id ? "selected" : ""} key={plan.id}><input type="radio" name="student-plan" value={plan.id} checked={selectedPlanId === plan.id} onChange={() => setSelectedPlanId(plan.id)} /><span><strong>{periodLabels[plan.period]}</strong><small>{paymentSummary(plan)}</small></span></label>)}</div></div>)}</div>{error ? <p className="error-message">{error}</p> : null}{message ? <p className="success-message">{message}</p> : null}<div className="creation-actions"><button className="button button-dark" type="button" onClick={save} disabled={pending}>{pending ? "Salvando..." : confirmLabel ?? (currentPlanId ? "Atualizar plano" : "Confirmar plano")}</button></div></section>;
+  return <section className="plan-switch">
+    {compact ? null : <div className="section-head"><div><h2 className="section-title">{currentPlanId ? "Trocar plano" : "Escolha seu plano"}</h2><p className="section-lead">Selecione o serviço e a duração que fazem sentido para sua rotina.</p></div></div>}
+    {groupEntries.map(([service, options]) => <fieldset className="choice-set" key={service}>
+      <legend><span className="form-label">{service}</span></legend>
+      <div className="choice-cards choice-cards-grid">{options.map((plan) => <label className="choice-card" key={plan.id}><input type="radio" name="student-plan" value={plan.id} checked={selectedPlanId === plan.id} onChange={() => setSelectedPlanId(plan.id)} /><span className="choice-card-copy"><strong>{periodLabels[plan.period]}</strong><small>{paymentSummary(plan)}</small></span></label>)}</div>
+    </fieldset>)}
+    <Feedback success={message} error={error} />
+    <div className="btn-row"><button className="btn btn-secondary" type="button" onClick={save} disabled={pending} aria-busy={pending}>{pending ? "Salvando..." : confirmLabel ?? (currentPlanId ? "Atualizar plano" : "Confirmar plano")}</button></div>
+  </section>;
 }

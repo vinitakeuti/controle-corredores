@@ -59,7 +59,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
       </aside>
       <main className="shell-main" id="conteudo" tabIndex={-1}>
         <div className="shell-content">
-          {isStudent ? <a className="student-store-button" href={STORE_URL}>IR PARA A LOJA</a> : null}
+          {isStudent ? <a className="btn btn-secondary store-link" href={STORE_URL}><Icon name="store" />IR PARA A LOJA</a> : null}
           {children}
         </div>
       </main>
