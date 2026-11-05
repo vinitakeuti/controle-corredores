@@ -1,3 +1,4 @@
+@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Tokens do sistema visual Pace Lab.
    Contraste conferido em WCAG AA sobre --bg e --surface. */
 @layer tokens {

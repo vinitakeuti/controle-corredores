@@ -1,3 +1,4 @@
+@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Perfil do aluno (/admin/alunos/[id]) */
 @layer screens {
   .profile-summary { margin-bottom: var(--space-2); }

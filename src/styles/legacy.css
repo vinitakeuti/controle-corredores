@@ -1,3 +1,4 @@
+@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* CSS anterior ao sistema Pace Lab. Fica na camada mais baixa e sai área por área conforme as telas migram. Não adicionar regras novas aqui. */
 @layer legacy {
 :root {
