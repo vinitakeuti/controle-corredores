@@ -103,7 +103,8 @@
   .icon-btn:hover { background: rgba(127, 138, 133, 0.16); }
 
   /* Campos */
-  .form-field { display: grid; gap: 6px; min-width: 0; }
+  /* align-content: start — numa form-grid, um campo com dica mais longa não empurra o controle do vizinho. */
+  .form-field { display: grid; align-content: start; gap: 6px; min-width: 0; }
   .form-field > label,
   .form-label { color: var(--text); font-size: var(--text-sm); font-weight: 600; line-height: 1.3; }
   .field-hint { margin: 0; color: var(--text-muted); font-size: var(--text-xs); line-height: 1.4; }
@@ -744,15 +745,6 @@
   .chip[aria-pressed="true"] { color: #ffffff; background: var(--text); border-color: var(--text); }
   .chip[aria-pressed="true"] .chip-count { color: rgba(255, 255, 255, 0.78); }
   button.chip { cursor: pointer; }
-
-  /* Opções marcáveis em linha (métodos de pagamento, preferências) */
-  .option-checks { min-width: 0; margin: 0; padding: 0; border: 0; }
-  .option-checks .form-label { display: block; margin-bottom: var(--space-2); }
-  .option-checks-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-  .option-check { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 40px; padding: 0 var(--space-3); color: var(--text); background: var(--surface); border: 1px solid var(--line-control); border-radius: var(--radius); font-size: var(--text-sm); cursor: pointer; }
-  .option-check:has(input:checked) { background: var(--surface-raised); border-color: var(--text-secondary); }
-  .option-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent-strong); }
-  @media (max-width: 899px) { .option-check { min-height: var(--control-h); } }
 
   /* Alternância com descrição (ex.: ambiente sandbox / produção) */
   .choice-toggle { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-2); }

@@ -4,18 +4,46 @@
   .settings-tabs-nav { margin-bottom: var(--space-2); }
   .settings-tabs-nav + .section-block { border-top: 0; }
 
+  /* Equipe: tabela para ler de relance; cargo, comissão e acessos se editam num painel. */
   .team-created { display: grid; gap: var(--space-3); max-width: 560px; margin-bottom: var(--space-4); }
-  .team-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
-  .team-row { display: grid; gap: var(--space-3); padding: var(--space-4) 0; border-bottom: 1px solid var(--line-soft); }
-  .team-identity { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); }
-  .team-avatar { width: 36px; height: 36px; font-size: var(--text-xs); }
-  .team-controls { display: grid; grid-template-columns: minmax(180px, 240px) minmax(120px, 160px) auto; align-items: end; gap: var(--space-3); }
-  .team-actions { align-self: end; }
-  .team-delete { color: var(--danger); }
-  .permission-picker > summary { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-h); cursor: pointer; list-style: none; }
-  .permission-picker > summary::-webkit-details-marker { display: none; }
-  .permission-picker[open] > summary .ledger-toggle { transform: rotate(180deg); }
-  .permission-picker > .field-hint { margin-bottom: var(--space-2); }
+  .team-table-wrap { overflow: visible; }
+  .team-table { table-layout: fixed; }
+  .team-table th:nth-child(1) { width: 32%; }
+  .team-table th:nth-child(2) { width: 15%; }
+  .team-table th:nth-child(4) { width: 11%; }
+  .team-table th:nth-child(5) { width: 136px; }
+  .team-table td { height: 68px; }
+  .team-identity { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+  .team-avatar { flex: none; width: 36px; height: 36px; font-size: var(--text-xs); }
+  .team-person { display: grid; gap: 2px; min-width: 0; }
+  .team-person strong { display: flex; align-items: center; gap: var(--space-2); overflow: hidden; font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+  .team-person > span { overflow: hidden; color: var(--text-muted); font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
+  .team-you { flex: none; padding: 1px 6px; color: var(--text-secondary); background: var(--surface-sunken); border-radius: var(--radius); font-size: 0.6875rem; font-weight: 600; }
+  .team-access-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .team-rate { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .team-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1); }
+  .team-actions .menu-trigger-icon,
+  .team-row-actions .menu-trigger-icon { background: transparent; border-color: transparent; }
+  .team-actions .menu-trigger-icon:hover,
+  .team-row-actions .menu-trigger-icon:hover,
+  .team-actions .menu-trigger-icon[aria-expanded="true"],
+  .team-row-actions .menu-trigger-icon[aria-expanded="true"] { background: var(--surface-hover); }
+
+  .team-rows > li { align-items: start; }
+  .team-rows .team-row-detail { grid-column: 1 / -1; color: var(--text-muted); font-size: var(--text-xs); line-height: 1.45; }
+  .team-menu-slot { flex: none; width: var(--control-h); }
+  .team-rows .row-meta { grid-column: 1; align-self: center; }
+  .team-row-actions { grid-column: 2; display: flex; justify-content: flex-end; gap: var(--space-1); margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0; }
+  .team-rows > li:last-child { border-bottom: 0; }
+
+  /* Painel do colaborador */
+  .team-fieldset { min-width: 0; margin: 0; padding: var(--space-4) 0 0; border: 0; border-top: 1px solid var(--line-soft); }
+  /* Legenda flutuante: sem ela, a borda do fieldset corta a linha da legenda. */
+  .team-fieldset legend { float: left; display: flex; align-items: center; gap: var(--space-2); width: 100%; padding: 0; }
+  .team-fieldset legend + .field-hint { clear: both; margin: 0; padding-top: var(--space-1); margin-bottom: var(--space-2); }
+  .team-areas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-5); }
+  .team-reset-check,
+  .team-reset-note { padding-top: var(--space-3); border-top: 1px solid var(--line-soft); }
 
   .email-test { display: grid; gap: var(--space-4); }
   .email-test .section-head { margin-bottom: 0; }
@@ -34,12 +62,10 @@
 
   .blocked { display: grid; gap: var(--space-4); max-width: 720px; padding-top: var(--space-6); }
 
+  @media (max-width: 559px) {
+    .team-areas { grid-template-columns: minmax(0, 1fr); }
+  }
   @media (max-width: 759px) {
-    .team-identity { grid-template-columns: auto minmax(0, 1fr); }
-    .team-identity > .status-pill { grid-column: 2; justify-self: start; }
-    .team-controls { grid-template-columns: 1fr 1fr; }
-    .team-actions { grid-column: 1 / -1; }
-    .team-actions .btn { flex: 1; }
     .email-preview-form,
     .email-log-filter { grid-template-columns: 1fr; }
     .email-log-line time { margin-left: 0; width: 100%; }
