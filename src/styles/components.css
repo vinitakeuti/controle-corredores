@@ -805,3 +805,19 @@
   .choice-card-price { font-family: var(--font-display); font-size: 1.75rem; line-height: 1; }
   .choice-card-price small { font-family: var(--font-body); font-size: var(--text-xs); }
 }
+
+@layer components {
+  /* Telas muito estreitas (até 400px): paginação quebra linha, métricas viram uma coluna e pills quebram. */
+  .pager-actions { flex-wrap: wrap; }
+  .summary-strip .status-pill { white-space: normal; }
+  @media (max-width: 400px) {
+    .pager-actions { width: 100%; }
+    .pager-actions .btn { flex: 1; }
+    .pager-status { order: -1; width: 100%; padding: 0; }
+    .metric-strip,
+    .metric-strip[data-count] { grid-template-columns: minmax(0, 1fr); }
+    .metric-strip .metric,
+    .metric-strip .metric:nth-child(even) { padding-left: 0; border-left: 0; }
+    .metric-strip .metric + .metric { border-top: 1px solid var(--line-soft); }
+  }
+}
