@@ -553,8 +553,11 @@
   .metric[data-tone="danger"] .metric-value { color: var(--danger); }
   .metric[data-tone="positive"] .metric-value { color: var(--positive); }
   a.metric { transition: background-color var(--dur-1) var(--ease-out); }
-  a.metric:hover { background: linear-gradient(var(--surface-hover), var(--surface-hover)) no-repeat; }
-  a.metric:hover .metric-note { color: var(--accent-text); }
+  /* Hover só com mouse: no toque o :hover gruda no último cartão tocado e parece uma segunda seleção. */
+  @media (hover: hover) and (pointer: fine) {
+    a.metric:hover { background: linear-gradient(var(--surface-hover), var(--surface-hover)) no-repeat; }
+    a.metric:hover .metric-note { color: var(--accent-text); }
+  }
 
   @media (max-width: 759px) {
     .metric-strip { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -587,8 +590,8 @@
   .count-label { color: var(--text-muted); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
   /* Métrica selecionada numa faixa que funciona como navegação */
   .metric[aria-current="page"] { position: relative; background: var(--surface); }
-  .metric[aria-current="page"]::after,
-  a.metric:hover::after {
+  /* O marcador laranja é só "você está aqui": nunca aparece no hover. */
+  .metric[aria-current="page"]::after {
     content: "";
     position: absolute;
     top: -3px;

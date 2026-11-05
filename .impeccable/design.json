@@ -806,9 +806,9 @@
       "name": "Faixa de métricas",
       "kind": "custom",
       "refersTo": "metric-strip",
-      "description": "Números de decisão em Anton numa faixa plana com régua forte; cada métrica leva à lista filtrada e mostra o marcador no hover.",
+      "description": "Números de decisão em Anton numa faixa plana com régua forte; cada métrica leva à lista filtrada; o marcador fica só na métrica atual.",
       "html": "<div class=\"ds-metrics\"><a class=\"ds-metric\" href=\"#\"><span class=\"ds-metric-label\">Ativos</span><span class=\"ds-metric-value\">827</span><span class=\"ds-metric-note\">1.245 cadastros no total</span></a><a class=\"ds-metric ds-metric-danger\" href=\"#\"><span class=\"ds-metric-label\">Em atraso</span><span class=\"ds-metric-value\">241</span><span class=\"ds-metric-note\">Precisam de atenção</span></a><a class=\"ds-metric\" href=\"#\"><span class=\"ds-metric-label\">Aguardando pagamento</span><span class=\"ds-metric-value\">122</span><span class=\"ds-metric-note\">Possíveis vendas em aberto</span></a></div>",
-      "css": ".ds-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #17201d;border-bottom:1px solid #d5dbd4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ds-metric{position:relative;display:grid;gap:8px;padding:16px 16px 24px 0;color:#17201d;text-decoration:none;transition:background-color 140ms}.ds-metric+.ds-metric{padding-left:16px;border-left:1px solid #d5dbd4}.ds-metric-label{color:#5b6661;font-size:0.75rem;font-weight:600}.ds-metric-value{font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;font-size:2.75rem;line-height:1;letter-spacing:0.01em}.ds-metric-danger .ds-metric-value{color:#b3173a}.ds-metric-note{color:#5b6661;font-size:0.875rem}.ds-metric:hover{background:#e9ede7}.ds-metric:hover .ds-metric-note{color:#b03d1f}.ds-metric:hover::after{content:'';position:absolute;top:-3px;left:-4px;width:56px;height:6px;background:#e15d37;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}.ds-metric+.ds-metric:hover::after{left:12px}.ds-metric:focus-visible{outline:2px solid #c74727;outline-offset:2px}"
+      "css": ".ds-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #17201d;border-bottom:1px solid #d5dbd4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.ds-metric{position:relative;display:grid;gap:8px;padding:16px 16px 24px 0;color:#17201d;text-decoration:none;transition:background-color 140ms}.ds-metric+.ds-metric{padding-left:16px;border-left:1px solid #d5dbd4}.ds-metric-label{color:#5b6661;font-size:0.75rem;font-weight:600}.ds-metric-value{font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;font-size:2.75rem;line-height:1;letter-spacing:0.01em}.ds-metric-danger .ds-metric-value{color:#b3173a}.ds-metric-note{color:#5b6661;font-size:0.875rem}@media (hover:hover) and (pointer:fine){.ds-metric:hover{background:#e9ede7}}@media (hover:hover) and (pointer:fine){.ds-metric:hover .ds-metric-note{color:#b03d1f}}.ds-metric[aria-current]::after{content:'';position:absolute;top:-3px;left:-4px;width:56px;height:6px;background:#e15d37;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}.ds-metric+.ds-metric[aria-current]::after{left:12px}.ds-metric:focus-visible{outline:2px solid #c74727;outline-offset:2px}"
     },
     {
       "name": "Cabeçalho de página",
@@ -873,7 +873,7 @@
       },
       {
         "name": "The You-Are-Here Rule",
-        "body": "O paralelogramo laranja marca só a posição atual: item atual da sidebar, aba atual da barra inferior e do menu \"Mais\", aba ativa, passo atual do stepper, métrica atual ou em hover numa faixa que navega. Ele nunca decora título, seção, botão ou cartão.",
+        "body": "O paralelogramo laranja marca só a posição atual: item atual da sidebar, aba atual da barra inferior e do menu \"Mais\", aba ativa, passo atual do stepper, métrica atual numa faixa que navega (no hover, só um fundo leve, e apenas com mouse). Ele nunca decora título, seção, botão ou cartão.",
         "section": "shapes"
       }
     ],

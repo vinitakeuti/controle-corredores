@@ -331,7 +331,7 @@ Cantos quase retos (2px, `rounded.base`) em botões, campos, menus, diálogos no
 A forma-assinatura é o **paralelogramo inclinado a -12°**, o ângulo do itálico do wordmark. Ele é recortado por `clip-path` com dois tokens: `--marker-shape` (corte de 4px, marcadores curtos) e `--marker-shape-bar` (corte de 7px, barras longas como aba ativa e barra inferior, para o corte aparecer em 1x). O mesmo ângulo diagonal aparece nas faixas translúcidas a 112° das superfícies escuras (`--stripes-dark` no shell e no tutorial; faixas mais largas no painel do login).
 
 ### Named Rules
-**The You-Are-Here Rule.** O paralelogramo laranja marca só a posição atual: item atual da sidebar, aba atual da barra inferior e do menu "Mais", aba ativa, passo atual do stepper, métrica atual ou em hover numa faixa que navega. Ele nunca decora título, seção, botão ou cartão.
+**The You-Are-Here Rule.** O paralelogramo laranja marca só a posição atual: item atual da sidebar, aba atual da barra inferior e do menu "Mais", aba ativa, passo atual do stepper, métrica atual numa faixa que navega (no hover, só um fundo leve, e apenas com mouse). Ele nunca decora título, seção, botão ou cartão.
 
 ## Components
 
