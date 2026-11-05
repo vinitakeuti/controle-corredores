@@ -37,7 +37,7 @@
     padding: var(--space-5) var(--space-3) var(--space-3);
   }
   .shell-sidebar .shell-wordmark { margin: var(--space-2) var(--space-3) var(--space-6); }
-  .shell-nav { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #3a4443 transparent; }
+  .shell-nav { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--on-dark-line) transparent; }
   .shell-nav-group + .shell-nav-group { margin-top: var(--space-4); }
   .shell-nav-label {
     display: block;
@@ -87,7 +87,7 @@
     left: -3px;
     width: 7px;
     background: var(--accent);
-    clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+    clip-path: var(--marker-shape);
   }
 
   .shell-sidebar-footer { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid rgba(255, 255, 255, 0.08); }
@@ -223,11 +223,11 @@
   .shell-menu-link[aria-current="page"] { font-weight: 700; }
   .shell-menu-link[aria-current="page"]::after {
     content: "";
-    width: 5px;
+    width: 8px;
     height: 18px;
     margin-left: auto;
     background: var(--accent);
-    transform: skewX(-12deg);
+    clip-path: var(--marker-shape);
   }
   .shell-menu-account { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-4); }
   .shell-menu-account div { display: grid; min-width: 0; }

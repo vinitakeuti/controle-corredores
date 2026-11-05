@@ -81,7 +81,7 @@
   .btn-danger-solid { color: #ffffff; background: var(--danger); }
   .btn-danger-solid:hover { background: var(--danger-hover); }
   .btn:disabled,
-  .btn[aria-disabled="true"] { color: #6f7873; background: var(--surface-sunken); border-color: transparent; cursor: not-allowed; }
+  .btn[aria-disabled="true"] { color: var(--text-disabled); background: var(--surface-sunken); border-color: transparent; cursor: not-allowed; }
   .btn[aria-busy="true"] { cursor: progress; }
   .btn-block { width: 100%; }
   .btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }

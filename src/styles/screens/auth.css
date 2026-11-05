@@ -22,7 +22,7 @@
     background: repeating-linear-gradient(112deg, transparent 0 80px, rgba(255, 255, 255, 0.055) 81px 150px, transparent 151px 290px);
   }
   .auth-brand-copy { align-self: end; display: grid; gap: var(--space-3); max-width: 520px; }
-  .auth-brand-kicker { margin: 0; color: #f08a69; font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-caps); text-transform: uppercase; }
+  .auth-brand-kicker { margin: 0; color: var(--accent-on-dark); font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-caps); text-transform: uppercase; }
   .auth-brand-title { margin: 0; font-family: var(--font-display); font-size: clamp(2.75rem, 5vw, 4.5rem); line-height: 0.92; text-transform: uppercase; text-wrap: balance; }
   .auth-brand-lead { margin: 0; max-width: 40ch; color: var(--on-dark-muted); font-size: var(--text-md); }
   .auth-brand-foot { color: var(--on-dark-subtle); font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-caps); }
