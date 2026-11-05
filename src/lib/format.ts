@@ -4,17 +4,17 @@ export function formatCurrency(cents: number) {
 
 export function formatDate(date: Date | string | null | undefined) {
   if (!date) return "—";
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(date));
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeZone: "America/Maceio" }).format(new Date(date));
 }
 
 export function formatShortDate(date: Date | string | null | undefined) {
   if (!date) return "—";
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(date));
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Maceio" }).format(new Date(date));
 }
 
 export function formatTime(date: Date | string | null | undefined) {
   if (!date) return "—";
-  return new Intl.DateTimeFormat("pt-BR", { timeStyle: "short" }).format(new Date(date));
+  return new Intl.DateTimeFormat("pt-BR", { timeStyle: "short", timeZone: "America/Maceio" }).format(new Date(date));
 }
 
 export function greetingForDate(date = new Date()) {
