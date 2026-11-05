@@ -570,3 +570,20 @@
   .activity-copy span { color: var(--text-muted); font-size: var(--text-xs); }
   .activity-time { color: var(--text-secondary); font-size: var(--text-xs); font-weight: 600; text-align: right; white-space: nowrap; }
 }
+
+@layer components {
+  .pill-group { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+  /* Métrica selecionada numa faixa que funciona como navegação */
+  .metric[aria-current="page"] { position: relative; background: var(--surface); }
+  .metric[aria-current="page"]::after {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 48px;
+    height: 4px;
+    background: var(--accent);
+    transform: skewX(-12deg);
+  }
+  .metric + .metric[aria-current="page"]::after { left: var(--space-4); }
+}
