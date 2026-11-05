@@ -11,6 +11,7 @@ type Plan = { id: string; period: Period; priceCents: number; allowedMethods: Me
 
 const periodLabel: Record<Period, string> = { MONTHLY: "Mensal", QUARTERLY: "Trimestral", SEMIANNUAL: "Semestral", ANNUAL: "Anual" };
 const formatPrice = (value: number) => (value / 100).toFixed(2);
+const formatMoney = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 const methodsLabel = (methods: Method[]) => methods.map((method) => method === "PIX" ? "Pix" : method === "CARD" ? "Cartão" : "Boleto").join(", ");
 
 export function StudentBillingControls({ studentId, initialPriceCents, initialPlanId, initialAllowedMethods, initialManualMonthlyBilling, initialIsCourtesy, automaticPixActive, hasCustomPrice, plans, canDelete, canManageCourtesy }: { studentId: string; initialPriceCents: number; initialPlanId: string | null; initialAllowedMethods: Method[]; initialManualMonthlyBilling: boolean; initialIsCourtesy: boolean; automaticPixActive: boolean; hasCustomPrice: boolean; plans: Plan[]; canDelete: boolean; canManageCourtesy: boolean }) {
@@ -92,7 +93,7 @@ export function StudentBillingControls({ studentId, initialPriceCents, initialPl
         <label htmlFor="student-plan">Plano</label>
         <select className="control" id="student-plan" value={planId} onChange={(event) => selectPlan(event.target.value)}>
           <option value="">Selecione um plano</option>
-          {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.service.name} · {periodLabel[plan.period]} · R$ {formatPrice(plan.priceCents)}/mês</option>)}
+          {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.service.name} · {periodLabel[plan.period]} · {formatMoney(plan.priceCents)}/mês</option>)}
         </select>
       </div>
       <div className="form-field">

@@ -16,14 +16,18 @@ const PAGE_SIZE = 20;
 const DAY = 24 * 60 * 60 * 1000;
 const numberFormat = new Intl.NumberFormat("pt-BR");
 
-const statusFilters = {
-  todos: { label: "Todos", where: {} },
-  "em-dia": { label: "Em dia", where: { active: true, leftAt: null, subscription: { status: SubscriptionStatus.ACTIVE } } },
-  "em-atraso": { label: "Em atraso", where: { active: true, leftAt: null, subscription: { status: SubscriptionStatus.PAST_DUE } } },
-  pendentes: { label: "Pendentes", where: { active: true, leftAt: null, subscription: { status: SubscriptionStatus.INCOMPLETE } } },
-  inativos: { label: "Inativos", where: { active: false } },
-} satisfies Record<string, { label: string; where: Prisma.UserWhereInput }>;
-type StatusFilter = keyof typeof statusFilters;
+// "Em atraso" usa a mesma regra da Visão geral e do Analisar dados: status em atraso ou vencimento já passado.
+function buildStatusFilters(now: Date) {
+  return {
+    todos: { label: "Todos", where: {} },
+    "em-dia": { label: "Em dia", where: { active: true, leftAt: null, subscription: { status: SubscriptionStatus.ACTIVE, OR: [{ nextBillingAt: null }, { nextBillingAt: { gte: now } }] } } },
+    "em-atraso": { label: "Em atraso", where: { active: true, subscription: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } },
+    pendentes: { label: "Pendentes", where: { active: true, leftAt: null, subscription: { status: SubscriptionStatus.INCOMPLETE } } },
+    inativos: { label: "Inativos", where: { active: false } },
+  } satisfies Record<string, { label: string; where: Prisma.UserWhereInput }>;
+}
+type StatusFilter = keyof ReturnType<typeof buildStatusFilters>;
+const statusFilterKeys: StatusFilter[] = ["todos", "em-dia", "em-atraso", "pendentes", "inativos"];
 
 const sortOptions = {
   nome: { label: "Nome (A–Z)", orderBy: [{ name: "asc" }] },
@@ -42,18 +46,21 @@ function buildHref({ page = 1, query = "", status = "todos", sort = "nome" }: { 
   return `/admin/alunos${queryString ? `?${queryString}` : ""}`;
 }
 
-function getStudentStatus(active: boolean, leftAt: Date | null, subscriptionStatus?: SubscriptionStatus) {
+function getStudentStatus(active: boolean, leftAt: Date | null, subscriptionStatus?: SubscriptionStatus, overdue = false, courtesy = false) {
   if (!active) return "Inativo";
   if (leftAt) return "Desistente";
   if (subscriptionStatus === SubscriptionStatus.INCOMPLETE) return "Pendente";
+  if (subscriptionStatus === SubscriptionStatus.ACTIVE && courtesy) return "Cortesia";
+  if (subscriptionStatus === SubscriptionStatus.ACTIVE && overdue) return "Em atraso";
   return subscriptionStatus ? subscriptionLabel(subscriptionStatus) : "Sem assinatura";
 }
 
 // Situação da próxima cobrança, para a lista no celular.
 function chargeNote(status: string, nextBillingAt: Date | null | undefined, now: number) {
-  if (!nextBillingAt || status === "Inativo" || status === "Desistente") return null;
+  if (!nextBillingAt || status === "Inativo" || status === "Desistente" || status === "Cortesia") return null;
   const days = Math.floor((now - nextBillingAt.getTime()) / DAY);
   if (days > 0) return { overdue: true, text: `Venceu há ${days} ${days === 1 ? "dia" : "dias"}` };
+  if (nextBillingAt.getTime() < now) return { overdue: true, text: "Venceu hoje" };
   return { overdue: false, text: `Próxima cobrança ${formatDate(nextBillingAt)}` };
 }
 
@@ -61,6 +68,8 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
   const user = await requireFeature("students");
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim().slice(0, 80) : "";
+  const now = Date.now();
+  const statusFilters = buildStatusFilters(new Date(now));
   const status: StatusFilter = params.status && params.status in statusFilters ? params.status as StatusFilter : "todos";
   const sort: SortOption = params.ordem && params.ordem in sortOptions ? params.ordem as SortOption : "nome";
   const requestedPage = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
@@ -71,7 +80,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
   const baseWhere: Prisma.UserWhereInput = { role: UserRole.STUDENT, ...searchFilter };
   const where: Prisma.UserWhereInput = { AND: [baseWhere, statusFilters[status].where] };
 
-  const filterKeys = Object.keys(statusFilters) as StatusFilter[];
+  const filterKeys = statusFilterKeys;
   const counts = await Promise.all(filterKeys.map((key) => prisma.user.count({ where: { AND: [baseWhere, statusFilters[key].where] } })));
   const countByFilter = Object.fromEntries(filterKeys.map((key, index) => [key, counts[index]])) as Record<StatusFilter, number>;
 
@@ -79,7 +88,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
   const students = await prisma.user.findMany({ where, include: { subscription: true, payments: { where: { status: "PAID" }, orderBy: { paidAt: "desc" }, take: 1 } }, orderBy: sortOptions[sort].orderBy, skip: (currentPage - 1) * PAGE_SIZE, take: PAGE_SIZE });
-  const now = Date.now();
+  const isOverdue = (student: (typeof students)[number]) => Boolean(student.subscription && !student.subscription.isCourtesy && student.subscription.nextBillingAt && student.subscription.nextBillingAt.getTime() < now);
 
   const sortHeader = (key: SortOption, label: string) => (
     <th scope="col" aria-sort={sort === key ? (key === "ingresso" ? "descending" : "ascending") : undefined}>
@@ -142,7 +151,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                 <th scope="col">Status</th>
               </tr></thead>
               <tbody>{students.map((student) => {
-                const label = getStudentStatus(student.active, student.leftAt, student.subscription?.status);
+                const label = getStudentStatus(student.active, student.leftAt, student.subscription?.status, isOverdue(student), Boolean(student.subscription?.isCourtesy));
                 const note = chargeNote(label, student.subscription?.nextBillingAt, now);
                 return <tr key={student.id}>
                   <td><Link className="row-link" href={`/admin/alunos/${student.id}`}><span className="cell-primary">{student.name}</span><span className="cell-secondary">Abrir perfil</span></Link></td>
@@ -157,7 +166,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
           </div>
           <ul className="data-rows responsive-rows" aria-label={`Alunos, página ${currentPage} de ${totalPages}`}>
             {students.map((student) => {
-              const label = getStudentStatus(student.active, student.leftAt, student.subscription?.status);
+              const label = getStudentStatus(student.active, student.leftAt, student.subscription?.status, isOverdue(student), Boolean(student.subscription?.isCourtesy));
               const note = chargeNote(label, student.subscription?.nextBillingAt, now);
               return <li key={student.id}><Link className="data-row-link" href={`/admin/alunos/${student.id}`}>
                 <span className="row-title">{student.name}</span>

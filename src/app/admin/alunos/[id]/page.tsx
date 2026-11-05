@@ -26,7 +26,9 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
   const firstPayment = student.payments[0];
   const lastPayment = student.payments.at(-1);
   const age = calculateAge(student.birthDate);
-  const status = !student.active ? "Inativo" : student.leftAt ? "Desistente" : subscriptionLabel(student.subscription?.status ?? "");
+  // Mesma regra da Visão geral: assinatura ativa com vencimento já passado conta como atraso para a equipe.
+  const overdue = Boolean(student.subscription?.status === "ACTIVE" && !student.subscription.isCourtesy && student.subscription.nextBillingAt && student.subscription.nextBillingAt < new Date());
+  const status = !student.active ? "Inativo" : student.leftAt ? "Desistente" : overdue ? "Em atraso" : subscriptionLabel(student.subscription?.status ?? "");
   const periodLabel = { MONTHLY: "Mensal", QUARTERLY: "Trimestral", SEMIANNUAL: "Semestral", ANNUAL: "Anual" } as const;
   const termStatus = student.liabilityTermStatus === "SUBMITTED" || student.liabilityTermStatus === "APPROVED" || student.liabilityTermStatus === "REJECTED" ? student.liabilityTermStatus : "PENDING";
   const subscription = student.subscription;
@@ -64,7 +66,6 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
             <div><dt>Primeiro pagamento</dt><dd>{formatDate(firstPayment?.paidAt)}</dd></div>
             <div><dt>Último pagamento</dt><dd>{formatDate(lastPayment?.paidAt)}</dd></div>
             <div><dt>Valor mais recente</dt><dd>{lastPayment ? formatCurrency(lastPayment.amountCents) : "—"}</dd></div>
-            <div><dt>Próxima cobrança</dt><dd>{nextCharge}</dd></div>
           </dl>
         </section>
       </div>
@@ -77,9 +78,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
         <dl className="dl-grid profile-enrollment-grid">
           <div><dt>Categoria</dt><dd>{subscription?.plan?.service.name ?? "Ainda não definida"}</dd></div>
           <div><dt>Plano</dt><dd>{subscription?.plan ? periodLabel[subscription.plan.period] : "Ainda não escolhido"}</dd></div>
-          <div><dt>Valor vigente</dt><dd>{currentValue}</dd></div>
           <div><dt>Cobrança</dt><dd>{subscription?.isCourtesy ? "Isenta" : subscription?.manualMonthlyBilling ? "Mensal manual" : "Por período"}</dd></div>
-          <div><dt>Status</dt><dd>{status || "Aguardando escolha"}</dd></div>
         </dl>
       </section>
 
