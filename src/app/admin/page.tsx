@@ -1,11 +1,27 @@
+import Link from "next/link";
 import { FinancialEntryType, PaymentStatus, SubscriptionStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
-import { FinancialValues, FinancialVisibilityToggle } from "@/components/overview-financial-privacy";
+import { FinancialValues, FinancialVisibilityToggle, HideableMoney } from "@/components/overview-financial-privacy";
+import { Icon } from "@/components/ui/icon";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusPill } from "@/components/ui/status-pill";
+import { canAccessFeature } from "@/lib/access-control";
 import { requireFeature } from "@/lib/auth";
 import { currentMonthInMaceio, formatCurrency, formatDate, formatTime, greetingForDate, paymentMethodLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { contractedMonthlyRevenueCents } from "@/lib/revenue-recognition";
 import { getStoreSalesSummary } from "@/lib/store-finance";
+
+const numberFormat = new Intl.NumberFormat("pt-BR");
+
+function Metric({ label, value, note, href, tone }: { label: string; value: React.ReactNode; note: string; href?: string; tone?: "danger" | "positive" }) {
+  const content = <>
+    <span className="metric-label">{label}</span>
+    <strong className="metric-value">{value}</strong>
+    <span className="metric-note">{note}{href ? <Icon name="chevronRight" className="icon-sm" /> : null}</span>
+  </>;
+  return href ? <Link className="metric" data-tone={tone} href={href}>{content}</Link> : <div className="metric" data-tone={tone}>{content}</div>;
+}
 
 export default async function AdminPage() {
   const user = await requireFeature("overview");
@@ -26,32 +42,62 @@ export default async function AdminPage() {
   ]);
   const contractedRevenue = contractedMonthlyRevenueCents(activeSubscriptions);
   const receivedCents = (cashPayments._sum.amountCents ?? 0) + (manualRevenue._sum.amountCents ?? 0) + storeSales.totalCents;
+  const isAdmin = user.role === UserRole.ADMIN;
+  const canSeeStudents = user.role === UserRole.OPERATOR || canAccessFeature(user, "students");
+  const canSeeAnalysis = user.role === UserRole.OPERATOR || canAccessFeature(user, "analysis");
 
   return (
     <AppShell user={user} current="admin">
       <FinancialValues>
-        <header className="page-heading overview-page-heading">
-          <div><p className="eyebrow">Visão geral</p><h1>{greetingForDate(now)}, {user.name.split(" ")[0]}.</h1><p>Um retrato financeiro e operacional da Pace Lab.</p></div>
-          <div className="overview-page-actions"><div className="date-now">Atualizado agora</div><FinancialVisibilityToggle /></div>
-        </header>
+        <PageHeader
+          context={{ label: "Visão geral" }}
+          title={`${greetingForDate(now)}, ${user.name.split(" ")[0]}.`}
+          lead="Um retrato financeiro e operacional da Pace Lab."
+          actions={<><span className="overview-updated">Atualizado agora</span><FinancialVisibilityToggle /></>}
+        />
 
-        <section className="overview-financial">
-          <div className="overview-financial-heading"><div><p className="eyebrow">Resultados de {currentMonth}</p><p>Compare o que entrou no caixa com o valor mensal dos contratos ativos no período.</p></div></div>
-          <div className={`overview-financial-grid${user.role === UserRole.ADMIN ? "" : " overview-financial-grid-limited"}`}>
-            {user.role === UserRole.ADMIN ? <article className="metric-card"><p>Recebido em {currentMonth}</p><strong className="money-value">{formatCurrency(receivedCents)}</strong><small>Planos, loja e lançamentos manuais confirmados no mês</small></article> : null}
-            <article className="metric-card"><p>Receita contratada de {currentMonth}</p><strong className="money-value">{formatCurrency(contractedRevenue)}</strong><small>mensalidades de todos os contratos ativos, já consideradas no mês inteiro</small></article>
+        <section className="section-block overview-results" aria-labelledby="overview-results-title">
+          <div className="section-head">
+            <div><h2 className="section-title" id="overview-results-title">Resultados de {currentMonth}</h2><p className="section-lead">Compare o que entrou no caixa com o valor mensal dos contratos ativos no período.</p></div>
+          </div>
+          <div className="metric-strip" data-count={isAdmin ? 2 : 1}>
+            {isAdmin ? <Metric label={`Recebido em ${currentMonth}`} value={<HideableMoney value={formatCurrency(receivedCents)} />} note="Planos, loja e lançamentos manuais confirmados no mês" /> : null}
+            <Metric label={`Receita contratada de ${currentMonth}`} value={<HideableMoney value={formatCurrency(contractedRevenue)} />} note="Mensalidades de todos os contratos ativos, já consideradas no mês inteiro" tone="positive" />
           </div>
         </section>
 
-        <section className="metric-grid overview-status-grid" aria-label="Indicadores operacionais">
-          <article className="metric-card"><p>Alunos ativos</p><strong>{activeStudents}</strong><small>{totalStudents} cadastros no total</small></article>
-          <article className="metric-card alert"><p>Em atraso</p><strong>{overdueStudents}</strong><small>precisam de atenção</small></article>
-          <article className="metric-card"><p>Aguardando pagamento</p><strong>{pendingStudents}</strong><small>possíveis vendas em aberto</small></article>
+        <section className="section-block overview-status" aria-labelledby="overview-status-title">
+          <div className="section-head"><div><h2 className="section-title" id="overview-status-title">Saúde da base</h2><p className="section-lead">Situação das assinaturas dos alunos ativos.</p></div></div>
+          <div className="metric-strip" data-count={3}>
+            <Metric label="Alunos ativos" value={numberFormat.format(activeStudents)} note={`${numberFormat.format(totalStudents)} cadastros no total`} href={canSeeStudents ? "/admin/alunos" : undefined} />
+            <Metric label="Em atraso" value={numberFormat.format(overdueStudents)} note="Precisam de atenção" href={canSeeAnalysis ? "/admin/analisar?status=overdue" : undefined} tone="danger" />
+            <Metric label="Aguardando pagamento" value={numberFormat.format(pendingStudents)} note="Possíveis vendas em aberto" href={canSeeStudents ? "/admin/alunos?status=pendentes" : undefined} />
+          </div>
         </section>
 
-        <div className="section-grid">
-          {user.role === UserRole.ADMIN ? <section className="panel"><div className="panel-heading"><div><h2>Pagamentos de {currentMonth}</h2><p>Confirmações registradas neste mês.</p></div></div>{recentPayments.length ? <div className="notification-list">{recentPayments.map((payment) => <div className="notification-item" key={payment.id}><span className="notification-mark">OK</span><div><div className="notification-title">{payment.user.name}</div><div className="notification-description">{paymentMethodLabel(payment.method)} · <span className="money-value">{formatCurrency(payment.amountCents)}</span></div></div><time className="notification-time">{formatTime(payment.paidAt ?? payment.createdAt)}</time></div>)}</div> : <div className="empty-state">Ainda não há pagamentos confirmados neste mês.</div>}</section> : <section className="panel"><div className="panel-heading"><div><h2>Receita de {currentMonth}</h2><p>O valor mensal das parcelas ativas no período.</p></div></div><div className="empty-state">A receita do mês está disponível no resumo acima.</div></section>}
-          <aside><section className="panel"><div className="panel-heading"><div><h2>Novos cadastros</h2><p>Entradas registradas em {currentMonth}.</p></div><span className="pill">{recentStudents.length} no mês</span></div>{recentStudents.length ? <div className="summary-list">{recentStudents.map((student) => <div className="summary-item" key={student.id}><span>{student.name}<small>{student.saleOwner?.name ? "Venda: " + student.saleOwner.name : "Sem vendedor definido"}</small></span><strong>{formatDate(student.createdAt)}</strong></div>)}</div> : <div className="empty-state">Nenhum cadastro neste mês.</div>}</section></aside>
+        <div className="overview-columns">
+          {isAdmin ? <section className="section-block" aria-labelledby="overview-payments-title">
+            <div className="section-head"><div><h2 className="section-title" id="overview-payments-title">Pagamentos de {currentMonth}</h2><p className="section-lead">Confirmações registradas neste mês.</p></div></div>
+            {recentPayments.length ? <ul className="activity-list">{recentPayments.map((payment) => <li key={payment.id}>
+              <span className="activity-mark" aria-hidden="true"><Icon name="check" className="icon-sm" /></span>
+              <span className="activity-copy"><strong>{payment.user.name}</strong><span>{paymentMethodLabel(payment.method)} · <HideableMoney value={formatCurrency(payment.amountCents)} /></span></span>
+              <time className="activity-time" dateTime={(payment.paidAt ?? payment.createdAt).toISOString()}>{formatTime(payment.paidAt ?? payment.createdAt)}</time>
+            </li>)}</ul> : <div className="state-empty"><strong>Ainda não há pagamentos confirmados neste mês.</strong></div>}
+          </section> : <section className="section-block" aria-labelledby="overview-revenue-title">
+            <div className="section-head"><div><h2 className="section-title" id="overview-revenue-title">Receita de {currentMonth}</h2><p className="section-lead">O valor mensal das parcelas ativas no período.</p></div></div>
+            <div className="state-empty"><p>A receita do mês está disponível no resumo acima.</p></div>
+          </section>}
+
+          <section className="section-block" aria-labelledby="overview-new-title">
+            <div className="section-head">
+              <div><h2 className="section-title" id="overview-new-title">Novos cadastros</h2><p className="section-lead">Entradas registradas em {currentMonth}.</p></div>
+              <StatusPill tone="neutral">{recentStudents.length} no mês</StatusPill>
+            </div>
+            {recentStudents.length ? <ul className="activity-list">{recentStudents.map((student) => <li key={student.id}>
+              <span className="activity-copy"><strong>{student.name}</strong><span>{student.saleOwner?.name ? `Venda: ${student.saleOwner.name}` : "Sem vendedor definido"}</span></span>
+              <time className="activity-time" dateTime={student.createdAt.toISOString()}>{formatDate(student.createdAt)}</time>
+            </li>)}</ul> : <div className="state-empty"><strong>Nenhum cadastro neste mês.</strong></div>}
+          </section>
         </div>
       </FinancialValues>
     </AppShell>

@@ -1,0 +1,14 @@
+@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+/* Visão geral (/admin) */
+@layer screens {
+  .overview-updated { align-self: center; color: var(--text-muted); font-size: var(--text-xs); }
+  .overview-results { border-top: 0; padding-top: var(--space-2); }
+  .overview-results .metric-value { font-size: clamp(2.25rem, 4vw, 3.25rem); }
+  /* A régua inferior da faixa de métricas já separa a seção seguinte. */
+  .overview-status,
+  .overview-columns > .section-block { border-top: 0; }
+  .overview-columns { display: grid; gap: 0 var(--space-7); }
+  @media (min-width: 1100px) {
+    .overview-columns { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+  }
+}
