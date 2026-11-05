@@ -2,6 +2,8 @@ import { FinancialEntryType, PaymentStatus, PlanPeriod, SubscriptionStatus, User
 import { AppShell } from "@/components/app-shell";
 import { FinancialEntryManager, FinancialEntryRow, FinancialMobileActions } from "@/components/financial-entry-manager";
 import { FinanceMonthPicker } from "@/components/finance-month-picker";
+import { PageHeader } from "@/components/ui/page-header";
+import { Icon } from "@/components/ui/icon";
 import { requireFeature } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -51,7 +53,7 @@ function salesLabel(count: number) {
 }
 
 function LedgerRows({ entries, empty, kind, canDelete }: { entries: FinancialLedgerEntry[]; empty: string; kind: "income" | "cost"; canDelete: boolean }) {
-  return entries.length ? <div className="finance-list finance-manual-list">{entries.map((entry) => <FinancialEntryRow
+  return entries.length ? <ul className="ledger">{entries.map((entry) => <FinancialEntryRow
     key={entry.id}
     editable={canDelete}
     kind={kind}
@@ -65,7 +67,7 @@ function LedgerRows({ entries, empty, kind, canDelete }: { entries: FinancialLed
       isFixed: entry.isFixed,
       createdByName: entry.createdBy.name,
     }}
-  />)}</div> : <p className="finance-ledger-empty">{empty}</p>;
+  />)}</ul> : <p className="ledger-empty">{empty}</p>;
 }
 
 function PlanRevenueSummary({ contracts, totalCents, planCash, paymentCount, monthLabel }: { contracts: ActiveContract[]; totalCents: number; planCash: number; paymentCount: number; monthLabel: string }) {
@@ -78,20 +80,20 @@ function PlanRevenueSummary({ contracts, totalCents, planCash, paymentCount, mon
     return items;
   }, new Map<string, ActiveContract & { count: number; totalCents: number }>()).values()).sort((left, right) => right.totalCents - left.totalCents || left.planName.localeCompare(right.planName, "pt-BR"));
 
-  return <details className="finance-plan-revenue">
+  return <details className="ledger-group plan-revenue">
     <summary>
-      <span className="finance-entry-mark income">+</span>
-      <span className="finance-plan-revenue-copy"><strong>Planos</strong><small>{contracts.length} contrato{contracts.length === 1 ? "" : "s"} ativo{contracts.length === 1 ? "" : "s"} · receita do mês inteiro</small></span>
-      <span className="finance-plan-revenue-total"><b>{formatCurrency(totalCents)}</b><small>previsto em {monthLabel}</small></span>
+      <span className="ledger-sign" data-kind="income" aria-hidden="true">+</span>
+      <span className="ledger-copy"><strong>Planos</strong><small>{contracts.length} contrato{contracts.length === 1 ? "" : "s"} ativo{contracts.length === 1 ? "" : "s"} · receita do mês inteiro</small></span>
+      <span className="ledger-amount-stack"><span className="ledger-amount" data-kind="income">{formatCurrency(totalCents)}</span><small>previsto em {monthLabel}</small></span>
+      <Icon name="chevronDown" className="icon-sm ledger-toggle" />
     </summary>
-    <div className="finance-plan-revenue-body">
-      <div className="finance-plan-cash-summary"><span><strong>Recebido até agora</strong><small>{salesLabel(paymentCount)} · pagamentos confirmados</small></span><b>{formatCurrency(planCash)}</b></div>
-      <p>Composição da receita mensal contratada. Cada contrato ativo entra uma vez no mês, sem esperar o dia do vencimento.</p>
-      {groups.length ? <div className="finance-contract-list">{groups.map((group) => <div key={`${group.planName}-${group.priceCents}-${group.billingPeriod}-${group.manualMonthlyBilling}`}>
-        <span>{group.planName}</span>
-        <small>{group.count} contrato{group.count === 1 ? "" : "s"} · {group.manualMonthlyBilling ? "cobrança mensal manual" : `plano ${periodLabels[group.billingPeriod]}`} · {formatCurrency(group.priceCents)}/mês cada</small>
-        <b>{formatCurrency(group.totalCents)}</b>
-      </div>)}</div> : <p className="finance-ledger-empty">Nenhum contrato ativo compõe esta receita.</p>}
+    <div className="plan-revenue-body">
+      <dl className="kv-list"><div><dt>Recebido até agora<small className="kv-note">{salesLabel(paymentCount)} · pagamentos confirmados</small></dt><dd>{formatCurrency(planCash)}</dd></div></dl>
+      <p className="field-hint">Composição da receita mensal contratada. Cada contrato ativo entra uma vez no mês, sem esperar o dia do vencimento.</p>
+      {groups.length ? <ul className="ledger ledger-compact">{groups.map((group) => <li className="ledger-row" key={`${group.planName}-${group.priceCents}-${group.billingPeriod}-${group.manualMonthlyBilling}`}><div className="ledger-row-content">
+        <span className="ledger-copy"><strong>{group.planName}</strong><small>{group.count} contrato{group.count === 1 ? "" : "s"} · {group.manualMonthlyBilling ? "cobrança mensal manual" : `plano ${periodLabels[group.billingPeriod]}`} · {formatCurrency(group.priceCents)}/mês cada</small></span>
+        <span className="ledger-amount">{formatCurrency(group.totalCents)}</span>
+      </div></li>)}</ul> : <p className="ledger-empty">Nenhum contrato ativo compõe esta receita.</p>}
     </div>
   </details>;
 }
@@ -126,31 +128,42 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const canManageEntries = user.role === UserRole.ADMIN;
 
   return <AppShell user={user} current="finance">
-    <header className="page-heading finance-heading"><h1>Financeiro</h1><FinanceMonthPicker value={range.key} /></header>
-    <section className="finance-metrics">
-      <article><p>Entradas recebidas</p><strong>{formatCurrency(cashRevenue)}</strong><small>Planos, loja e lançamentos confirmados</small></article>
-      <article className="expense"><p>Saídas do mês</p><strong>{formatCurrency(costs)}</strong><small>{formatCurrency(monthCostsCents)} variáveis · {formatCurrency(fixedCostsCents)} fixas</small></article>
-      <article className="profit"><p>Resultado projetado</p><strong>{formatCurrency(projectedResult)}</strong><small>Receita dos contratos, loja e lançamentos menos saídas</small></article>
-    </section>
-    <section className="finance-layout"><div>
-      <section className="finance-statement">
-        <section className="panel finance-ledger finance-income-ledger">
-          <div className="panel-heading"><div><p className="eyebrow">Ganhos</p><h2>Entradas recebidas</h2><p>Valores que entraram no caixa em {range.label}.</p></div><b className="finance-section-total">{formatCurrency(cashRevenue)}</b></div>
-          <div className="finance-list">
-            <PlanRevenueSummary contracts={activeContracts} totalCents={contractedPlanRevenue} planCash={planCash} paymentCount={monthPayments.length} monthLabel={range.label} />
-            <div><span className="finance-entry-mark income">+</span><div><strong>Loja</strong><small>{salesLabel(storeSales.count)} · Pedidos pagos</small></div><b>{formatCurrency(storeSales.totalCents)}</b></div>
+    <PageHeader context={{ label: "Gestão financeira" }} title="Financeiro." lead={`Entradas, saídas e resultado de ${range.label}.`} actions={<FinanceMonthPicker value={range.key} />} />
+    <div className="metric-strip finance-summary" data-count={3}>
+      <div className="metric" data-tone="positive"><span className="metric-label">Entradas recebidas</span><strong className="metric-value">{formatCurrency(cashRevenue)}</strong><span className="metric-note">Planos, loja e lançamentos confirmados</span></div>
+      <div className="metric"><span className="metric-label">Saídas do mês</span><strong className="metric-value">{formatCurrency(costs)}</strong><span className="metric-note">{formatCurrency(monthCostsCents)} variáveis · {formatCurrency(fixedCostsCents)} fixas</span></div>
+      <div className="metric" data-tone={projectedResult < 0 ? "danger" : "positive"}><span className="metric-label">Resultado projetado</span><strong className="metric-value">{formatCurrency(projectedResult)}</strong><span className="metric-note">Receita dos contratos, loja e lançamentos menos saídas</span></div>
+    </div>
+    <div className="fin-layout">
+      <div className="fin-statement">
+        <section className="section-block" aria-labelledby="finance-income-title">
+          <div className="section-head">
+            <div><h2 className="section-title" id="finance-income-title">Entradas recebidas</h2><p className="section-lead">Valores que entraram no caixa em {range.label}.</p></div>
+            <span className="ledger-total" data-kind="income">{formatCurrency(cashRevenue)}</span>
           </div>
-          <details className="finance-subsection finance-expandable"><summary>Outras entradas <b>{revenueEntries.length}</b></summary><LedgerRows entries={revenueEntries} kind="income" canDelete={canManageEntries} empty="Nenhuma outra entrada neste mês." /></details>
+          <PlanRevenueSummary contracts={activeContracts} totalCents={contractedPlanRevenue} planCash={planCash} paymentCount={monthPayments.length} monthLabel={range.label} />
+          <ul className="ledger"><li className="ledger-row"><div className="ledger-row-content"><span className="ledger-sign" data-kind="income" aria-hidden="true">+</span><span className="ledger-copy"><strong>Loja</strong><small>{salesLabel(storeSales.count)} · Pedidos pagos</small></span><span className="ledger-amount" data-kind="income">{formatCurrency(storeSales.totalCents)}</span></div></li></ul>
+          <details className="ledger-group">
+            <summary><span className="ledger-copy"><strong>Outras entradas</strong><small>Lançamentos manuais do mês</small></span><span className="board-count">{revenueEntries.length}</span><Icon name="chevronDown" className="icon-sm ledger-toggle" /></summary>
+            <LedgerRows entries={revenueEntries} kind="income" canDelete={canManageEntries} empty="Nenhuma outra entrada neste mês." />
+          </details>
         </section>
-        <section className="panel finance-ledger finance-expense-ledger">
-          <div className="panel-heading"><div><p className="eyebrow">Saídas</p><h2>Despesas</h2><p>Separadas entre o que variou no mês e o que é recorrente.</p></div><b className="finance-section-total negative">−{formatCurrency(costs)}</b></div>
-          <div className="finance-expense-columns">
-            <div className="finance-subsection"><p>Saídas do mês <b>−{formatCurrency(monthCostsCents)}</b></p><LedgerRows entries={monthCosts} kind="cost" canDelete={canManageEntries} empty="Nenhuma saída variável neste mês." /></div>
-            <div className="finance-subsection fixed"><p>Custos fixos <b>−{formatCurrency(fixedCostsCents)}</b></p><LedgerRows entries={fixedCosts} kind="cost" canDelete={canManageEntries} empty="Nenhum custo fixo neste mês." /></div>
+        <section className="section-block" aria-labelledby="finance-expense-title">
+          <div className="section-head">
+            <div><h2 className="section-title" id="finance-expense-title">Despesas</h2><p className="section-lead">Separadas entre o que variou no mês e o que é recorrente.</p></div>
+            <span className="ledger-total" data-kind="cost">−{formatCurrency(costs)}</span>
+          </div>
+          <div className="fin-expense-cols">
+            <div><h3 className="ledger-subtitle">Saídas do mês <span>−{formatCurrency(monthCostsCents)}</span></h3><LedgerRows entries={monthCosts} kind="cost" canDelete={canManageEntries} empty="Nenhuma saída variável neste mês." /></div>
+            <div><h3 className="ledger-subtitle">Custos fixos <span>−{formatCurrency(fixedCostsCents)}</span></h3><LedgerRows entries={fixedCosts} kind="cost" canDelete={canManageEntries} empty="Nenhum custo fixo neste mês." /></div>
           </div>
         </section>
-      </section>
-    </div><aside className="finance-entry-panel"><div className="finance-entry-intro"><p className="eyebrow">Novo lançamento</p><h2>Registrar no financeiro</h2><p>Inclua uma entrada ou saída avulsa para manter o resultado do mês atualizado.</p></div><FinancialEntryManager month={range.key} /></aside></section>
+      </div>
+      <aside className="finance-aside section-block" aria-labelledby="finance-new-title">
+        <div className="section-head"><div><h2 className="section-title" id="finance-new-title">Registrar no financeiro</h2><p className="section-lead">Inclua uma entrada ou saída avulsa para manter o resultado do mês atualizado.</p></div></div>
+        <FinancialEntryManager month={range.key} />
+      </aside>
+    </div>
     <FinancialMobileActions month={range.key} />
   </AppShell>;
 }
