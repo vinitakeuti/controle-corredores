@@ -42,12 +42,15 @@ export default async function StudentPage({ searchParams }: { searchParams: Prom
     const exclusive = subscription?.hasCustomPrice || subscription?.manualMonthlyBilling;
     return <AppShell user={user} current="student">
       <PageHeader tutorialAnchor="student-heading" context={{ label: "Área do aluno" }} title={selectingPlan ? "Escolha seu plano." : `Olá, ${user.name.split(" ")[0]}.`} lead={selectingPlan ? "Selecione o serviço e a duração que fazem sentido para sua rotina." : exclusive ? "Sua condição comercial já está definida. Escolha como pagar." : "Escolha seu plano e conclua seu primeiro pagamento."} />
+      {subscription?.status === "PAST_DUE" ? <div className="message student-note" data-tone="warning" role="status"><Icon name="alert" /><div><strong>Vamos colocar sua assinatura em dia?</strong><p>{subscription.nextBillingAt ? `Sua mensalidade venceu em ${formatDate(subscription.nextBillingAt)}. ` : ""}Escolha como pagar abaixo e siga no ritmo.</p></div></div> : null}
       {exclusive ? <p className="message student-note" data-tone="info"><Icon name="info" /><span>{subscription?.manualMonthlyBilling ? "Sua cobrança é manual e mensal, conforme a condição definida pela Pace Lab." : "Você recebeu um valor exclusivo definido pela Pace Lab para esta assinatura."}</span></p> : null}
       {plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} automaticPixEnabled={subscription.automaticPixEnabled} customPriceCents={subscription.hasCustomPrice ? subscription.priceCents : null} manualMonthlyBilling={subscription.manualMonthlyBilling} lockPlan={(subscription.hasCustomPrice || subscription.manualMonthlyBilling) && Boolean(subscription.planId)} /> : <div className="state-empty"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></div>}
     </AppShell>;
   }
 
-  const statusText = subscriptionLabel(subscription?.status ?? "INCOMPLETE");
+  // Assinatura ativa com vencimento já passado: a equipe já a conta como atrasada; para o aluno, mostramos que a confirmação está pendente.
+  const paymentOverdue = !subscription.isCourtesy && Boolean(subscription.nextBillingAt && subscription.nextBillingAt < new Date());
+  const statusText = paymentOverdue ? "Pagamento pendente" : subscriptionLabel(subscription?.status ?? "INCOMPLETE");
 
   return (
     <AppShell user={user} current="student">
@@ -64,6 +67,7 @@ export default async function StudentPage({ searchParams }: { searchParams: Prom
         </dl>
       </section>
 
+      {paymentOverdue ? <p className="message student-note" data-tone="warning" role="status"><Icon name="alert" /><span>A mensalidade de {formatDate(subscription.nextBillingAt)} ainda não foi confirmada. Se você usa Pix Automático ou cartão recorrente, a confirmação pode levar alguns dias.</span></p> : null}
       {subscription.isCourtesy || subscription.hasCustomPrice || subscription.manualMonthlyBilling ? <p className="message student-note" data-tone="info"><Icon name="info" /><span>{subscription.isCourtesy ? "Você recebeu uma cortesia da Pace Lab. Não há pagamento pendente para esta assinatura." : subscription.manualMonthlyBilling ? "Sua cobrança é manual e mensal. A cada mês, gere o pagamento do valor indicado acima." : "Sua assinatura possui um valor exclusivo definido pela Pace Lab."}</span></p> : null}
 
       {!subscription.isCourtesy ? <section className="section-block student-payment" data-tutorial-anchor="student-payment">

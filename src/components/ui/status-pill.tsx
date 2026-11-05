@@ -22,6 +22,7 @@ const toneByLabel: Record<string, Tone> = {
   "Estornado": "neutral",
   "Novo envio solicitado": "danger",
   "Aguardando pagamento": "warning",
+  "Pagamento pendente": "warning",
   "Aguardando envio": "warning",
   "Aguardando validação": "warning",
   "Pendente": "warning",
