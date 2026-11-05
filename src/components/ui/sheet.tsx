@@ -33,9 +33,11 @@ export function Sheet({ open, onClose, title, children, closeLabel = "Fechar", c
     return () => {
       dialog.removeEventListener("close", handleClose);
       // Desmontado ainda aberto (renderização condicional): o evento "close" não dispara.
+      // Só devolve o foco se o diálogo saiu mesmo do DOM (o StrictMode remonta sem remover).
       const target = returnFocus.current;
-      returnFocus.current = null;
-      if (target?.isConnected) window.requestAnimationFrame(() => target.focus());
+      window.requestAnimationFrame(() => {
+        if (!dialog.isConnected && target?.isConnected) target.focus();
+      });
     };
   }, []);
 
