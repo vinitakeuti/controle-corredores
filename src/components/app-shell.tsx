@@ -1,42 +1,68 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
-import { canAccessFeature } from "@/lib/access-control";
 import type { SessionUser } from "@/lib/auth";
-import { Brand } from "@/components/brand";
 import { MobileNav } from "@/components/mobile-nav";
 import { PlatformTutorial } from "@/components/platform-tutorial";
+import { Icon } from "@/components/ui/icon";
+import { homeHrefFor, navGroupLabels, navItemsFor, roleLabel, type NavItem, type ShellSection } from "@/components/shell/nav";
 import { STORE_ADMIN_URL, STORE_URL } from "@/lib/store-url";
 
-
-export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: "admin" | "students" | "analysis" | "plans" | "integrations" | "settings" | "student" | "demands" | "sales" | "finance" }) {
+function SidebarLink({ item, current }: { item: NavItem; current: ShellSection }) {
   return (
-    <div className="app-shell">
+    <li>
+      <Link className="shell-link" href={item.href} aria-current={current === item.key ? "page" : undefined} data-tutorial-anchor={item.tutorialAnchor}>
+        <Icon name={item.icon} />{item.label}
+      </Link>
+    </li>
+  );
+}
+
+export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: ShellSection }) {
+  const items = navItemsFor(user);
+  const isStudent = user.role === UserRole.STUDENT;
+  const groups = (["operation", "commercial", "finance", "student"] as const)
+    .map((group) => ({ group, items: items.filter((item) => item.group === group) }))
+    .filter((entry) => entry.items.length > 0);
+
+  return (
+    <div className="shell" data-nav={isStudent ? "student" : "staff"}>
+      <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
       <MobileNav user={user} current={current} />
-      <aside className={`sidebar sidebar-${user.role.toLowerCase()}`}>
-        <Brand href={user.role === UserRole.STUDENT ? "/aluno" : user.role === UserRole.OPERATOR ? "/admin/alunos" : "/admin"} />
-        <nav aria-label="Navegação principal">
-          {canAccessFeature(user, "overview") ? <Link className={`nav-link ${current === "admin" ? "active" : ""}`} href="/admin">Visão geral</Link> : null}
-          {(user.role === UserRole.OPERATOR || canAccessFeature(user, "demands")) ? <Link className={`nav-link ${current === "demands" ? "active" : ""}`} href="/admin/demandas">Demandas</Link> : null}
-          {(user.role === UserRole.OPERATOR || canAccessFeature(user, "sales")) ? <Link className={`nav-link ${current === "sales" ? "active" : ""}`} href="/admin/vendas">Vendas</Link> : null}
-          {(user.role === UserRole.OPERATOR || canAccessFeature(user, "students")) ? <Link className={`nav-link ${current === "students" ? "active" : ""}`} href="/admin/alunos" data-tutorial-anchor="nav-students">Alunos</Link> : null}
-          {(user.role === UserRole.OPERATOR || canAccessFeature(user, "analysis")) ? <Link className={`nav-link ${current === "analysis" ? "active" : ""}`} href="/admin/analisar">Analisar dados</Link> : null}
-          {canAccessFeature(user, "finance") ? <Link className={`nav-link ${current === "finance" ? "active" : ""}`} href="/admin/financeiro">Financeiro</Link> : null}
-          {canAccessFeature(user, "plans") ? <Link className={`nav-link ${current === "plans" ? "active" : ""}`} href="/admin/planos" data-tutorial-anchor="nav-plans">Planos</Link> : null}
-          {canAccessFeature(user, "integrations") ? <Link className={`nav-link ${current === "integrations" ? "active" : ""}`} href="/admin/integracoes">Integrações</Link> : null}
-          {user.role === UserRole.STUDENT ? <Link className={`nav-link ${current === "student" ? "active" : ""}`} href="/aluno" data-tutorial-anchor="nav-student">Minha assinatura</Link> : null}
-          {user.active ? <button className="nav-link tutorial-launcher" type="button" data-open-tutorial>Tutorial</button> : null}
-          {user.role === UserRole.STUDENT ? <a className="nav-link" href={STORE_URL}>Loja</a> : null}
+      <aside className="shell-sidebar brand-surface" aria-label="Menu lateral">
+        <Link className="shell-wordmark" href={homeHrefFor(user.role)} aria-label="Pace Lab, página inicial">
+          <img src="/assets/images/pace-lab.svg" alt="" width={104} height={104} />
+        </Link>
+        <nav className="shell-nav" aria-label="Navegação principal">
+          {groups.map(({ group, items: groupItems }) => (
+            <div className="shell-nav-group" key={group}>
+              {!isStudent ? <span className="shell-nav-label" id={`nav-group-${group}`}>{navGroupLabels[group]}</span> : null}
+              <ul className="shell-nav-list" aria-labelledby={!isStudent ? `nav-group-${group}` : undefined}>
+                {groupItems.map((item) => <SidebarLink key={item.key} item={item} current={current} />)}
+                {isStudent ? <li><a className="shell-link" href={STORE_URL}><Icon name="store" />Loja</a></li> : null}
+              </ul>
+            </div>
+          ))}
         </nav>
-        {user.role === UserRole.ADMIN ? <div className="sidebar-settings"><Link className={`nav-link ${current === "settings" ? "active" : ""}`} href="/admin/configuracoes">Configurações</Link><a className="nav-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer">Admin da loja</a></div> : null}
-        <div className="sidebar-footer" data-tutorial-anchor="account-menu">
-          <strong>{user.name}</strong>
-          <span>{user.role === UserRole.ADMIN ? "Administrador" : user.role === UserRole.MANAGER ? "Gerente" : user.role === UserRole.OPERATOR ? "Operador" : "Aluno"}</span>
-          <form action="/api/auth/logout" method="post">
-            <button className="logout-button" type="submit">Sair da conta</button>
-          </form>
+        <div className="shell-sidebar-footer">
+          <ul className="shell-nav-list">
+            {user.role === UserRole.ADMIN ? <li><Link className="shell-link" href="/admin/configuracoes" aria-current={current === "settings" ? "page" : undefined}><Icon name="settings" />Configurações</Link></li> : null}
+            {user.role === UserRole.ADMIN ? <li><a className="shell-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer"><Icon name="store" />Admin da loja<Icon name="external" className="icon-external" /><span className="visually-hidden"> (abre em nova aba)</span></a></li> : null}
+            {user.active ? <li><button className="shell-link" type="button" data-open-tutorial><Icon name="help" />Tutorial</button></li> : null}
+          </ul>
+          <div className="shell-account" data-tutorial-anchor="account-menu">
+            <div className="shell-account-name"><strong title={user.name}>{user.name}</strong><span>{roleLabel(user.role)}</span></div>
+            <form action="/api/auth/logout" method="post">
+              <button className="shell-logout" type="submit" aria-label="Sair da conta"><Icon name="logout" />Sair</button>
+            </form>
+          </div>
         </div>
       </aside>
-      <main className="main-content"><div className="content-wrap">{user.role === UserRole.STUDENT ? <a className="student-store-button" href={STORE_URL}>IR PARA A LOJA</a> : null}{children}</div></main>
+      <main className="shell-main" id="conteudo" tabIndex={-1}>
+        <div className="shell-content">
+          {isStudent ? <a className="student-store-button" href={STORE_URL}>IR PARA A LOJA</a> : null}
+          {children}
+        </div>
+      </main>
       {user.active ? <PlatformTutorial role={user.role} name={user.name} userId={user.id} initiallySeen={Boolean(user.tutorialSeenAt)} /> : null}
     </div>
   );
