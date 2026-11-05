@@ -1,0 +1,100 @@
+/* Tokens do sistema visual Pace Lab.
+   Contraste conferido em WCAG AA sobre --bg e --surface. */
+@layer tokens {
+  :root {
+    /* Superfícies */
+    --bg: #edf0ec;
+    --surface: #ffffff;
+    --surface-raised: #f6f7f3;
+    --surface-sunken: #e5e9e3;
+    --surface-hover: #e9ede7;
+    --sidebar: #151a1a;
+    --sidebar-raised: #222a29;
+    --brand-panel: linear-gradient(160deg, #26332e, #101714);
+    --stripes-dark: repeating-linear-gradient(112deg, transparent 0 46px, rgba(255, 255, 255, 0.045) 47px 70px, transparent 71px 150px);
+
+    /* Linhas */
+    --line: #d5dbd4;
+    --line-soft: #e4e8e2;
+    --line-control: #7f8a85;
+    --line-strong: #17201d;
+
+    /* Texto */
+    --text: #17201d;
+    --text-muted: #5b6661;
+    --text-secondary: #394641;
+    --text-placeholder: #6b7570;
+    --on-dark: #f4f6f3;
+    --on-dark-muted: #c9d1cd;
+    --on-dark-subtle: #8f9a94;
+
+    /* Marca: o laranja é o único acento */
+    --accent: #e15d37;
+    --accent-strong: #c74727;
+    --accent-strong-hover: #b23e21;
+    --accent-text: #b03d1f;
+    --accent-soft: rgba(225, 93, 55, 0.12);
+    --focus-ring: #c74727;
+
+    /* Estados */
+    --positive: #31523e;
+    --positive-soft: #e3ebe4;
+    --danger: #b3173a;
+    --danger-hover: #9a1232;
+    --danger-soft: #f7e4e8;
+    --warning: #8a5a00;
+    --warning-strong: #6b4600;
+    --warning-soft: #f4ead6;
+    --info: #2f4f63;
+    --info-soft: #e2eaee;
+
+    /* Tipografia */
+    --font-display: var(--font-anton), Impact, "Arial Narrow Bold", sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-md: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.375rem;
+    --display-sm: 2rem;
+    --display-md: 2.75rem;
+    --display-lg: 3.75rem;
+    --tracking-caps: 0.14em;
+
+    /* Espaço (grade de 4px) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+
+    /* Forma e profundidade */
+    --radius: 2px;
+    --radius-sheet: 12px;
+    --radius-pill: 999px;
+    --control-h: 44px;
+    --shadow-overlay: 0 18px 40px rgba(16, 23, 20, 0.18), 0 2px 6px rgba(16, 23, 20, 0.08);
+    --scrim: rgba(16, 23, 20, 0.46);
+
+    /* Movimento */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --dur-1: 140ms;
+    --dur-2: 220ms;
+
+    /* Shell */
+    --sidebar-w: 248px;
+    --topbar-h: 56px;
+    --tabbar-h: 60px;
+    --content-max: 1220px;
+    --z-sticky: 10;
+    --z-shell: 30;
+    --z-overlay: 100;
+
+    /* Compatibilidade: telas ainda não migradas passam a ler o cinza com contraste AA. */
+    --muted: var(--text-muted);
+    --muted-strong: var(--text-secondary);
+  }
+}
