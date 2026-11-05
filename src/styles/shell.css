@@ -24,8 +24,7 @@
   }
 
   .shell-wordmark { display: block; width: fit-content; border-radius: var(--radius); }
-  .shell-wordmark img { display: block; height: auto; filter: invert(1); }
-  .shell-wordmark:hover img { opacity: 0.86; }
+  a.shell-wordmark:hover .brand-wordmark-image { opacity: 0.86; }
 
   /* Sidebar (desktop) */
   .shell-sidebar {
@@ -38,7 +37,6 @@
     padding: var(--space-5) var(--space-3) var(--space-3);
   }
   .shell-sidebar .shell-wordmark { margin: var(--space-2) var(--space-3) var(--space-6); }
-  .shell-sidebar .shell-wordmark img { width: 104px; }
   .shell-nav { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #3a4443 transparent; }
   .shell-nav-group + .shell-nav-group { margin-top: var(--space-4); }
   .shell-nav-label {
@@ -142,7 +140,6 @@
     height: var(--topbar-h);
     padding: 0 var(--space-1) 0 var(--space-4);
   }
-  .shell-topbar .shell-wordmark img { width: 64px; }
   .shell-topbar .icon-btn { color: #ffffff; }
   .shell-topbar .icon-btn:focus-visible { outline-color: var(--accent); outline-offset: -4px; }
 

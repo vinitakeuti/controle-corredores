@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { Feedback } from "@/components/ui/feedback";
 
 export function PasswordResetRequestForm() {
   const [email, setEmail] = useState("");
@@ -16,5 +17,9 @@ export function PasswordResetRequestForm() {
       setMessage(data.message);
     } catch { setError("Não foi possível conectar ao servidor."); } finally { setLoading(false); }
   }
-  return <form onSubmit={submit}><div className="field"><label htmlFor="reset-email">E-mail</label><input id="reset-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></div>{error ? <p className="error-message">{error}</p> : null}{message ? <p className="success-message">{message}</p> : null}<button className="button button-primary" type="submit" disabled={loading}>{loading ? "Enviando..." : "Enviar link de redefinição"}</button></form>;
+  return <form className="auth-form" onSubmit={submit}>
+    <div className="form-field"><label htmlFor="reset-email">E-mail</label><input className="control" id="reset-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></div>
+    <Feedback success={message} error={error} />
+    <button className="btn btn-primary btn-block" type="submit" disabled={loading} aria-busy={loading}>{loading ? "Enviando..." : "Enviar link de redefinição"}</button>
+  </form>;
 }

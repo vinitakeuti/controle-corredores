@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { Feedback } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
 import { STORE_URL } from "@/lib/store-url";
 
 export function LoginForm() {
@@ -37,18 +39,19 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="field">
+    <form className="auth-form" onSubmit={handleSubmit}>
+      <div className="form-field">
         <label htmlFor="email">E-mail</label>
-        <input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        <input className="control" id="email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
       </div>
-      <div className="field">
+      <div className="form-field">
         <label htmlFor="password">Senha</label>
-        <input id="password" name="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <input className="control" id="password" name="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
       </div>
-      <p className="login-helper"><a href="/recuperar-senha">Esqueci minha senha</a></p>
-      {error ? <div className="login-status-message"><p className="error-message">{error}</p>{inactive ? <a className="button button-secondary login-store-link" href={STORE_URL}>IR PARA A LOJA</a> : null}</div> : null}
-      <button className="button button-primary" type="submit" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
+      <p className="auth-helper auth-helper-inline"><a className="link" href="/recuperar-senha">Esqueci minha senha</a></p>
+      <Feedback error={error} />
+      {error && inactive ? <a className="btn btn-secondary" href={STORE_URL}><Icon name="store" />IR PARA A LOJA</a> : null}
+      <button className="btn btn-primary btn-block" type="submit" disabled={loading} aria-busy={loading}>{loading ? "Entrando..." : "Entrar"}</button>
     </form>
   );
 }

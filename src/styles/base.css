@@ -70,6 +70,11 @@
     border: 0;
   }
 
+  /* Wordmark: o SVG é preto; em superfície escura é invertido para branco, sem alterar o desenho. */
+  .brand-wordmark { display: block; width: fit-content; line-height: 0; }
+  .brand-wordmark-image { display: block; max-width: 100%; height: auto; }
+  .brand-wordmark-image[data-tone="light"] { filter: invert(1); }
+
   /* Título de marca: condensado, caixa alta, termina em ponto. */
   .display {
     margin: 0;

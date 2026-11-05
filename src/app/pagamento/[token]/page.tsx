@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PaymentLinkStatus, UserRole } from "@prisma/client";
+import { Brand } from "@/components/brand";
 import { CheckoutAccessForm } from "@/components/checkout-access-form";
 import { CheckoutPayment } from "@/components/checkout-payment";
 import { StudentSubscriptionFlow } from "@/components/student-subscription-flow";
@@ -28,7 +29,7 @@ export default async function PaymentPage({ params }: { params: Promise<{ token:
   return (
     <main className="checkout" id="conteudo">
       <header className="checkout-bar brand-surface">
-        <a className="shell-wordmark" href="/" aria-label="Pace Lab, página inicial"><img src="/assets/images/pace-lab.svg" alt="" width={72} height={72} /></a>
+        <Brand className="shell-wordmark" href="/" label="Pace Lab, página inicial" size={72} />
         <span className="checkout-secure"><Icon name="check" className="icon-sm" />Ambiente seguro</span>
       </header>
       <div className="checkout-body">

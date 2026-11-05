@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
+import { Brand } from "@/components/brand";
 import { MobileNav } from "@/components/mobile-nav";
 import { PlatformTutorial } from "@/components/platform-tutorial";
 import { Icon } from "@/components/ui/icon";
@@ -29,9 +30,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
       <MobileNav user={user} current={current} />
       <aside className="shell-sidebar brand-surface" aria-label="Menu lateral">
-        <Link className="shell-wordmark" href={homeHrefFor(user.role)} aria-label="Pace Lab, página inicial">
-          <img src="/assets/images/pace-lab.svg" alt="" width={104} height={104} />
-        </Link>
+        <Brand className="shell-wordmark" href={homeHrefFor(user.role)} label="Pace Lab, página inicial" size={104} />
         <nav className="shell-nav" aria-label="Navegação principal">
           {groups.map(({ group, items: groupItems }) => (
             <div className="shell-nav-group" key={group}>

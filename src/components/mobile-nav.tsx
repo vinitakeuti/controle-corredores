@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
+import { Brand } from "@/components/brand";
 import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
 import { homeHrefFor, navItemsFor, roleLabel, splitForTabbar, type ShellSection } from "@/components/shell/nav";
@@ -28,9 +29,7 @@ export function MobileNav({ user, current }: { user: SessionUser; current: Shell
   return (
     <>
       <header className="shell-topbar brand-surface">
-        <Link className="shell-wordmark" href={homeHrefFor(user.role)} aria-label="Pace Lab, página inicial">
-          <img src="/assets/images/pace-lab.svg" alt="" width={64} height={64} />
-        </Link>
+        <Brand className="shell-wordmark" href={homeHrefFor(user.role)} label="Pace Lab, página inicial" size={64} />
         {isStudent ? <button className="icon-btn" type="button" aria-label="Abrir menu" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)} data-tutorial-anchor="account-menu"><Icon name="menu" /></button> : null}
       </header>
 
