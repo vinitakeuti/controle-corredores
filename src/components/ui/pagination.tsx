@@ -7,6 +7,8 @@ const numberFormat = new Intl.NumberFormat("pt-BR");
 export function Pagination({ page, totalPages, total, pageSize, itemLabel, hrefFor, label }: { page: number; totalPages: number; total: number; pageSize: number; itemLabel: string; hrefFor: (page: number) => string; label: string }) {
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
+  if (total === 0) return null;
+  if (totalPages <= 1) return <p className="pager pager-range">{numberFormat.format(total)} {itemLabel}</p>;
   return (
     <nav className="pager" aria-label={label}>
       <p className="pager-range">{numberFormat.format(from)}–{numberFormat.format(to)} de {numberFormat.format(total)} {itemLabel}</p>

@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { PaymentStatus, Prisma, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
+import { FilterChips } from "@/components/ui/filter-chips";
+import { PageHeader } from "@/components/ui/page-header";
 import { requireFeature } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -48,7 +49,37 @@ export default async function SalesAnalysisPage({ searchParams }: { searchParams
   const isAdmin = user.role === UserRole.ADMIN;
   const canSeeSalesValues = isAdmin || user.role === UserRole.OPERATOR;
 
-  const analysisMetricsClass = isAdmin ? "" : user.role === UserRole.OPERATOR ? " sales-analysis-metrics-two" : " sales-analysis-metrics-one";
+  const metricCount = 1 + (isAdmin ? 2 : 0) + (canSeeSalesValues ? 1 : 0);
+  const lead = isAdmin ? "Valor das vendas, valor mensal, conversão e comissões da equipe comercial." : user.role === UserRole.OPERATOR ? "Acompanhe suas vendas aprovadas e sua comissão no período." : "Acompanhe as conversões da equipe no período.";
 
-  return <AppShell user={user} current="sales"><header className="page-heading sales-analysis-heading"><div><p className="eyebrow">Comercial</p><h1>Analisar vendas.</h1><p>{isAdmin ? "Valor das vendas, valor mensal, conversão e comissões da equipe comercial." : user.role === UserRole.OPERATOR ? "Acompanhe suas vendas aprovadas e sua comissão no período." : "Acompanhe as conversões da equipe no período."}</p></div><Link className="directory-action" href="/admin/vendas">← Voltar para vendas</Link></header><nav className="sales-period-tabs" aria-label="Selecionar período">{periods.map((item) => <Link className={item.id === period ? "active" : ""} href={`/admin/vendas/analise?period=${item.id}`} key={item.id}>{item.label}</Link>)}</nav><p className="sales-range-label">{formatDate(range.from)} — {formatDate(range.to)}</p><section className={`metric-grid sales-metrics sales-analysis-metrics${analysisMetricsClass}`}><article className="metric-card"><p>Vendas aprovadas</p><strong>{totalApproved}</strong><small>primeiro pagamento confirmado</small></article>{isAdmin ? <><article className="metric-card"><p>Valor das vendas</p><strong>{formatCurrency(totalInvoicedRevenue)}</strong><small>valor total de cada venda aprovada</small></article><article className="metric-card"><p>Valor mensal</p><strong>{formatCurrency(totalMonthlyRevenue)}</strong><small>equivalente mensal das vendas</small></article></> : null}{canSeeSalesValues ? <article className="metric-card accent"><p>Comissões</p><strong>{formatCurrency(totalCommission)}</strong><small>calculadas sobre o valor total das vendas</small></article> : null}</section><section className="panel sales-analysis-panel"><div className="panel-heading"><div><p className="eyebrow">{isAdmin ? "Ranking comercial" : user.role === UserRole.OPERATOR ? "Meu resultado" : "Acompanhamento comercial"}</p><h2>{isAdmin ? "Desempenho por vendedor" : user.role === UserRole.OPERATOR ? user.name : "Vendas no período"}</h2><p>{canSeeSalesValues ? "Comissão calculada sobre o valor total de cada venda aprovada." : "Acompanhe as vendas aprovadas e pendentes por vendedor."}</p></div></div>{performance.length ? <div className="sales-analysis-list">{performance.map((seller, index) => <article className="sales-analysis-row" key={seller.id}><div className="sales-rank">{isAdmin ? String(index + 1).padStart(2, "0") : user.role === UserRole.OPERATOR ? "EU" : String(index + 1).padStart(2, "0")}</div><div className="sales-person"><strong>{seller.name}</strong><span>{seller.email}</span>{canSeeSalesValues ? <small>Comissão definida: {rateLabel(seller.commissionRateBps)}</small> : null}</div><dl><div><dt>Vendas</dt><dd>{seller.approved} aprovadas <span>· {seller.pending} pendentes</span></dd></div>{canSeeSalesValues ? <><div><dt>Valor das vendas</dt><dd>{formatCurrency(seller.invoicedRevenue)}</dd></div><div><dt>Valor mensal</dt><dd>{formatCurrency(seller.monthlyRevenue)}</dd></div><div className="sales-commission-value"><dt>Comissão</dt><dd>{formatCurrency(seller.commission)}</dd></div></> : null}</dl></article>)}</div> : <div className="empty-state">Nenhuma venda atribuída neste período.</div>}</section></AppShell>;
+  return <AppShell user={user} current="sales">
+    <PageHeader context={{ label: "Vendas", href: "/admin/vendas", current: "Análise" }} title="Analisar vendas." lead={lead} />
+    <div className="sales-period">
+      <FilterChips label="Selecionar período" active={period} chips={periods.map((item) => ({ key: item.id, label: item.label, href: `/admin/vendas/analise?period=${item.id}` }))} />
+      <p className="sales-range">{formatDate(range.from)} — {formatDate(range.to)}</p>
+    </div>
+    <div className="metric-strip sales-summary" data-count={metricCount}>
+      <div className="metric" data-tone="positive"><span className="metric-label">Vendas aprovadas</span><strong className="metric-value">{totalApproved}</strong><span className="metric-note">primeiro pagamento confirmado</span></div>
+      {isAdmin ? <>
+        <div className="metric"><span className="metric-label">Valor das vendas</span><strong className="metric-value">{formatCurrency(totalInvoicedRevenue)}</strong><span className="metric-note">valor total de cada venda aprovada</span></div>
+        <div className="metric"><span className="metric-label">Valor mensal</span><strong className="metric-value">{formatCurrency(totalMonthlyRevenue)}</strong><span className="metric-note">equivalente mensal das vendas</span></div>
+      </> : null}
+      {canSeeSalesValues ? <div className="metric"><span className="metric-label">Comissões</span><strong className="metric-value">{formatCurrency(totalCommission)}</strong><span className="metric-note">calculadas sobre o valor total das vendas</span></div> : null}
+    </div>
+    <section className="section-block sales-ranking" aria-labelledby="sales-ranking-title">
+      <div className="section-head"><div><h2 className="section-title" id="sales-ranking-title">{isAdmin ? "Desempenho por vendedor" : user.role === UserRole.OPERATOR ? "Meu resultado" : "Vendas no período"}</h2><p className="section-lead">{canSeeSalesValues ? "Comissão calculada sobre o valor total de cada venda aprovada." : "Acompanhe as vendas aprovadas e pendentes por vendedor."}</p></div></div>
+      {performance.length ? <ol className="ranking">{performance.map((seller, index) => <li className="ranking-row" key={seller.id}>
+        <span className="ranking-position" aria-label={user.role === UserRole.OPERATOR ? "Você" : `${index + 1}º lugar`}>{user.role === UserRole.OPERATOR ? "EU" : String(index + 1).padStart(2, "0")}</span>
+        <span className="ranking-person"><strong>{seller.name}</strong><span>{seller.email}</span>{canSeeSalesValues ? <small>Comissão definida: {rateLabel(seller.commissionRateBps)}</small> : null}</span>
+        <dl className="ranking-stats">
+          <div><dt>Vendas</dt><dd>{seller.approved} aprovadas <span>· {seller.pending} pendentes</span></dd></div>
+          {canSeeSalesValues ? <>
+            <div><dt>Valor das vendas</dt><dd>{formatCurrency(seller.invoicedRevenue)}</dd></div>
+            <div><dt>Valor mensal</dt><dd>{formatCurrency(seller.monthlyRevenue)}</dd></div>
+            <div className="ranking-commission"><dt>Comissão</dt><dd>{formatCurrency(seller.commission)}</dd></div>
+          </> : null}
+        </dl>
+      </li>)}</ol> : <div className="state-empty"><strong>Nenhuma venda atribuída neste período.</strong><p>Escolha outro período acima.</p></div>}
+    </section>
+  </AppShell>;
 }
