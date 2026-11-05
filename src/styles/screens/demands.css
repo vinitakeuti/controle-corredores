@@ -1,4 +1,4 @@
-@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Demandas: áreas (/admin/demandas) e quadro (/admin/demandas/[id]) */
 @layer screens {
   .agenda { border-top: 0; padding-top: var(--space-2); }

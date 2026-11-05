@@ -1,4 +1,4 @@
-@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Alunos: diretório (/admin/alunos) e novo aluno (/admin/alunos/novo) */
 @layer screens {
   .directory-section { border-top: 0; padding-top: var(--space-2); }

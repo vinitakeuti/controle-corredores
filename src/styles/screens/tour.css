@@ -1,6 +1,7 @@
-@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Tutorial do primeiro acesso (platform-tutorial.tsx) */
 @layer screens {
+  body.tutorial-open { overflow: hidden; }
   .tour { position: fixed; inset: 0; z-index: calc(var(--z-overlay) + 2); pointer-events: none; }
   .tour-backdrop { position: fixed; inset: 0; background: rgba(6, 9, 8, 0.82); pointer-events: auto; }
   .tour-spotlight {

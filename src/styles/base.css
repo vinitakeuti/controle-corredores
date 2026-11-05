@@ -1,12 +1,14 @@
-@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
-/* Reset: padrões de elemento. Fica ABAIXO do CSS antigo para não alterar telas ainda não migradas;
-   os componentes novos definem suas próprias cores e fontes por classe. */
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+/* Reset: padrões de elemento. Os componentes definem cor, fonte e sublinhado por classe;
+   links em texto corrido usam a classe .link. */
 @layer reset {
   *,
   *::before,
   *::after { box-sizing: border-box; }
 
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  html,
+  body { min-height: 100%; }
 
   body {
     margin: 0;
@@ -24,14 +26,15 @@
   select,
   textarea { font: inherit; color: inherit; }
 
-  a { color: var(--accent-text); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  a { color: inherit; text-decoration: none; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  button { cursor: pointer; }
+  input[type="date"],
+  input[type="month"],
+  input[type="datetime-local"] { color-scheme: light; }
 }
 
 /* Base: o que vale para todas as telas, inclusive as antigas (foco, seleção, utilitários). */
 @layer base {
-  /* O CSS antigo pedia "Inter", que nunca foi carregada; todas as telas usam a fonte do sistema. */
-  body { font-family: var(--font-body); }
-
   ::selection { background: rgba(225, 93, 55, 0.24); color: var(--text); }
 
   :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

@@ -1,4 +1,4 @@
-@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Área do aluno (/aluno) e link de pagamento (/pagamento/[token]) */
 @layer screens {
   .store-link { margin-bottom: var(--space-5); letter-spacing: 0.08em; }

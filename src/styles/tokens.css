@@ -1,4 +1,4 @@
-@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Tokens do sistema visual Pace Lab.
    Contraste conferido em WCAG AA sobre --bg e --surface. */
 @layer tokens {
@@ -93,9 +93,5 @@
     --z-sticky: 10;
     --z-shell: 30;
     --z-overlay: 100;
-
-    /* Compatibilidade: telas ainda não migradas passam a ler o cinza com contraste AA. */
-    --muted: var(--text-muted);
-    --muted-strong: var(--text-secondary);
   }
 }

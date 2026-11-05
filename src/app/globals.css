@@ -1,7 +1,6 @@
 /* Sistema visual Pace Lab. A ordem das camadas define a precedência:
-   reset < legacy (CSS antigo, em remoção) < tokens < base < components < shell < screens. */
+   reset < tokens < base < components < shell < screens. */
 @import "../styles/layers.css";
-@import "../styles/legacy.css";
 @import "../styles/tokens.css";
 @import "../styles/base.css";
 @import "../styles/components.css";

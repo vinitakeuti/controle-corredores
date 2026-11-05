@@ -1,4 +1,4 @@
 /* Ordem das camadas. A ordem vale pela primeira aparição de cada nome, e o bundler emite os @import antes
    do globals.css e, em produção, divide o CSS em vários arquivos. Por isso a mesma declaração abre cada
    arquivo de camada em src/styles. Ao criar uma camada nova, atualize todas. */
-@layer reset, legacy, tokens, base, components, shell, screens;
+@layer reset, tokens, base, components, shell, screens;

@@ -1,4 +1,4 @@
-@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Analisar dados (/admin/analisar) */
 @layer screens {
   .analysis-priorities { border-top: 0; padding-top: var(--space-2); }

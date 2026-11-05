@@ -1,4 +1,4 @@
-@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Componentes base do sistema Pace Lab. Um vocabulário para todas as telas. */
 @layer components {
   /* Ícones: SVG desenhado, traço único */

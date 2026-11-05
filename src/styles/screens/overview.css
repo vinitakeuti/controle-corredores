@@ -1,4 +1,4 @@
-@layer reset, legacy, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
 /* Visão geral (/admin) */
 @layer screens {
   .overview-updated { align-self: center; color: var(--text-muted); font-size: var(--text-xs); }
