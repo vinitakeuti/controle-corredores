@@ -8,7 +8,7 @@ import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 import { generateTemporaryPassword } from "@/lib/tokens";
 
 const staffRoles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR] as const;
-const managerFeatures = ["overview", "demands", "sales", "students", "analysis", "finance", "plans", "integrations"] as const;
+const managerFeatures = ["overview", "demands", "sales", "students", "analysis", "finance", "plans", "integrations", "assistant"] as const;
 
 function managerPermissions(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};

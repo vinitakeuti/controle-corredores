@@ -9,7 +9,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 
 const managerFeatures = [
   ["overview", "Visão geral"], ["demands", "Demandas"], ["sales", "Vendas"], ["students", "Alunos"],
-  ["analysis", "Analisar dados"], ["finance", "Financeiro"], ["plans", "Planos"], ["integrations", "Integrações"],
+  ["analysis", "Analisar dados"], ["finance", "Financeiro"], ["plans", "Planos"], ["integrations", "Integrações"], ["assistant", "Assistente IA"],
 ] as const;
 type ManagerFeature = (typeof managerFeatures)[number][0];
 type ManagerPermissions = Record<ManagerFeature, boolean>;

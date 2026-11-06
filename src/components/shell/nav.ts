@@ -3,7 +3,7 @@ import { canAccessFeature } from "@/lib/access-control";
 import type { SessionUser } from "@/lib/auth";
 import type { IconName } from "@/components/ui/icon";
 
-export type ShellSection = "admin" | "students" | "analysis" | "plans" | "integrations" | "settings" | "student" | "demands" | "sales" | "finance";
+export type ShellSection = "admin" | "students" | "analysis" | "plans" | "integrations" | "settings" | "student" | "demands" | "sales" | "finance" | "assistant";
 
 export type NavItem = {
   key: ShellSection;
@@ -27,6 +27,7 @@ export function navItemsFor(user: Pick<SessionUser, "role" | "managerPermissions
   const isOperator = user.role === UserRole.OPERATOR;
   const items: (NavItem | null)[] = [
     canAccessFeature(user, "overview") ? { key: "admin", label: "Visão geral", href: "/admin", icon: "home", group: "operation" } : null,
+    canAccessFeature(user, "assistant") ? { key: "assistant", label: "Assistente", href: "/admin/assistente", icon: "chat", group: "operation" } : null,
     isOperator || canAccessFeature(user, "demands") ? { key: "demands", label: "Demandas", href: "/admin/demandas", icon: "board", group: "operation" } : null,
     isOperator || canAccessFeature(user, "students") ? { key: "students", label: "Alunos", href: "/admin/alunos", icon: "users", group: "operation", tutorialAnchor: "nav-students" } : null,
     isOperator || canAccessFeature(user, "analysis") ? { key: "analysis", label: "Analisar dados", shortLabel: "Analisar", href: "/admin/analisar", icon: "chart", group: "operation" } : null,
@@ -48,7 +49,7 @@ export function roleLabel(role: UserRole) {
 }
 
 // Prioridade na barra inferior do celular: as quatro primeiras áreas permitidas.
-const tabPriority: ShellSection[] = ["admin", "demands", "students", "sales", "analysis", "finance", "plans", "integrations"];
+const tabPriority: ShellSection[] = ["admin", "demands", "assistant", "sales", "students", "analysis", "finance", "plans", "integrations"];
 
 export function splitForTabbar(items: NavItem[]) {
   const ordered = tabPriority.map((key) => items.find((item) => item.key === key)).filter((item): item is NavItem => Boolean(item));

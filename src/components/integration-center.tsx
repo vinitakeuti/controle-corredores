@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { AsaasIntegrationSummary } from "@/lib/asaas-integration";
 import type { AppmaxIntegrationSummary } from "@/lib/appmax-integration";
 import type { IntegrationDirectory, IntegrationDirectoryItem, IntegrationProviderKey } from "@/lib/integration-directory";
+import { AiIntegrationForm, aiConnectionStatus, type AiConnection } from "@/components/ai-integration-form";
 import { AsaasIntegrationForm } from "@/components/asaas-integration-form";
 import { AppmaxIntegrationForm } from "@/components/appmax-integration-form";
 import { Feedback } from "@/components/ui/feedback";
@@ -11,45 +12,64 @@ import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusPill, type Tone } from "@/components/ui/status-pill";
 
+export type IntegrationKey = "APPMAX" | "ASAAS" | "OPENROUTER";
+
 type Props = {
   initialDirectory: IntegrationDirectory;
   initialAppmaxSummary: AppmaxIntegrationSummary;
   initialAsaasSummary: AsaasIntegrationSummary;
+  initialAi: AiConnection | null;
+  initialSelected: IntegrationKey | null;
 };
 
-type Filter = "all" | "payments";
+const ACTIVATED = "Provedor ativo atualizado. O checkout usará esta conexão.";
+const appParam: Record<IntegrationKey, string> = { APPMAX: "appmax", ASAAS: "asaas", OPENROUTER: "openrouter" };
 
-function statusLabel(item: IntegrationDirectoryItem) {
-  if (item.active) return "Ativo";
-  if (item.configured) return "Configurado";
-  if (!item.available) return "Em breve";
-  return "Não configurado";
+function paymentStatus(item: IntegrationDirectoryItem): { label: string; tone: Tone } {
+  if (item.active) return { label: "Ativo", tone: "positive" };
+  if (item.configured) return { label: "Configurado", tone: "info" };
+  return { label: "Não configurado", tone: "neutral" };
 }
 
-function statusTone(item: IntegrationDirectoryItem): Tone {
-  if (item.active) return "positive";
-  if (item.configured) return "info";
-  return "neutral";
+// Uma linha do diretório: marca, nome, o que faz, situação e ações. Igual para todas as categorias.
+function ProviderRow({ mark, name, description, status, active, children }: { mark: string; name: string; description: string; status: { label: string; tone: Tone }; active?: boolean; children?: React.ReactNode }) {
+  return (
+    <li className="provider-row" data-active={active || undefined}>
+      <span className="provider-mark" aria-hidden="true">{mark}</span>
+      <span className="provider-copy"><strong>{name}</strong><span>{description}</span></span>
+      <StatusPill tone={status.tone}>{status.label}</StatusPill>
+      <span className="btn-row provider-row-actions">{children}</span>
+    </li>
+  );
 }
 
-export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, initialAsaasSummary }: Props) {
+function CategorySection({ id, title, lead, children }: { id: string; title: string; lead: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="section-block integration-category" aria-labelledby={id}>
+      <div className="section-head"><div><h2 className="section-title" id={id}>{title}</h2><p className="section-lead">{lead}</p></div></div>
+      <ul className="provider-list">{children}</ul>
+    </section>
+  );
+}
+
+export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, initialAsaasSummary, initialAi, initialSelected }: Props) {
   const [directory, setDirectory] = useState(initialDirectory);
   const [appmaxSummary, setAppmaxSummary] = useState(initialAppmaxSummary);
   const [asaasSummary, setAsaasSummary] = useState(initialAsaasSummary);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
-  const [selectedProvider, setSelectedProvider] = useState<IntegrationProviderKey | null>(null);
+  const [ai, setAi] = useState(initialAi);
+  const [selected, setSelectedState] = useState<IntegrationKey | null>(initialSelected && (initialSelected !== "OPENROUTER" || initialAi) ? initialSelected : null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingProvider, setPendingProvider] = useState<IntegrationProviderKey | null>(null);
 
-  const items = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    return directory.items.filter((item) => {
-      const matchesFilter = filter === "all" || item.category === "Gateways & vendas";
-      const matchesSearch = !normalizedSearch || `${item.name} ${item.category} ${item.description}`.toLowerCase().includes(normalizedSearch);
-      return matchesFilter && matchesSearch;
-    });
-  }, [directory.items, filter, search]);
+  // O painel aberto fica na URL (?app=...), para recarregar ou compartilhar o link direto.
+  function select(key: IntegrationKey | null) {
+    setSelectedState(key);
+    setFeedback(null);
+    const url = new URL(window.location.href);
+    if (key) url.searchParams.set("app", appParam[key]); else url.searchParams.delete("app");
+    window.history.replaceState(null, "", url);
+    window.scrollTo({ top: 0 });
+  }
 
   const refreshDirectory = async () => {
     const response = await fetch("/api/admin/integrations", { headers: { Accept: "application/json" }, cache: "no-store" });
@@ -65,17 +85,13 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, init
     setPendingProvider(provider);
     setFeedback(null);
     try {
-      const response = await fetch("/api/admin/integrations", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ provider }),
-      });
+      const response = await fetch("/api/admin/integrations", { method: "PATCH", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ provider }) });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Não foi possível ativar o provedor.");
       setDirectory(body as IntegrationDirectory);
       setAppmaxSummary((current) => current.integration ? { ...current, active: provider === "APPMAX" } : current);
       setAsaasSummary((current) => current.integration ? { ...current, active: provider === "ASAAS" } : current);
-      setFeedback("Provedor ativo atualizado. O checkout usará esta conexão.");
+      setFeedback(ACTIVATED);
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Não foi possível ativar o provedor.");
     } finally {
@@ -83,57 +99,54 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, init
     }
   };
 
-  const appmax = directory.items.find((item) => item.provider === "APPMAX");
-  const asaas = directory.items.find((item) => item.provider === "ASAAS");
-  const activeItem = directory.items.find((item) => item.provider === directory.activeProvider);
-  const paymentCount = directory.items.filter((item) => item.category === "Gateways & vendas").length;
-  const feedbackIsError = feedback !== null && feedback !== "Provedor ativo atualizado. O checkout usará esta conexão.";
+  // "Outro provedor" era só um espaço reservado: some do diretório.
+  const payments = directory.items.filter((item) => item.provider === "APPMAX" || item.provider === "ASAAS");
+  const appmax = payments.find((item) => item.provider === "APPMAX");
+  const asaas = payments.find((item) => item.provider === "ASAAS");
+  const activePayment = payments.find((item) => item.active);
+  const feedbackIsError = feedback !== null && feedback !== ACTIVATED;
+
+  const panel = (key: IntegrationKey, title: string, lead: string, status: { label: string; tone: Tone }, form: React.ReactNode) => (
+    <section className="section-block provider-panel" aria-labelledby="integration-config-title">
+      <button className="btn btn-quiet provider-back" type="button" onClick={() => select(null)}><Icon name="arrowLeft" />Todas as integrações</button>
+      <div className="section-head"><div><h2 className="section-title" id="integration-config-title">{title}</h2><p className="section-lead">{lead}</p></div><StatusPill tone={status.tone}>{status.label}</StatusPill></div>
+      {form}
+    </section>
+  );
 
   return (
     <div className="integrations">
-      <PageHeader context={{ label: "Pagamentos" }} title="Central de integrações." lead="Gerencie gateways, credenciais e o provedor responsável pelos pagamentos." actions={<StatusPill tone="neutral">Somente administradores</StatusPill>} />
+      <PageHeader context={{ label: "Conexões" }} title="Integrações." lead="Pagamentos, inteligência artificial e mensagens da Pace Lab em um só lugar." />
 
-      {selectedProvider === "APPMAX" && appmax ? <section className="section-block provider-panel" aria-labelledby="integration-config-title">
-        <button className="btn btn-quiet provider-back" type="button" onClick={() => setSelectedProvider(null)}><Icon name="arrowLeft" />Voltar ao diretório</button>
-        <div className="section-head"><div><h2 className="section-title" id="integration-config-title">Appmax</h2><p className="section-lead">Atualize credenciais e preferências sem sair da central.</p></div><StatusPill tone={statusTone(appmax)}>{statusLabel(appmax)}</StatusPill></div>
-        <AppmaxIntegrationForm embedded initialSummary={appmaxSummary} onSummaryChange={(nextSummary) => { setAppmaxSummary(nextSummary); void refreshDirectory(); }} />
-      </section> : selectedProvider === "ASAAS" && asaas ? <section className="section-block provider-panel" aria-labelledby="integration-config-title">
-        <button className="btn btn-quiet provider-back" type="button" onClick={() => setSelectedProvider(null)}><Icon name="arrowLeft" />Voltar ao diretório</button>
-        <div className="section-head"><div><h2 className="section-title" id="integration-config-title">Asaas</h2><p className="section-lead">Configure a chave da API e a autenticação do webhook.</p></div><StatusPill tone={statusTone(asaas)}>{statusLabel(asaas)}</StatusPill></div>
-        <AsaasIntegrationForm embedded initialSummary={asaasSummary} onSummaryChange={(nextSummary) => { setAsaasSummary(nextSummary); void refreshDirectory(); }} />
-      </section> : <>
-        <div className="message integration-active" data-tone={activeItem ? "positive" : "warning"}>
-          <Icon name={activeItem ? "check" : "alert"} />
-          <span>{activeItem ? <>Provedor ativo: <strong>{activeItem.name}</strong>. O checkout usa esta conexão.</> : "Nenhum provedor ativo."}</span>
-        </div>
+      {selected === "APPMAX" && appmax ? panel("APPMAX", "Appmax", "Atualize credenciais e preferências sem sair da central.", paymentStatus(appmax),
+        <AppmaxIntegrationForm embedded initialSummary={appmaxSummary} onSummaryChange={(nextSummary) => { setAppmaxSummary(nextSummary); void refreshDirectory(); }} />)
+      : selected === "ASAAS" && asaas ? panel("ASAAS", "Asaas", "Configure a chave da API e a autenticação do webhook.", paymentStatus(asaas),
+        <AsaasIntegrationForm embedded initialSummary={asaasSummary} onSummaryChange={(nextSummary) => { setAsaasSummary(nextSummary); void refreshDirectory(); }} />)
+      : selected === "OPENROUTER" && ai ? panel("OPENROUTER", "OpenRouter", "Conecte o assistente de IA da gestão e escolha o modelo.", aiConnectionStatus(ai),
+        <AiIntegrationForm initial={ai} onChange={setAi} />)
+      : <>
+        <Feedback success={feedback && !feedbackIsError ? feedback : undefined} error={feedbackIsError ? feedback : undefined} />
 
-        <section className="section-block integration-directory-block" aria-labelledby="integration-directory-title">
-          <div className="section-head"><div><h2 className="section-title" id="integration-directory-title">Diretório de aplicativos ({directory.items.length})</h2><p className="section-lead">Conexões disponíveis para o controle financeiro da assessoria.</p></div><span className="field-hint">Mostrando {items.length} de {directory.items.length}</span></div>
-          <div className="toolbar">
-            <div className="search-field integration-search-field"><label className="visually-hidden" htmlFor="integration-search">Buscar integração</label><Icon name="search" /><input className="control" id="integration-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar integração..." /></div>
-            <div className="chips integration-filter-chips" role="group" aria-label="Filtros">
-              <button className="chip" type="button" aria-pressed={filter === "all"} data-active={filter === "all" || undefined} onClick={() => setFilter("all")}>Todos os apps<span className="chip-count">{directory.items.length}</span></button>
-              <button className="chip" type="button" aria-pressed={filter === "payments"} data-active={filter === "payments" || undefined} onClick={() => setFilter("payments")}>Gateways &amp; vendas<span className="chip-count">{paymentCount}</span></button>
-            </div>
-          </div>
-          <Feedback success={feedback && !feedbackIsError ? feedback : undefined} error={feedbackIsError ? feedback : undefined} />
-          {items.length ? <ul className="provider-list">
-            {items.map((item) => <li className="provider-row" key={item.provider} data-active={item.active || undefined}>
-              <span className="provider-mark" aria-hidden="true">{item.abbreviation}</span>
-              <span className="provider-copy"><strong>{item.name}</strong><span className="provider-category">{item.category}</span><span>{item.description}</span></span>
-              <StatusPill tone={statusTone(item)}>{statusLabel(item)}</StatusPill>
-              <span className="btn-row provider-row-actions">
-                {item.configured && !item.active ? <button className="btn btn-secondary" type="button" onClick={() => activate(item.provider)} disabled={pendingProvider !== null} aria-busy={pendingProvider === item.provider}>{pendingProvider === item.provider ? "Ativando..." : "Ativar"}</button> : null}
-                {item.available ? <button className="btn btn-secondary" type="button" onClick={() => setSelectedProvider(item.provider)}>{item.configured ? "Gerenciar" : "Configurar"}<Icon name="chevronRight" className="icon-sm" /></button> : <span className="field-hint">Disponível em breve</span>}
-              </span>
-            </li>)}
-          </ul> : <div className="state-empty"><strong>Nenhuma integração encontrada.</strong><p>Busque por outro nome ou mostre todos os apps.</p></div>}
-        </section>
+        <CategorySection id="integration-payments" title="Pagamentos" lead={activePayment ? <>Provedor ativo: <strong>{activePayment.name}</strong>. O checkout usa esta conexão.</> : "Nenhum provedor ativo: o checkout fica indisponível até você ativar um."}>
+          {payments.map((item) => (
+            <ProviderRow key={item.provider} mark={item.abbreviation} name={item.name} description={item.description} status={paymentStatus(item)} active={item.active}>
+              {item.configured && !item.active ? <button className="btn btn-secondary" type="button" onClick={() => activate(item.provider)} disabled={pendingProvider !== null} aria-busy={pendingProvider === item.provider}>{pendingProvider === item.provider ? "Ativando..." : "Ativar"}</button> : null}
+              <button className="btn btn-secondary" type="button" onClick={() => select(item.provider as IntegrationKey)}>{item.configured ? "Gerenciar" : "Configurar"}<Icon name="chevronRight" className="icon-sm" /></button>
+            </ProviderRow>
+          ))}
+        </CategorySection>
 
-        <section className="section-block" aria-labelledby="integration-general-title">
-          <div className="section-head"><div><h2 className="section-title" id="integration-general-title">Opções gerais</h2></div></div>
-          <ul className="integration-general"><li><Icon name="file" />Logs de webhook</li><li><Icon name="settings" />Manutenção do BD</li></ul>
-        </section>
+        {ai ? (
+          <CategorySection id="integration-ai" title="Inteligência artificial" lead="O assistente da gestão conversa com a equipe e consulta os dados conforme a permissão de cada pessoa.">
+            <ProviderRow mark="OR" name="OpenRouter" description={ai.modelName ? `Assistente da gestão · ${ai.modelName}` : "Acesso aos modelos Claude, GPT, Gemini e outros com uma chave só."} status={aiConnectionStatus(ai)} active={ai.enabled}>
+              <button className="btn btn-secondary" type="button" onClick={() => select("OPENROUTER")}>{ai.hasApiKey ? "Gerenciar" : "Configurar"}<Icon name="chevronRight" className="icon-sm" /></button>
+            </ProviderRow>
+          </CategorySection>
+        ) : null}
+
+        <CategorySection id="integration-messages" title="Mensagens" lead="Atendimento pelo WhatsApp com o assistente, para leads e alunos.">
+          <ProviderRow mark="WA" name="WhatsApp · Evolution API" description="Responde leads e alunos e recebe pedidos da equipe em grupos." status={{ label: "Em breve", tone: "neutral" }} />
+        </CategorySection>
       </>}
     </div>
   );

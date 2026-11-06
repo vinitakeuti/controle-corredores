@@ -44,10 +44,8 @@
   .plan-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-5); }
   .plan-featured-check { padding-top: var(--space-3); border-top: 1px solid var(--line-soft); }
 
-  .integrations .integration-active { margin-bottom: var(--space-2); }
-  .integration-directory-block { border-top: 0; }
-  .integration-search-field { flex: 1 1 260px; }
-  .integration-filter-chips { margin-bottom: 0; }
+  /* Integrações: uma seção por categoria (Pagamentos, Inteligência artificial, Mensagens) */
+  .integration-category .section-head { margin-bottom: var(--space-2); }
   .provider-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
   .provider-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: var(--space-4); padding: var(--space-4) 0; border-bottom: 1px solid var(--line-soft); }
   .provider-mark { display: inline-grid; place-items: center; width: 44px; height: 44px; color: var(--on-dark); background: var(--sidebar); border-radius: var(--radius); font-size: var(--text-sm); font-weight: 800; letter-spacing: 0.04em; }
@@ -56,8 +54,6 @@
   .provider-copy strong { font-weight: 700; }
   .provider-copy span { color: var(--text-muted); font-size: var(--text-sm); }
   .provider-copy .provider-category { color: var(--text-secondary); font-size: var(--text-xs); font-weight: 600; }
-  .integration-general { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; color: var(--text-muted); font-size: var(--text-sm); }
-  .integration-general li { display: flex; align-items: center; gap: var(--space-2); }
   .provider-panel { border-top: 0; padding-top: var(--space-2); }
   .provider-back { margin: 0 0 var(--space-3) calc(var(--space-4) * -1); }
   .provider-form { display: grid; gap: var(--space-4); max-width: 820px; }

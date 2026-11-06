@@ -75,6 +75,32 @@ enum EmailLogStatus {
   FAILED
 }
 
+enum AiChannel {
+  APP
+  WHATSAPP
+  SITE
+}
+
+enum AiAudience {
+  LEAD
+  STUDENT
+  STAFF
+}
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+  TOOL
+}
+
+enum AiActionStatus {
+  PENDING
+  EXECUTED
+  REJECTED
+  FAILED
+  EXPIRED
+}
+
 model User {
   id                        String               @id @default(cuid())
   name                      String
@@ -123,6 +149,7 @@ model User {
   managerPermissions        Json?
   passwordResetLinkAccess   Boolean              @default(false)
   financialEntries          FinancialEntry[]     @relation("FinancialEntryCreator")
+  aiConversations           AiConversation[]
 
   @@index([role])
   @@index([joinedAt])
@@ -477,4 +504,87 @@ model FinancialEntry {
 
   @@index([occurredAt, type])
   @@index([createdById])
+}
+
+// Assistente de IA (OpenRouter). Um registro só, como BillingSettings.
+model AiSettings {
+  id                  String   @id @default("platform")
+  enabled             Boolean  @default(false)
+  apiKeyEncrypted     String?
+  apiKeyHint          String?
+  model               String?
+  modelName           String?
+  modelPricing        Json?
+  modelSupportsTools  Boolean  @default(true)
+  generalInstructions String?  @db.Text
+  businessInfo        String?  @db.Text
+  monthlyBudgetMicros Int?
+  updatedById         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model AiConversation {
+  id            String      @id @default(cuid())
+  channel       AiChannel   @default(APP)
+  audience      AiAudience  @default(STAFF)
+  userId        String?
+  contactPhone  String?
+  contactName   String?
+  externalId    String?     @unique
+  title         String?
+  inputTokens   Int         @default(0)
+  outputTokens  Int         @default(0)
+  costMicros    Int         @default(0)
+  lastMessageAt DateTime    @default(now())
+  archivedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages      AiMessage[]
+  actions       AiAction[]
+
+  @@index([userId, archivedAt, lastMessageAt])
+  @@index([channel, lastMessageAt])
+}
+
+model AiMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  role           AiMessageRole
+  kind           String?
+  content        String         @default("") @db.Text
+  toolCalls      Json?
+  toolCallId     String?
+  toolName       String?
+  model          String?
+  inputTokens    Int            @default(0)
+  outputTokens   Int            @default(0)
+  cachedTokens   Int            @default(0)
+  costMicros     Int            @default(0)
+  authorId       String?
+  createdAt      DateTime       @default(now())
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([createdAt])
+}
+
+model AiAction {
+  id             String         @id @default(cuid())
+  conversationId String
+  requestedById  String?
+  tool           String
+  input          Json
+  summary        String
+  status         AiActionStatus @default(PENDING)
+  result         Json?
+  error          String?
+  expiresAt      DateTime
+  decidedAt      DateTime?
+  createdAt      DateTime       @default(now())
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, status])
+  @@index([requestedById, createdAt])
 }
