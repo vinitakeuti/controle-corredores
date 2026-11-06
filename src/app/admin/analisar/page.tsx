@@ -192,7 +192,7 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
               <caption className="visually-hidden">{titles[status].title}, página {currentPage} de {totalPages}</caption>
               <thead><tr><th scope="col">Aluno</th><th scope="col">Plano</th>{isDueDateView ? <th scope="col">Vencimento</th> : null}<th scope="col">Condição</th><th scope="col" className="num">Valor mensal</th><th scope="col">Pagamento</th><th scope="col">Termo</th></tr></thead>
               <tbody>{students.map((student) => {
-                const row = describe(student);
+                const row = describe(student, now);
                 return <tr key={student.id}>
                   <td><Link className="row-link" href={`/admin/alunos/${student.id}`}><span className="cell-primary">{student.name}</span><span className="cell-secondary analysis-email">{student.email}</span></Link></td>
                   <td><span className="cell-primary analysis-plan">{row.planName}</span><span className="cell-secondary">{row.planNote}</span></td>
@@ -207,7 +207,7 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
           </div>
           <ul className="data-rows responsive-rows" aria-label={`${titles[status].title}, página ${currentPage} de ${totalPages}`}>
             {students.map((student) => {
-              const row = describe(student);
+              const row = describe(student, now);
               return <li key={student.id}><Link className="data-row-link" href={`/admin/alunos/${student.id}`}>
                 <span className="row-title">{student.name}</span>
                 <StatusPill tone={row.paymentTone}>{row.paymentStatus}</StatusPill>
@@ -233,10 +233,17 @@ export default async function AnalyzePage({ searchParams }: { searchParams: Prom
 
 type StudentRow = Prisma.UserGetPayload<{ include: { subscription: true } }>;
 
-function describe(student: StudentRow) {
+// Mesma regra do filtro "Em atraso": status em atraso ou vencimento já passado.
+// Sem isso, uma assinatura ainda marcada como ativa, mas vencida, aparecia como "Em dia".
+function isOverdue(subscription: StudentRow["subscription"], now: Date) {
+  return Boolean(subscription && (subscription.status === SubscriptionStatus.PAST_DUE || (subscription.nextBillingAt && subscription.nextBillingAt < now)));
+}
+
+function describe(student: StudentRow, now: Date) {
   const subscription = student.subscription;
-  const paymentStatus = !subscription ? "Sem assinatura" : subscription.isCourtesy ? "Cortesia ativa" : subscription.status === SubscriptionStatus.INCOMPLETE ? "Aguardando pagamento" : subscriptionLabel(subscription.status);
-  const paymentTone: Tone = subscription?.status === SubscriptionStatus.PAST_DUE ? "danger" : subscription?.status === SubscriptionStatus.INCOMPLETE ? "warning" : subscription?.isCourtesy ? "info" : toneForLabel(paymentStatus);
+  const overdue = !subscription?.isCourtesy && subscription?.status !== SubscriptionStatus.INCOMPLETE && isOverdue(subscription, now);
+  const paymentStatus = !subscription ? "Sem assinatura" : subscription.isCourtesy ? "Cortesia ativa" : subscription.status === SubscriptionStatus.INCOMPLETE ? "Aguardando pagamento" : overdue ? subscriptionLabel(SubscriptionStatus.PAST_DUE) : subscriptionLabel(subscription.status);
+  const paymentTone: Tone = overdue ? "danger" : subscription?.status === SubscriptionStatus.INCOMPLETE ? "warning" : subscription?.isCourtesy ? "info" : toneForLabel(paymentStatus);
   const conditions: { label: string; tone: Tone }[] = [];
   if (subscription?.isCourtesy) conditions.push({ label: "Cortesia", tone: "info" });
   if (subscription?.hasCustomPrice) conditions.push({ label: "Valor exclusivo", tone: "info" });
@@ -244,7 +251,7 @@ function describe(student: StudentRow) {
   if (!conditions.length) conditions.push({ label: "Padrão", tone: "neutral" });
   return {
     planName: subscription?.planName ?? "Ainda não definido",
-    planNote: subscription?.isCourtesy ? "Cortesia" : subscription?.manualMonthlyBilling ? "Cobrança mensal" : subscription?.nextBillingAt ? `Próxima: ${formatDate(subscription.nextBillingAt)}` : "Sem cobrança agendada",
+    planNote: subscription?.isCourtesy ? "Cortesia" : overdue && subscription?.nextBillingAt ? `Venceu em ${formatShortDate(subscription.nextBillingAt)}` : subscription?.manualMonthlyBilling ? "Cobrança mensal" : subscription?.nextBillingAt ? `Próxima: ${formatDate(subscription.nextBillingAt)}` : "Sem cobrança agendada",
     nextBilling: subscription?.nextBillingAt ?? null,
     dueNote: subscription?.manualMonthlyBilling ? "Cobrança mensal manual" : "Próxima cobrança",
     price: subscription?.isCourtesy ? "Isento" : subscription ? formatCurrency(subscription.priceCents) : "—",

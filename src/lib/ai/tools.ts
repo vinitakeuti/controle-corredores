@@ -1,4 +1,4 @@
-import { AiAudience, AiChannel, FinancialEntryType, Prisma, UserRole, WorkAreaType } from "@prisma/client";
+import { AiAudience, AiChannel, FinancialEntryType, Prisma, SubscriptionStatus, UserRole, WorkAreaType } from "@prisma/client";
 import { canAccessFeature } from "@/lib/access-control";
 import type { SessionUser } from "@/lib/auth";
 import { financeMonthRange, loadFinanceMonth } from "@/lib/finance-month";
@@ -55,6 +55,15 @@ const when = (date: Date | null | undefined) => (date ? dateTime.format(date) : 
 const day = (date: Date | null | undefined) => (date ? dateOnly.format(date) : null);
 const profileUrl = (id: string) => `${managementAppUrl()}/admin/alunos/${id}`;
 // A IA vê só o final do CPF; o documento completo fica no perfil do aluno.
+// Situação de pagamento com a mesma regra das telas (Alunos, Analisar dados, Visão geral):
+// assinatura ativa com vencimento já passado conta como atraso.
+type SubscriptionLike = { status: SubscriptionStatus; nextBillingAt: Date | null; isCourtesy: boolean };
+function paymentSituation(subscription: SubscriptionLike) {
+  if (subscription.isCourtesy) return "Cortesia";
+  if (subscription.status === SubscriptionStatus.INCOMPLETE || subscription.status === SubscriptionStatus.CANCELED) return subscriptionLabel(subscription.status);
+  if (subscription.status === SubscriptionStatus.PAST_DUE || (subscription.nextBillingAt && subscription.nextBillingAt < new Date())) return subscriptionLabel(SubscriptionStatus.PAST_DUE);
+  return subscriptionLabel(subscription.status);
+}
 const maskCpf = (cpf: string | null) => { const digits = (cpf ?? "").replace(/\D/g, ""); return digits.length === 11 ? `***.***.${digits.slice(6, 9)}-${digits.slice(9)}` : null; };
 
 // "AAAA-MM-DD" no fuso de Maceió.
@@ -117,7 +126,7 @@ const tools: AssistantTool[] = [
         total: students.length,
         alunos: students.map((student) => ({
           id: student.id, nome: student.name, email: student.email, telefone: formatPhone(student.phone), conta: student.active ? "ativa" : "inativa",
-          assinatura: student.subscription ? { situacao: subscriptionLabel(student.subscription.status), plano: student.subscription.planName, valor: formatCurrency(student.subscription.priceCents), proximaCobranca: day(student.subscription.nextBillingAt), cortesia: student.subscription.isCourtesy } : null,
+          assinatura: student.subscription ? { situacao: paymentSituation(student.subscription), plano: student.subscription.planName, valor: formatCurrency(student.subscription.priceCents), proximaCobranca: day(student.subscription.nextBillingAt), cortesia: student.subscription.isCourtesy } : null,
         })),
       };
     },
@@ -143,7 +152,7 @@ const tools: AssistantTool[] = [
         nascimento: day(student.birthDate), idade: calculateAge(student.birthDate), entrouEm: day(student.joinedAt), saiuEm: day(student.leftAt),
         conta: student.active ? "ativa" : "inativa", vendedor: student.saleOwner?.name ?? null,
         termoDeResponsabilidade: student.liabilityTermAcceptedAt ? `assinado em ${day(student.liabilityTermAcceptedAt)}` : student.liabilityTermStatus === "PENDING" ? "pendente" : student.liabilityTermStatus.toLowerCase(),
-        assinatura: subscription ? { situacao: subscriptionLabel(subscription.status), plano: subscription.planName, valor: formatCurrency(subscription.priceCents), periodo: subscription.billingPeriod, proximaCobranca: day(subscription.nextBillingAt), metodos: subscription.allowedMethods.map(paymentMethodLabel), cortesia: subscription.isCourtesy } : null,
+        assinatura: subscription ? { situacao: paymentSituation(subscription), plano: subscription.planName, valor: formatCurrency(subscription.priceCents), periodo: subscription.billingPeriod, proximaCobranca: day(subscription.nextBillingAt), metodos: subscription.allowedMethods.map(paymentMethodLabel), cortesia: subscription.isCourtesy } : null,
         ultimosPagamentos: student.payments.map((payment) => ({ valor: formatCurrency(payment.amountCents), situacao: paymentLabel(payment.status), metodo: paymentMethodLabel(payment.method), vencimento: day(payment.dueAt), pagoEm: day(payment.paidAt) })),
         perfil: profileUrl(student.id),
       };
@@ -159,15 +168,21 @@ const tools: AssistantTool[] = [
     mutating: false,
     async run() {
       const { year, month } = maceioDateParts();
-      const [active, inactive, bySubscription, newThisMonth] = await Promise.all([
+      const now = new Date();
+      const activeStudent = { role: UserRole.STUDENT, active: true };
+      const [active, inactive, onTime, overdue, awaiting, courtesy, newThisMonth] = await Promise.all([
         prisma.user.count({ where: { role: UserRole.STUDENT, active: true } }),
         prisma.user.count({ where: { role: UserRole.STUDENT, active: false } }),
-        prisma.subscription.groupBy({ by: ["status"], where: { user: { is: { role: UserRole.STUDENT, active: true } } }, _count: { _all: true } }),
+        prisma.user.count({ where: { ...activeStudent, subscription: { is: { status: SubscriptionStatus.ACTIVE, OR: [{ nextBillingAt: null }, { nextBillingAt: { gte: now } }] } } } }),
+        prisma.user.count({ where: { ...activeStudent, subscription: { is: { OR: [{ status: SubscriptionStatus.PAST_DUE }, { nextBillingAt: { lt: now } }] } } } }),
+        prisma.user.count({ where: { ...activeStudent, subscription: { is: { status: SubscriptionStatus.INCOMPLETE } } } }),
+        prisma.user.count({ where: { ...activeStudent, subscription: { is: { isCourtesy: true } } } }),
         prisma.user.count({ where: { role: UserRole.STUDENT, joinedAt: { gte: maceioDayStart(year, month, 1) } } }),
       ]);
       return {
         contasAtivas: active, contasInativas: inactive, novosNoMes: newThisMonth,
-        assinaturasDeContasAtivas: Object.fromEntries(bySubscription.map((group) => [subscriptionLabel(group.status), group._count._all])),
+        assinaturasDeContasAtivas: { emDia: onTime, emAtraso: overdue, aguardandoPagamento: awaiting, cortesias: courtesy },
+        observacao: "Mesmos números de Analisar dados: em atraso inclui assinaturas ativas com vencimento já passado.",
       };
     },
   },
@@ -433,7 +448,7 @@ const tools: AssistantTool[] = [
       const last = student.payments[0];
       return {
         nome: student.name, conta: student.active ? "ativa" : "inativa",
-        assinatura: subscription ? { situacao: subscriptionLabel(subscription.status), plano: subscription.planName, valor: formatCurrency(subscription.priceCents), periodo: periodLabels[subscription.billingPeriod] ?? subscription.billingPeriod, proximaCobranca: day(subscription.nextBillingAt) } : null,
+        assinatura: subscription ? { situacao: paymentSituation(subscription), plano: subscription.planName, valor: formatCurrency(subscription.priceCents), periodo: periodLabels[subscription.billingPeriod] ?? subscription.billingPeriod, proximaCobranca: day(subscription.nextBillingAt) } : null,
         ultimoPagamento: last ? { valor: formatCurrency(last.amountCents), situacao: paymentLabel(last.status), vencimento: day(last.dueAt), pagoEm: day(last.paidAt) } : null,
         areaDoAluno: portalUrl("STUDENT", "/aluno"),
       };
