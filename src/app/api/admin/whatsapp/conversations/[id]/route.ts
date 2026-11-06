@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { AiChannel } from "@prisma/client";
+import { AiChannel, UserRole } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { cleanTitle } from "@/lib/ai/conversations";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +27,17 @@ export async function PATCH(request: Request, { params }: Params) {
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
   const settings = await getWhatsAppRecord();
   const hours = settings?.pauseHours ?? 12;
+  // Grupo interno da equipe: só administradores marcam, porque libera dados internos no grupo.
+  if (body.action === "internal" || body.action === "external") {
+    if (user.role !== UserRole.ADMIN) return NextResponse.json({ error: "Só administradores definem grupos internos." }, { status: 403, headers: noStoreHeaders() });
+    const conversation = await prisma.aiConversation.findFirst({ where: { id, channel: AiChannel.WHATSAPP, isGroup: true }, select: { externalId: true } });
+    if (!conversation?.externalId) return NextResponse.json({ error: "Grupo não encontrado." }, { status: 404, headers: noStoreHeaders() });
+    const groupJid = conversation.externalId.replace(/#equipe$/, "");
+    const current = new Set(settings?.internalGroups ?? []);
+    if (body.action === "internal") current.add(groupJid); else current.delete(groupJid);
+    await prisma.whatsAppSettings.update({ where: { id: "platform" }, data: { internalGroups: [...current] } });
+    return NextResponse.json({ view: await loadWhatsAppView(id) }, { headers: noStoreHeaders() });
+  }
   const data = body.action === "pause" ? { aiPausedUntil: new Date(Date.now() + hours * 3_600_000) }
     : body.action === "resume" ? { aiPausedUntil: null }
     : body.action === "resolve" ? { needsHuman: false, needsHumanReason: null }

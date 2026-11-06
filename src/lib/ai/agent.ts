@@ -9,6 +9,11 @@ const MAX_ROUNDS = 6;
 const HISTORY_LIMIT = 60;
 const TOOL_RESULT_LIMIT = 12_000;
 const ACTION_TTL_MS = 30 * 60 * 1000;
+// Freios para ações: poucas por resposta e poucas esperando confirmação na mesma conversa.
+const MAX_ACTIONS_PER_TURN = 3;
+const MAX_PENDING_ACTIONS = 5;
+// Respostas curtas para quem está fora da equipe: atendimento, não chatbot de uso geral.
+const MAX_TOKENS: Record<AiAudience, number> = { LEAD: 900, STUDENT: 900, STAFF: 3000 };
 
 export class AssistantError extends Error {
   constructor(message: string, readonly status = 400, readonly conversationId: string | null = null) {
@@ -64,19 +69,24 @@ function serialize(value: unknown) {
   return text.length > TOOL_RESULT_LIMIT ? `${text.slice(0, TOOL_RESULT_LIMIT)}… (resultado cortado)` : text;
 }
 
-async function runTool(call: ToolCall, context: ToolContext, allowedNames: Set<string>) {
+async function runTool(call: ToolCall, context: ToolContext, allowedNames: Set<string>, turn: { actions: number }) {
   const tool = findTool(call.function.name);
   if (!tool || !allowedNames.has(tool.name) || !tool.allowed(context)) return { erro: "Ferramenta não liberada para este usuário." };
   const args = parseArguments(call.function.arguments);
   if (!args) return { erro: "Argumentos inválidos para a ferramenta." };
   try {
     if (!tool.mutating) return await tool.run(args, context);
+    if (turn.actions >= MAX_ACTIONS_PER_TURN) return { erro: `Por segurança, no máximo ${MAX_ACTIONS_PER_TURN} ações por vez. Peça para a pessoa confirmar estas e depois pedir o restante.` };
+    const pending = await prisma.aiAction.count({ where: { conversationId: context.conversationId, status: AiActionStatus.PENDING, decidedAt: null, expiresAt: { gt: new Date() } } });
+    if (pending >= MAX_PENDING_ACTIONS) return { erro: "Já existem ações esperando confirmação nesta conversa. Peça para a pessoa confirmar ou cancelar antes de preparar outras." };
     const prepared = await tool.prepare(args, context);
     if (!prepared.ok) return { erro: prepared.error };
     await prisma.aiAction.create({
       data: { conversationId: context.conversationId, requestedById: context.actor.id, tool: tool.name, input: prepared.input, summary: prepared.summary, expiresAt: new Date(Date.now() + ACTION_TTL_MS) },
     });
-    return { status: "aguardando_confirmacao", acao: prepared.summary, orientacao: "Diga em uma frase o que ficou preparado e peça para a pessoa conferir e tocar em Confirmar. Ainda não foi executado." };
+    turn.actions += 1;
+    const confirmHow = context.channel === AiChannel.WHATSAPP ? "responder sim" : "tocar em Confirmar";
+    return { status: "aguardando_confirmacao", acao: prepared.summary, orientacao: `Diga em uma frase o que ficou preparado e peça para a pessoa conferir e ${confirmHow}.${tool.irreversible ? " Avise que é uma remoção e não pode ser desfeita." : ""} Ainda não foi executado.` };
   } catch (error) {
     console.error(`assistant tool ${tool.name} failed`, error);
     return { erro: "Falha interna ao consultar os dados. Tente de novo em instantes." };
@@ -120,9 +130,10 @@ export async function respond({ context, text, speaker, setup }: { context: Tool
 
     const history = (await prisma.aiMessage.findMany({ where: { conversationId }, orderBy: { createdAt: "desc" }, take: HISTORY_LIMIT })).reverse();
     const messages: ChatMessage[] = [{ role: "system", content: system }, ...toChatMessages(history)];
+    const turn = { actions: 0 };
 
     for (let round = 0; round < MAX_ROUNDS && !finalMessageId; round += 1) {
-      const result = await chatCompletion({ apiKey, model: settings.model, messages, tools: definitions, cache: isAnthropic(settings.model) });
+      const result = await chatCompletion({ apiKey, model: settings.model, messages, tools: definitions, cache: isAnthropic(settings.model), maxTokens: MAX_TOKENS[context.audience] });
       const cost = costMicrosFor(result.usage, settings.modelPricing);
       inputTokens += result.usage.inputTokens;
       outputTokens += result.usage.outputTokens;
@@ -133,7 +144,7 @@ export async function respond({ context, text, speaker, setup }: { context: Tool
         await prisma.aiMessage.create({ data: { conversationId, role: AiMessageRole.ASSISTANT, content: result.content, toolCalls: result.toolCalls as unknown as Prisma.InputJsonValue, ...usage } });
         messages.push({ role: "assistant", content: result.content || null, tool_calls: result.toolCalls });
         for (const call of result.toolCalls) {
-          const output = serialize(await runTool(call, context, allowedNames));
+          const output = serialize(await runTool(call, context, allowedNames, turn));
           await prisma.aiMessage.create({ data: { conversationId, role: AiMessageRole.TOOL, content: output, toolCallId: call.id, toolName: call.function.name } });
           messages.push({ role: "tool", tool_call_id: call.id, content: output });
         }

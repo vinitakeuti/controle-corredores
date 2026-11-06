@@ -22,6 +22,8 @@ const actionTitles: Record<string, string> = {
   cadastrar_aluno: "Cadastro de aluno", criar_evento_agenda: "Novo compromisso", remover_evento_agenda: "Remover compromisso",
   lancar_financeiro: "Lançamento financeiro", remover_lancamento: "Remover lançamento",
 };
+// Remoções não têm volta: o cartão fica em vermelho e o botão diz o que faz.
+const irreversible = new Set(["remover_evento_agenda", "remover_lancamento"]);
 const statusInfo: Record<Action["status"], { label: string; tone: "positive" | "danger" | "warning" | "info" | "neutral" }> = {
   PENDING: { label: "Aguardando seu sim", tone: "info" },
   EXECUTED: { label: "Feito", tone: "positive" },
@@ -146,18 +148,19 @@ function ActionCard({ action, display, busy, onDecide }: { action: Action; displ
     try { await navigator.clipboard.writeText(value); setCopied(label); window.setTimeout(() => setCopied(""), 1800); } catch { /* sem permissão de cópia */ }
   }
   return (
-    <section className="ai-action" data-status={action.status} aria-label={actionTitles[action.tool] ?? "Ação do assistente"}>
+    <section className="ai-action" data-status={action.status} data-risk={irreversible.has(action.tool) ? "high" : undefined} aria-label={actionTitles[action.tool] ?? "Ação do assistente"}>
       <div className="ai-action-head">
         <strong>{actionTitles[action.tool] ?? "Ação"}</strong>
         <StatusPill tone={info.tone}>{info.label}</StatusPill>
       </div>
       <p className="ai-action-summary">{action.summary}</p>
+      {irreversible.has(action.tool) && action.status === "PENDING" ? <p className="ai-action-warning"><Icon name="alert" className="icon-sm" />Isso não pode ser desfeito.</p> : null}
       {action.status === "FAILED" && action.error ? <p className="message" data-tone="danger"><Icon name="alert" /><span>{action.error}</span></p> : null}
       {display ? <dl className="ai-action-display">{Object.entries(display).map(([label, value]) => <div key={label}><dt>{label}</dt><dd><code>{value}</code><button className="btn btn-quiet ai-copy" type="button" onClick={() => copy(label, value)}><Icon name={copied === label ? "check" : "copy"} />{copied === label ? "Copiado" : "Copiar"}</button></dd></div>)}</dl> : null}
       {action.status === "EXECUTED" && !display && action.tool === "cadastrar_aluno" ? <p className="ai-action-note">A senha temporária e o link de pagamento apareceram uma única vez, logo após a confirmação. O link pode ser gerado de novo no perfil do aluno.</p> : null}
       {action.status === "PENDING" ? (
         <div className="ai-action-buttons">
-          <button className="btn btn-primary" type="button" disabled={busy} aria-busy={busy} onClick={() => onDecide("confirm")}><Icon name="check" />{busy ? "Executando..." : "Confirmar"}</button>
+          <button className={irreversible.has(action.tool) ? "btn btn-danger-solid" : "btn btn-primary"} type="button" disabled={busy} aria-busy={busy} onClick={() => onDecide("confirm")}><Icon name={irreversible.has(action.tool) ? "trash" : "check"} />{busy ? "Executando..." : irreversible.has(action.tool) ? "Remover" : "Confirmar"}</button>
           <button className="btn btn-quiet" type="button" disabled={busy} onClick={() => onDecide("reject")}>Cancelar</button>
         </div>
       ) : null}

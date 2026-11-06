@@ -214,6 +214,8 @@
   /* Cartão de ação: o que vai mudar, com o "sim" explícito */
   .ai-action { display: grid; gap: var(--space-3); max-width: 540px; padding: var(--space-4); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--ai-radius); }
   .ai-action[data-status="PENDING"] { background: var(--surface); border-color: var(--line-control); box-shadow: 0 8px 22px rgba(16, 23, 20, 0.06); }
+  .ai-action[data-risk="high"][data-status="PENDING"] { border-color: var(--danger); box-shadow: 0 8px 22px rgba(179, 23, 58, 0.08); }
+  .ai-action-warning { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--danger); font-size: var(--text-sm); font-weight: 600; }
   .ai-action-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
   .ai-action-head strong { font-size: var(--text-sm); }
   .ai-action-summary { margin: 0; color: var(--text-secondary); line-height: 1.5; }
@@ -328,6 +330,8 @@
   .ai-audience-tabs button { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 14px; color: var(--text-secondary); font: inherit; font-size: var(--text-sm); font-weight: 600; background: transparent; border: 0; border-radius: 7px; cursor: pointer; }
   .ai-audience-tabs button[aria-selected="true"] { color: var(--text); background: var(--surface); box-shadow: 0 1px 2px rgba(16, 23, 20, 0.08); }
   .ai-audience-dot { width: 6px; height: 6px; background: var(--accent-strong); border-radius: 50%; }
+  .ai-actions-log .ledger-copy small + small { color: var(--text-muted); }
+  .ai-actions-log .ledger-row-content { align-items: flex-start; }
   .ai-settings-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
   .ai-textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
   .ai-budget { max-width: 280px; }

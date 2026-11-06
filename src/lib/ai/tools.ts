@@ -20,6 +20,8 @@ export type ToolContext = {
   leadPrices: boolean;
   actor: Pick<SessionUser, "id" | "name" | "role" | "managerPermissions">;
   contact?: { phone: string | null; name: string | null };
+  // Equipe num grupo que não foi marcado como interno: nenhuma ferramenta de dados internos.
+  restricted?: boolean;
   conversationId: string;
 };
 
@@ -36,7 +38,7 @@ type BaseTool = {
   allowed: (context: ToolContext) => boolean;
 };
 type ReadTool = BaseTool & { mutating: false; run: (args: Args, context: ToolContext) => Promise<unknown> };
-type WriteTool = BaseTool & { mutating: true; prepare: (args: Args, context: ToolContext) => Promise<Prepared>; execute: (input: Args, context: ToolContext) => Promise<Executed> };
+type WriteTool = BaseTool & { mutating: true; irreversible?: boolean; prepare: (args: Args, context: ToolContext) => Promise<Prepared>; execute: (input: Args, context: ToolContext) => Promise<Executed> };
 export type AssistantTool = ReadTool | WriteTool;
 
 const STAFF = [AiAudience.STAFF];
@@ -52,6 +54,8 @@ const dateOnly = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Maceio", 
 const when = (date: Date | null | undefined) => (date ? dateTime.format(date) : null);
 const day = (date: Date | null | undefined) => (date ? dateOnly.format(date) : null);
 const profileUrl = (id: string) => `${managementAppUrl()}/admin/alunos/${id}`;
+// A IA vê só o final do CPF; o documento completo fica no perfil do aluno.
+const maskCpf = (cpf: string | null) => { const digits = (cpf ?? "").replace(/\D/g, ""); return digits.length === 11 ? `***.***.${digits.slice(6, 9)}-${digits.slice(9)}` : null; };
 
 // "AAAA-MM-DD" no fuso de Maceió.
 function parseDay(value: unknown) {
@@ -135,7 +139,7 @@ const tools: AssistantTool[] = [
       if (!student) return { erro: "Aluno não encontrado." };
       const subscription = student.subscription;
       return {
-        id: student.id, nome: student.name, email: student.email, telefone: formatPhone(student.phone), cpf: formatCpf(student.cpf),
+        id: student.id, nome: student.name, email: student.email, telefone: formatPhone(student.phone), cpf: maskCpf(student.cpf),
         nascimento: day(student.birthDate), idade: calculateAge(student.birthDate), entrouEm: day(student.joinedAt), saiuEm: day(student.leftAt),
         conta: student.active ? "ativa" : "inativa", vendedor: student.saleOwner?.name ?? null,
         termoDeResponsabilidade: student.liabilityTermAcceptedAt ? `assinado em ${day(student.liabilityTermAcceptedAt)}` : student.liabilityTermStatus === "PENDING" ? "pendente" : student.liabilityTermStatus.toLowerCase(),
@@ -288,6 +292,7 @@ const tools: AssistantTool[] = [
     audiences: STAFF,
     allowed: can("demands"),
     mutating: true,
+    irreversible: true,
     async prepare(args, context) {
       const demand = await memberDemand(text(args.id, 60), context.actor.id);
       if (!demand) return { ok: false, error: "Compromisso não encontrado nos quadros desta pessoa." };
@@ -385,6 +390,7 @@ const tools: AssistantTool[] = [
     audiences: STAFF,
     allowed: isAdmin,
     mutating: true,
+    irreversible: true,
     async prepare(args) {
       const entry = await prisma.financialEntry.findUnique({ where: { id: text(args.id, 60) } });
       if (!entry) return { ok: false, error: "Lançamento não encontrado." };
@@ -454,6 +460,7 @@ const tools: AssistantTool[] = [
 ];
 
 export function toolsFor(context: ToolContext) {
+  if (context.restricted) return [];
   return tools.filter((tool) => tool.audiences.includes(context.audience) && tool.allowed(context));
 }
 

@@ -13,7 +13,9 @@ type Json = Record<string, unknown>;
 type SettingsRecord = NonNullable<Awaited<ReturnType<typeof getWhatsAppRecord>>>;
 
 const MAX_AGE_MS = 10 * 60 * 1000;
-const MAX_REPLIES_PER_HOUR = 40;
+// Teto de respostas da IA por conversa: a equipe trabalha mais com ela; leads e alunos têm um limite
+// menor, para ninguém usar o WhatsApp da Pace Lab como chatbot de uso geral.
+const LIMITS = { staffPerHour: 60, publicPerHour: 20, publicPerDay: 60 };
 const CHUNK = 3500;
 const YES = /^(sim|s|confirmo|confirmar|confirma|pode|pode sim|ok|okay|isso|manda|fechado|beleza)\b/;
 const NO = /^(nao|cancela|cancelar|cancele|deixa)\b/;
@@ -88,15 +90,20 @@ async function deliver(config: EvolutionConfig, chatJid: string, conversationId:
   else if (!messageId) await prisma.aiMessage.create({ data: { conversationId, role: AiMessageRole.ASSISTANT, kind: "notice", content: text, externalId: firstId } });
 }
 
+// Em grupo, a equipe e o público (alunos e leads) têm históricos separados: o que a IA consultou para a
+// equipe nunca entra no contexto de uma resposta para aluno ou lead.
+const teamThread = (groupJid: string) => `${groupJid}#equipe`;
+
 async function conversationFor(chatJid: string, isGroup: boolean, identity: Identity, phone: string | null, pushName: string | null) {
-  const existing = await prisma.aiConversation.findUnique({ where: { externalId: chatJid } });
+  const threadId = isGroup && identity.audience === AiAudience.STAFF ? teamThread(chatJid) : chatJid;
+  const existing = await prisma.aiConversation.findUnique({ where: { externalId: threadId } });
   const name = identity.user?.name ?? pushName ?? (phone ? formatWhatsapp(phone) : null);
   if (existing) {
     const changes = isGroup ? { archivedAt: null } : { archivedAt: null, audience: identity.audience, userId: identity.user?.id ?? null, contactPhone: phone ?? existing.contactPhone, contactName: identity.user?.name ?? existing.contactName ?? pushName };
     return prisma.aiConversation.update({ where: { id: existing.id }, data: changes });
   }
   return prisma.aiConversation.create({
-    data: { channel: AiChannel.WHATSAPP, externalId: chatJid, isGroup, audience: isGroup ? AiAudience.LEAD : identity.audience, userId: isGroup ? null : identity.user?.id ?? null, contactPhone: isGroup ? null : phone, contactName: isGroup ? null : name, title: isGroup ? "Grupo do WhatsApp" : name },
+    data: { channel: AiChannel.WHATSAPP, externalId: threadId, isGroup, audience: isGroup ? (threadId === chatJid ? AiAudience.LEAD : AiAudience.STAFF) : identity.audience, userId: isGroup ? null : identity.user?.id ?? null, contactPhone: isGroup ? null : phone, contactName: isGroup ? null : name, title: isGroup ? (threadId === chatJid ? "Grupo do WhatsApp" : "Grupo do WhatsApp · equipe") : name },
   });
 }
 
@@ -142,14 +149,18 @@ async function handleIncoming(data: Json, key: Json, chatJid: string, id: string
     await deliver(config, chatJid, conversation.id, "Seu perfil ainda não tem acesso ao assistente. Peça para um administrador liberar em Configurações › Equipe.");
     return;
   }
-  const recentReplies = await prisma.aiMessage.count({ where: { conversationId: conversation.id, role: AiMessageRole.ASSISTANT, model: { not: null }, createdAt: { gte: new Date(Date.now() - 3_600_000) } } });
-  if (recentReplies >= MAX_REPLIES_PER_HOUR) {
-    await prisma.aiConversation.update({ where: { id: conversation.id }, data: { needsHuman: true, needsHumanReason: "Muitas mensagens em pouco tempo: a IA parou de responder." } });
+  const replies = (since: number) => prisma.aiMessage.count({ where: { conversationId: conversation.id, role: AiMessageRole.ASSISTANT, model: { not: null }, createdAt: { gte: new Date(Date.now() - since) } } });
+  const isStaff = identity.audience === AiAudience.STAFF;
+  const overLimit = isStaff ? (await replies(3_600_000)) >= LIMITS.staffPerHour : (await replies(3_600_000)) >= LIMITS.publicPerHour || (await replies(86_400_000)) >= LIMITS.publicPerDay;
+  if (overLimit) {
+    if (!conversation.needsHuman) await prisma.aiConversation.update({ where: { id: conversation.id }, data: { needsHuman: true, needsHumanReason: "Muitas mensagens em pouco tempo: a IA parou de responder nesta conversa." } });
     return;
   }
 
   const actor = identity.user ? { id: identity.user.id, name: identity.user.name, role: identity.user.role, managerPermissions: identity.user.managerPermissions } : { id: `lead:${phone ?? chatJid}`, name: pushName ?? "Contato", role: UserRole.STUDENT, managerPermissions: null };
-  const context: ToolContext = { audience: identity.audience, channel: AiChannel.WHATSAPP, isGroup, leadPrices: settings.leadPrices, actor, contact: { phone, name: identity.user?.name ?? pushName }, conversationId: conversation.id };
+  // Equipe em grupo que não é interno: sem dados internos nem ações ali.
+  const restricted = isGroup && isStaff && !settings.internalGroups.includes(chatJid);
+  const context: ToolContext = { audience: identity.audience, channel: AiChannel.WHATSAPP, isGroup, leadPrices: settings.leadPrices, actor, contact: { phone, name: identity.user?.name ?? pushName }, conversationId: conversation.id, restricted };
 
   // "sim" / "não" de quem pediu uma ação: decide sem passar pelo modelo.
   const answer = normalize(text);

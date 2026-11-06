@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { WhatsAppInbox } from "@/components/whatsapp-inbox";
 import { requireFeature } from "@/lib/auth";
@@ -20,7 +21,7 @@ export default async function WhatsAppInboxPage({ searchParams }: { searchParams
   ]);
   return (
     <AppShell user={user} current="assistant">
-      <WhatsAppInbox initialPage={page} initialView={view} connected={Boolean(record?.enabled && evolutionConfigFrom(record))} assistantName={assistantName} />
+      <WhatsAppInbox initialPage={page} initialView={view} connected={Boolean(record?.enabled && evolutionConfigFrom(record))} assistantName={assistantName} isAdmin={user.role === UserRole.ADMIN} />
     </AppShell>
   );
 }

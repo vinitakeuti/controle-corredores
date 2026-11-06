@@ -8,7 +8,7 @@ import { MenuButton } from "@/components/ui/menu-button";
 type Item = { id: string; title: string | null; contactPhone: string | null; audience: string; isGroup: boolean; needsHuman: boolean; pausedUntil: string | null; lastMessageAt: string; preview: string };
 type Page = { items: Item[]; nextCursor: string | null; needsHumanCount: number };
 type Message = { id: string; role: "USER" | "ASSISTANT" | "TOOL"; kind: string | null; content: string; authorName: string | null; model: string | null; costMicros: number; createdAt: string };
-type View = { conversation: { id: string; title: string | null; contactName: string | null; contactPhone: string | null; audience: string; isGroup: boolean; needsHuman: boolean; needsHumanReason: string | null; pausedUntil: string | null; costMicros: number }; messages: Message[] };
+type View = { conversation: { internalGroup: boolean; id: string; title: string | null; contactName: string | null; contactPhone: string | null; audience: string; isGroup: boolean; needsHuman: boolean; needsHumanReason: string | null; pausedUntil: string | null; costMicros: number }; messages: Message[] };
 type Filter = "todas" | "atendimento";
 
 const WIDE = "(min-width: 1100px)";
@@ -28,7 +28,7 @@ const phoneLabel = (digits: string | null) => {
 // O WhatsApp usa *negrito*; aqui mostramos como texto simples com quebras de linha.
 const plain = (text: string) => text.replace(/\*([^*\n]+)\*/g, "$1");
 
-export function WhatsAppInbox({ initialPage, initialView, connected, assistantName }: { initialPage: Page; initialView: View | null; connected: boolean; assistantName: string | null }) {
+export function WhatsAppInbox({ initialPage, initialView, connected, assistantName, isAdmin }: { initialPage: Page; initialView: View | null; connected: boolean; assistantName: string | null; isAdmin: boolean }) {
   const [page, setPage] = useState(initialPage);
   const [view, setView] = useState(initialView);
   const [filter, setFilter] = useState<Filter>("todas");
@@ -112,7 +112,7 @@ export function WhatsAppInbox({ initialPage, initialView, connected, assistantNa
     } catch { setError("Não foi possível conectar ao servidor."); }
   }
 
-  async function act(action: "pause" | "resume" | "resolve" | "rename", title?: string) {
+  async function act(action: "pause" | "resume" | "resolve" | "rename" | "internal" | "external", title?: string) {
     if (!activeId) return;
     setError("");
     try {
@@ -146,12 +146,13 @@ export function WhatsAppInbox({ initialPage, initialView, connected, assistantNa
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } };
   const conversation = view?.conversation;
-  const subtitle = conversation ? [audienceLabel(conversation), conversation.isGroup ? "" : phoneLabel(conversation.contactPhone), conversation.pausedUntil ? `IA pausada até ${dayTime.format(new Date(conversation.pausedUntil))}` : "IA respondendo"].filter(Boolean).join(" · ") : "Conversas da Pace Lab no WhatsApp";
+  const subtitle = conversation ? [audienceLabel(conversation), conversation.isGroup ? (conversation.internalGroup ? "grupo interno da equipe" : "") : phoneLabel(conversation.contactPhone), conversation.pausedUntil ? `IA pausada até ${dayTime.format(new Date(conversation.pausedUntil))}` : "IA respondendo"].filter(Boolean).join(" · ") : "Conversas da Pace Lab no WhatsApp";
   const menu = useMemo(() => conversation ? [
     conversation.pausedUntil ? { label: "Retomar a IA", icon: "chat" as const, onSelect: () => act("resume") } : { label: "Pausar a IA nesta conversa", icon: "close" as const, onSelect: () => act("pause") },
     ...(conversation.needsHuman ? [{ label: "Marcar como atendido", icon: "check" as const, onSelect: () => act("resolve") }] : []),
     { label: "Renomear", icon: "edit" as const, onSelect: () => setRenaming(true) },
-  ] : [], [conversation]); // eslint-disable-line react-hooks/exhaustive-deps
+    ...(conversation.isGroup && isAdmin ? [conversation.internalGroup ? { label: "Deixar de ser grupo interno", icon: "users" as const, onSelect: () => act("external") } : { label: "Marcar como grupo interno da equipe", icon: "users" as const, onSelect: () => act("internal") }] : []),
+  ] : [], [conversation, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="ai wa" data-history={historyState}>

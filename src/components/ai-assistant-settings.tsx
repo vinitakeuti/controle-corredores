@@ -60,13 +60,13 @@ export function AiAssistantSettings({ initial }: { initial: Initial }) {
         <div className="form-field">
           <label htmlFor="ai-business">Sobre a assessoria</label>
           <textarea className="control ai-textarea" id="ai-business" rows={7} maxLength={12000} value={businessInfo} onChange={(event) => setBusinessInfo(event.target.value)} placeholder="Ex.: local e horários dos treinos em grupo, como funciona a planilha, eventos, Lab Educa, política de cancelamento..." />
-          <p className="field-hint">Vale para todos os públicos. Escreva só o que é verdade hoje.</p>
+          <p className="field-hint">Leads e alunos também recebem este texto. Escreva só o que é verdade hoje e nada interno (faturamento, custos, senhas, dados de alunos).</p>
         </div>
 
         <div className="form-field">
           <label htmlFor="ai-general">Instruções gerais</label>
           <textarea className="control ai-textarea" id="ai-general" rows={4} maxLength={8000} value={generalInstructions} onChange={(event) => setGeneralInstructions(event.target.value)} placeholder="Ex.: trate todos por você; nunca use gírias; assine como Pace Lab quando for se despedir..." />
-          <p className="field-hint">Valem em todas as conversas, com qualquer público.</p>
+          <p className="field-hint">Valem em todas as conversas, inclusive com leads e alunos. Regras só da equipe vão em Instruções por público › Equipe.</p>
         </div>
 
         <fieldset className="ai-audience">

@@ -618,6 +618,7 @@ model WhatsAppSettings {
   leadPrices          Boolean   @default(true)
   pauseHours          Int       @default(12)
   teamNotifyTarget    String?
+  internalGroups      String[]  @default([])
   updatedById         String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

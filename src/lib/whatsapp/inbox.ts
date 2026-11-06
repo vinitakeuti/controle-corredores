@@ -38,8 +38,10 @@ export async function loadWhatsAppView(id: string) {
   if (!conversation) return null;
   const messages = await prisma.aiMessage.findMany({ where: { conversationId: id, OR: [{ role: AiMessageRole.USER }, { role: AiMessageRole.ASSISTANT, content: { not: "" } }] }, orderBy: { createdAt: "asc" }, take: 400 });
   const now = new Date();
+  const groupJid = conversation.isGroup && conversation.externalId ? conversation.externalId.replace(/#equipe$/, "") : null;
+  const internalGroup = groupJid ? Boolean((await prisma.whatsAppSettings.findUnique({ where: { id: "platform" }, select: { internalGroups: true } }))?.internalGroups.includes(groupJid)) : false;
   return {
-    conversation: { id: conversation.id, title: conversation.title ?? conversation.contactName, contactName: conversation.contactName, contactPhone: conversation.contactPhone, audience: conversation.audience, isGroup: conversation.isGroup, needsHuman: conversation.needsHuman, needsHumanReason: conversation.needsHumanReason, pausedUntil: conversation.aiPausedUntil && conversation.aiPausedUntil > now ? conversation.aiPausedUntil.toISOString() : null, costMicros: conversation.costMicros },
+    conversation: { internalGroup, id: conversation.id, title: conversation.title ?? conversation.contactName, contactName: conversation.contactName, contactPhone: conversation.contactPhone, audience: conversation.audience, isGroup: conversation.isGroup, needsHuman: conversation.needsHuman, needsHumanReason: conversation.needsHumanReason, pausedUntil: conversation.aiPausedUntil && conversation.aiPausedUntil > now ? conversation.aiPausedUntil.toISOString() : null, costMicros: conversation.costMicros },
     messages: messages.filter((message) => message.kind !== "error" && message.kind !== "action").map((message) => ({ id: message.id, role: message.role, kind: message.kind, content: message.content, authorName: message.authorName, model: message.model, costMicros: message.costMicros, createdAt: message.createdAt.toISOString() })),
   };
 }
