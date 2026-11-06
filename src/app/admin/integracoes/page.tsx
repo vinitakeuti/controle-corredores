@@ -6,21 +6,23 @@ import { requireFeature } from "@/lib/auth";
 import { getAppmaxIntegrationSummary } from "@/lib/appmax-integration";
 import { getIntegrationDirectory } from "@/lib/integration-directory";
 import { getAiSettingsSummary } from "@/lib/ai/settings";
+import { getWhatsAppSummary } from "@/lib/whatsapp/settings";
 
 export const dynamic = "force-dynamic";
 
-const apps: Record<string, IntegrationKey> = { appmax: "APPMAX", asaas: "ASAAS", openrouter: "OPENROUTER" };
+const apps: Record<string, IntegrationKey> = { appmax: "APPMAX", asaas: "ASAAS", openrouter: "OPENROUTER", whatsapp: "WHATSAPP" };
 
 export default async function IntegrationsPage({ searchParams }: { searchParams: Promise<{ app?: string }> }) {
   const user = await requireFeature("integrations");
   const params = await searchParams;
   // A IA usa dados de toda a gestão: só administradores veem e configuram o OpenRouter.
   const isAdmin = user.role === UserRole.ADMIN;
-  const [directory, appmax, asaas, ai] = await Promise.all([
+  const [directory, appmax, asaas, ai, whatsapp] = await Promise.all([
     getIntegrationDirectory(),
     getAppmaxIntegrationSummary(),
     getAsaasIntegrationSummary(),
     isAdmin ? getAiSettingsSummary() : Promise.resolve(null),
+    isAdmin ? getWhatsAppSummary() : Promise.resolve(null),
   ]);
 
   return (
@@ -30,6 +32,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
         initialAppmaxSummary={appmax}
         initialAsaasSummary={asaas}
         initialAi={ai ? { enabled: ai.enabled, hasApiKey: ai.hasApiKey, apiKeyHint: ai.apiKeyHint, model: ai.model, modelName: ai.modelName, modelPricing: ai.modelPricing, modelSupportsTools: ai.modelSupportsTools, updatedAt: ai.updatedAt } : null}
+        initialWhatsApp={whatsapp}
         initialSelected={params.app ? apps[params.app.toLowerCase()] ?? null : null}
       />
     </AppShell>

@@ -41,6 +41,14 @@ export async function PUT(request: Request) {
     if (typeof body.enabled === "boolean") input.enabled = body.enabled;
     if (typeof body.generalInstructions === "string") input.generalInstructions = body.generalInstructions.trim();
     if (typeof body.businessInfo === "string") input.businessInfo = body.businessInfo.trim();
+    if (typeof body.leadInstructions === "string") input.leadInstructions = body.leadInstructions.trim();
+    if (typeof body.studentInstructions === "string") input.studentInstructions = body.studentInstructions.trim();
+    if (typeof body.staffInstructions === "string") input.staffInstructions = body.staffInstructions.trim();
+    if (typeof body.assistantName === "string") {
+      const name = body.assistantName.replace(/\s+/g, " ").trim();
+      if (name && !/^[\p{L}\p{N}][\p{L}\p{N} .'-]{0,29}$/u.test(name)) return NextResponse.json({ error: "Use até 30 letras ou números no nome do assistente." }, { status: 400, headers: noStoreHeaders() });
+      input.assistantName = name;
+    }
     if (body.monthlyBudgetUsd === null || body.monthlyBudgetUsd === "") input.monthlyBudgetUsd = null;
     else if (body.monthlyBudgetUsd !== undefined) {
       const budget = Number(body.monthlyBudgetUsd);

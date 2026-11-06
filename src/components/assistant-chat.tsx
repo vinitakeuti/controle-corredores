@@ -202,7 +202,7 @@ function Composer({ value, onChange, onSend, disabled, sending, placeholder, var
   );
 }
 
-export function AssistantChat({ greeting, intro, ready, notReadyReason, isAdmin, modelId, suggestions, initialHistory, initialView }: {
+export function AssistantChat({ greeting, intro, ready, notReadyReason, isAdmin, modelId, suggestions, initialHistory, initialView, whatsappTab, assistantName }: {
   greeting: string;
   intro: string;
   ready: boolean;
@@ -212,6 +212,8 @@ export function AssistantChat({ greeting, intro, ready, notReadyReason, isAdmin,
   suggestions: string[];
   initialHistory: HistoryPage;
   initialView: View | null;
+  whatsappTab: { count: number } | null;
+  assistantName: string | null;
 }) {
   const [view, setView] = useState<View | null>(initialView);
   const [history, setHistory] = useState(initialHistory);
@@ -389,14 +391,14 @@ export function AssistantChat({ greeting, intro, ready, notReadyReason, isAdmin,
   }
 
   const placeholder = ready ? "Peça qualquer coisa: um aluno, a agenda, um lançamento..." : "Assistente indisponível";
-  const title = view ? view.conversation.title || "Nova conversa" : "Assistente";
-  const subtitle = ["Assistente de IA", shortModel(modelId), view?.conversation.costMicros ? formatUsd(view.conversation.costMicros) : ""].filter(Boolean).join(" · ");
+  const title = view ? view.conversation.title || "Nova conversa" : assistantName || "Assistente";
+  const subtitle = [assistantName && view ? assistantName : "Assistente de IA", shortModel(modelId), view?.conversation.costMicros ? formatUsd(view.conversation.costMicros) : ""].filter(Boolean).join(" · ");
 
   return (
     <div className="ai" data-history={historyState}>
       <aside className="ai-history" id="ai-history" aria-label="Histórico de conversas" aria-hidden={!historyVisible} inert={!historyVisible}>
         <div className="ai-history-head">
-          <strong>Conversas</strong>
+          {whatsappTab ? <nav className="ai-tabs" aria-label="Assistente"><Link href="/admin/assistente" aria-current="page">Minhas conversas</Link><Link href="/admin/assistente/whatsapp">WhatsApp{whatsappTab.count ? <span className="wa-count">{whatsappTab.count}</span> : null}</Link></nav> : <strong>Conversas</strong>}
           <button className="ai-icon-btn ai-history-close" type="button" aria-label="Fechar histórico" onClick={() => { setHistoryState("auto"); toggleRef.current?.focus(); }}><Icon name="close" /></button>
         </div>
         <div className="ai-history-search">

@@ -23,11 +23,11 @@ export const navGroupLabels: Record<NavItem["group"], string> = {
 };
 
 // Mesmas regras de visibilidade do menu anterior (app-shell e mobile-nav). Só muda a ordem e o agrupamento.
-export function navItemsFor(user: Pick<SessionUser, "role" | "managerPermissions">): NavItem[] {
+export function navItemsFor(user: Pick<SessionUser, "role" | "managerPermissions">, assistantName?: string | null): NavItem[] {
   const isOperator = user.role === UserRole.OPERATOR;
   const items: (NavItem | null)[] = [
     canAccessFeature(user, "overview") ? { key: "admin", label: "Visão geral", href: "/admin", icon: "home", group: "operation" } : null,
-    canAccessFeature(user, "assistant") ? { key: "assistant", label: "Assistente", href: "/admin/assistente", icon: "chat", group: "operation" } : null,
+    canAccessFeature(user, "assistant") ? { key: "assistant", label: assistantName || "Assistente", href: "/admin/assistente", icon: "chat", group: "operation" } : null,
     isOperator || canAccessFeature(user, "demands") ? { key: "demands", label: "Demandas", href: "/admin/demandas", icon: "board", group: "operation" } : null,
     isOperator || canAccessFeature(user, "students") ? { key: "students", label: "Alunos", href: "/admin/alunos", icon: "users", group: "operation", tutorialAnchor: "nav-students" } : null,
     isOperator || canAccessFeature(user, "analysis") ? { key: "analysis", label: "Analisar dados", shortLabel: "Analisar", href: "/admin/analisar", icon: "chart", group: "operation" } : null,

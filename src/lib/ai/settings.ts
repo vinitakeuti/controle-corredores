@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { decryptSecret, encryptSecret } from "@/lib/integration-crypto";
 import { maceioDateParts, maceioDayStart } from "@/lib/format";
@@ -8,6 +9,10 @@ const SETTINGS_ID = "platform";
 
 export type AiSettingsSummary = {
   enabled: boolean;
+  assistantName: string;
+  leadInstructions: string;
+  studentInstructions: string;
+  staffInstructions: string;
   hasApiKey: boolean;
   apiKeyHint: string | null;
   model: string | null;
@@ -35,6 +40,10 @@ export async function getAiSettingsSummary(): Promise<AiSettingsSummary> {
   const record = await getAiSettingsRecord();
   return {
     enabled: record?.enabled ?? false,
+    assistantName: record?.assistantName ?? "",
+    leadInstructions: record?.leadInstructions ?? "",
+    studentInstructions: record?.studentInstructions ?? "",
+    staffInstructions: record?.staffInstructions ?? "",
     hasApiKey: Boolean(record?.apiKeyEncrypted),
     apiKeyHint: record?.apiKeyHint ?? null,
     model: record?.model ?? null,
@@ -67,6 +76,10 @@ export async function saveAiSettings(input: {
   generalInstructions?: string;
   businessInfo?: string;
   monthlyBudgetUsd?: number | null;
+  assistantName?: string;
+  leadInstructions?: string;
+  studentInstructions?: string;
+  staffInstructions?: string;
 }, updatedById: string) {
   const data: Prisma.AiSettingsUncheckedUpdateInput = { updatedById };
   if (input.apiKey !== undefined) {
@@ -83,6 +96,10 @@ export async function saveAiSettings(input: {
   if (input.enabled !== undefined) data.enabled = input.enabled;
   if (input.generalInstructions !== undefined) data.generalInstructions = input.generalInstructions.slice(0, 8000) || null;
   if (input.businessInfo !== undefined) data.businessInfo = input.businessInfo.slice(0, 12000) || null;
+  if (input.assistantName !== undefined) data.assistantName = input.assistantName || null;
+  if (input.leadInstructions !== undefined) data.leadInstructions = input.leadInstructions.slice(0, 8000) || null;
+  if (input.studentInstructions !== undefined) data.studentInstructions = input.studentInstructions.slice(0, 8000) || null;
+  if (input.staffInstructions !== undefined) data.staffInstructions = input.staffInstructions.slice(0, 8000) || null;
   if (input.monthlyBudgetUsd !== undefined) data.monthlyBudgetMicros = input.monthlyBudgetUsd == null ? null : Math.round(input.monthlyBudgetUsd * 1_000_000);
 
   return prisma.aiSettings.upsert({
@@ -121,3 +138,9 @@ export function formatUsd(micros: number) {
   const digits = value > 0 && value < 1 ? 4 : 2;
   return `US$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 }
+
+// Nome que aparece no menu e com que a IA se apresenta. Uma consulta por requisição.
+export const getAssistantName = cache(async () => {
+  const record = await prisma.aiSettings.findUnique({ where: { id: SETTINGS_ID }, select: { assistantName: true } });
+  return record?.assistantName?.trim() || null;
+});

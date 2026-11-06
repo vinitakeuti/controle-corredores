@@ -7,6 +7,7 @@ import { PlatformTutorial } from "@/components/platform-tutorial";
 import { Icon } from "@/components/ui/icon";
 import { homeHrefFor, navGroupLabels, navItemsFor, roleLabel, type NavItem, type ShellSection } from "@/components/shell/nav";
 import { STORE_ADMIN_URL, STORE_URL } from "@/lib/store-url";
+import { getAssistantName } from "@/lib/ai/settings";
 
 function SidebarLink({ item, current }: { item: NavItem; current: ShellSection }) {
   return (
@@ -18,8 +19,10 @@ function SidebarLink({ item, current }: { item: NavItem; current: ShellSection }
   );
 }
 
-export function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: ShellSection }) {
-  const items = navItemsFor(user);
+export async function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: ShellSection }) {
+  // O nome do assistente (Configurações › Assistente IA) substitui "Assistente" no menu.
+  const assistantName = user.role === UserRole.STUDENT ? null : await getAssistantName();
+  const items = navItemsFor(user, assistantName);
   const isStudent = user.role === UserRole.STUDENT;
   const groups = (["operation", "commercial", "finance", "student"] as const)
     .map((group) => ({ group, items: items.filter((item) => item.group === group) }))
@@ -28,7 +31,7 @@ export function AppShell({ user, children, current }: { user: SessionUser; child
   return (
     <div className="shell" data-nav={isStudent ? "student" : "staff"}>
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
-      <MobileNav user={user} current={current} />
+      <MobileNav user={user} current={current} assistantName={assistantName} />
       <aside className="shell-sidebar brand-surface" aria-label="Menu lateral">
         <Brand className="shell-wordmark" href={homeHrefFor(user.role)} label="Pace Lab, página inicial" size={104} />
         <nav className="shell-nav" aria-label="Navegação principal">

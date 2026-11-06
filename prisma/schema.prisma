@@ -148,6 +148,7 @@ model User {
   commissionRateBps         Int                  @default(0)
   managerPermissions        Json?
   passwordResetLinkAccess   Boolean              @default(false)
+  assistantWhatsapp         String?              @unique
   financialEntries          FinancialEntry[]     @relation("FinancialEntryCreator")
   aiConversations           AiConversation[]
 
@@ -510,6 +511,7 @@ model FinancialEntry {
 model AiSettings {
   id                  String   @id @default("platform")
   enabled             Boolean  @default(false)
+  assistantName       String?
   apiKeyEncrypted     String?
   apiKeyHint          String?
   model               String?
@@ -518,6 +520,9 @@ model AiSettings {
   modelSupportsTools  Boolean  @default(true)
   generalInstructions String?  @db.Text
   businessInfo        String?  @db.Text
+  leadInstructions    String?  @db.Text
+  studentInstructions String?  @db.Text
+  staffInstructions   String?  @db.Text
   monthlyBudgetMicros Int?
   updatedById         String?
   createdAt           DateTime @default(now())
@@ -525,27 +530,32 @@ model AiSettings {
 }
 
 model AiConversation {
-  id            String      @id @default(cuid())
-  channel       AiChannel   @default(APP)
-  audience      AiAudience  @default(STAFF)
-  userId        String?
-  contactPhone  String?
-  contactName   String?
-  externalId    String?     @unique
-  title         String?
-  inputTokens   Int         @default(0)
-  outputTokens  Int         @default(0)
-  costMicros    Int         @default(0)
-  lastMessageAt DateTime    @default(now())
-  archivedAt    DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  messages      AiMessage[]
-  actions       AiAction[]
+  id               String      @id @default(cuid())
+  channel          AiChannel   @default(APP)
+  audience         AiAudience  @default(STAFF)
+  userId           String?
+  contactPhone     String?
+  contactName      String?
+  externalId       String?     @unique
+  title            String?
+  inputTokens      Int         @default(0)
+  outputTokens     Int         @default(0)
+  costMicros       Int         @default(0)
+  isGroup          Boolean     @default(false)
+  aiPausedUntil    DateTime?
+  needsHuman       Boolean     @default(false)
+  needsHumanReason String?
+  lastMessageAt    DateTime    @default(now())
+  archivedAt       DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  user             User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages         AiMessage[]
+  actions          AiAction[]
 
   @@index([userId, archivedAt, lastMessageAt])
   @@index([channel, lastMessageAt])
+  @@index([channel, needsHuman])
 }
 
 model AiMessage {
@@ -563,6 +573,9 @@ model AiMessage {
   cachedTokens   Int            @default(0)
   costMicros     Int            @default(0)
   authorId       String?
+  authorName     String?
+  authorPhone    String?
+  externalId     String?        @unique
   createdAt      DateTime       @default(now())
   conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
@@ -587,4 +600,25 @@ model AiAction {
 
   @@index([conversationId, status])
   @@index([requestedById, createdAt])
+}
+
+// WhatsApp pela Evolution API (v2). Um registro só.
+model WhatsAppSettings {
+  id                  String    @id @default("platform")
+  enabled             Boolean   @default(false)
+  baseUrl             String?
+  apiKeyEncrypted     String?
+  apiKeyHint          String?
+  instance            String?
+  botNumber           String?
+  botLid              String?
+  webhookTokenHash    String?
+  webhookConfiguredAt DateTime?
+  groupTrigger        String    @default("assistente")
+  leadPrices          Boolean   @default(true)
+  pauseHours          Int       @default(12)
+  teamNotifyTarget    String?
+  updatedById         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }

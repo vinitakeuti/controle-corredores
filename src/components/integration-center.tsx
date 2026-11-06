@@ -7,23 +7,26 @@ import type { IntegrationDirectory, IntegrationDirectoryItem, IntegrationProvide
 import { AiIntegrationForm, aiConnectionStatus, type AiConnection } from "@/components/ai-integration-form";
 import { AsaasIntegrationForm } from "@/components/asaas-integration-form";
 import { AppmaxIntegrationForm } from "@/components/appmax-integration-form";
+import { WhatsAppIntegrationForm, whatsappStatus } from "@/components/whatsapp-integration-form";
+import type { WhatsAppSummary } from "@/lib/whatsapp/settings";
 import { Feedback } from "@/components/ui/feedback";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusPill, type Tone } from "@/components/ui/status-pill";
 
-export type IntegrationKey = "APPMAX" | "ASAAS" | "OPENROUTER";
+export type IntegrationKey = "APPMAX" | "ASAAS" | "OPENROUTER" | "WHATSAPP";
 
 type Props = {
   initialDirectory: IntegrationDirectory;
   initialAppmaxSummary: AppmaxIntegrationSummary;
   initialAsaasSummary: AsaasIntegrationSummary;
   initialAi: AiConnection | null;
+  initialWhatsApp: WhatsAppSummary | null;
   initialSelected: IntegrationKey | null;
 };
 
 const ACTIVATED = "Provedor ativo atualizado. O checkout usará esta conexão.";
-const appParam: Record<IntegrationKey, string> = { APPMAX: "appmax", ASAAS: "asaas", OPENROUTER: "openrouter" };
+const appParam: Record<IntegrationKey, string> = { APPMAX: "appmax", ASAAS: "asaas", OPENROUTER: "openrouter", WHATSAPP: "whatsapp" };
 
 function paymentStatus(item: IntegrationDirectoryItem): { label: string; tone: Tone } {
   if (item.active) return { label: "Ativo", tone: "positive" };
@@ -52,12 +55,13 @@ function CategorySection({ id, title, lead, children }: { id: string; title: str
   );
 }
 
-export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, initialAsaasSummary, initialAi, initialSelected }: Props) {
+export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, initialAsaasSummary, initialAi, initialWhatsApp, initialSelected }: Props) {
   const [directory, setDirectory] = useState(initialDirectory);
   const [appmaxSummary, setAppmaxSummary] = useState(initialAppmaxSummary);
   const [asaasSummary, setAsaasSummary] = useState(initialAsaasSummary);
   const [ai, setAi] = useState(initialAi);
-  const [selected, setSelectedState] = useState<IntegrationKey | null>(initialSelected && (initialSelected !== "OPENROUTER" || initialAi) ? initialSelected : null);
+  const [whatsapp, setWhatsApp] = useState(initialWhatsApp);
+  const [selected, setSelectedState] = useState<IntegrationKey | null>(initialSelected && (initialSelected !== "OPENROUTER" || initialAi) && (initialSelected !== "WHATSAPP" || initialWhatsApp) ? initialSelected : null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingProvider, setPendingProvider] = useState<IntegrationProviderKey | null>(null);
 
@@ -124,6 +128,8 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, init
         <AsaasIntegrationForm embedded initialSummary={asaasSummary} onSummaryChange={(nextSummary) => { setAsaasSummary(nextSummary); void refreshDirectory(); }} />)
       : selected === "OPENROUTER" && ai ? panel("OPENROUTER", "OpenRouter", "Conecte o assistente de IA da gestão e escolha o modelo.", aiConnectionStatus(ai),
         <AiIntegrationForm initial={ai} onChange={setAi} />)
+      : selected === "WHATSAPP" && whatsapp ? panel("WHATSAPP", "WhatsApp · Evolution API", "Atendimento de leads e alunos e pedidos da equipe pelo WhatsApp da Pace Lab.", whatsappStatus(whatsapp),
+        <WhatsAppIntegrationForm initial={whatsapp} onChange={setWhatsApp} />)
       : <>
         <Feedback success={feedback && !feedbackIsError ? feedback : undefined} error={feedbackIsError ? feedback : undefined} />
 
@@ -144,9 +150,13 @@ export function IntegrationCenter({ initialDirectory, initialAppmaxSummary, init
           </CategorySection>
         ) : null}
 
-        <CategorySection id="integration-messages" title="Mensagens" lead="Atendimento pelo WhatsApp com o assistente, para leads e alunos.">
-          <ProviderRow mark="WA" name="WhatsApp · Evolution API" description="Responde leads e alunos e recebe pedidos da equipe em grupos." status={{ label: "Em breve", tone: "neutral" }} />
-        </CategorySection>
+        {whatsapp ? (
+          <CategorySection id="integration-messages" title="Mensagens" lead="A IA atende leads e alunos pelo WhatsApp e recebe pedidos da equipe, cada pessoa pelo seu número.">
+            <ProviderRow mark="WA" name="WhatsApp · Evolution API" description={whatsapp.instance ? `Instância ${whatsapp.instance}${whatsapp.webhookConfiguredAt ? "" : " · webhook pendente"}` : "Atendimento pelo WhatsApp da Pace Lab com o assistente."} status={whatsappStatus(whatsapp)} active={whatsapp.enabled}>
+              <button className="btn btn-secondary" type="button" onClick={() => select("WHATSAPP")}>{whatsapp.hasApiKey ? "Gerenciar" : "Configurar"}<Icon name="chevronRight" className="icon-sm" /></button>
+            </ProviderRow>
+          </CategorySection>
+        ) : null}
       </>}
     </div>
   );

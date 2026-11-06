@@ -1,18 +1,25 @@
-import { AiAudience, FinancialEntryType, Prisma, UserRole, WorkAreaType } from "@prisma/client";
+import { AiAudience, AiChannel, FinancialEntryType, Prisma, UserRole, WorkAreaType } from "@prisma/client";
 import { canAccessFeature } from "@/lib/access-control";
 import type { SessionUser } from "@/lib/auth";
 import { financeMonthRange, loadFinanceMonth } from "@/lib/finance-month";
 import { calculateAge, formatCpf, formatCurrency, formatPhone, maceioDateParts, maceioDayEnd, maceioDayStart, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
-import { managementAppUrl } from "@/lib/portal";
+import { managementAppUrl, portalUrl } from "@/lib/portal";
 import { prisma } from "@/lib/prisma";
 import { createStudentAccount, findStudentConflict, validateNewStudent } from "@/lib/student-account";
 import type { ToolDefinition } from "@/lib/ai/openrouter";
+import { notifyTeam } from "@/lib/whatsapp/notify";
+import { formatWhatsapp } from "@/lib/whatsapp/phone";
 
-// Quem está pedindo. Na gestão é sempre alguém da equipe com sessão válida;
-// os canais de lead e aluno (WhatsApp, site) ganham ferramentas próprias depois.
+// Quem está pedindo e por onde. Na gestão é sempre alguém da equipe com sessão válida.
+// No WhatsApp a pessoa é identificada pelo número: equipe (número cadastrado no assistente),
+// aluno (telefone do cadastro) ou lead (qualquer outro). Para lead, "actor" é só um marcador.
 export type ToolContext = {
   audience: AiAudience;
+  channel: AiChannel;
+  isGroup: boolean;
+  leadPrices: boolean;
   actor: Pick<SessionUser, "id" | "name" | "role" | "managerPermissions">;
+  contact?: { phone: string | null; name: string | null };
   conversationId: string;
 };
 
@@ -33,6 +40,8 @@ type WriteTool = BaseTool & { mutating: true; prepare: (args: Args, context: Too
 export type AssistantTool = ReadTool | WriteTool;
 
 const STAFF = [AiAudience.STAFF];
+const PUBLIC = [AiAudience.LEAD, AiAudience.STUDENT];
+const periodLabels: Record<string, string> = { MONTHLY: "mensal", QUARTERLY: "trimestral", SEMIANNUAL: "semestral", ANNUAL: "anual" };
 const can = (feature: Parameters<typeof canAccessFeature>[1]) => (context: ToolContext) => context.audience === AiAudience.STAFF && canAccessFeature(context.actor, feature);
 const isAdmin = (context: ToolContext) => context.audience === AiAudience.STAFF && context.actor.role === UserRole.ADMIN;
 
@@ -387,6 +396,59 @@ const tools: AssistantTool[] = [
       if (!entry) throw new Error("O lançamento já foi removido.");
       await prisma.financialEntry.delete({ where: { id: entry.id } });
       return { result: { id: entry.id, titulo: entry.title }, message: `Lançamento “${entry.title}” removido.` };
+    },
+  },
+  {
+    name: "planos_disponiveis",
+    label: "Consultou os planos",
+    description: "Planos da assessoria com período, preço e formas de pagamento. Use quando perguntarem valores ou como contratar.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+    audiences: PUBLIC,
+    allowed: (context) => context.audience === AiAudience.STUDENT || (context.audience === AiAudience.LEAD && context.leadPrices),
+    mutating: false,
+    async run() {
+      const plans = await prisma.plan.findMany({ where: { active: true, service: { active: true } }, include: { service: { select: { name: true } } }, orderBy: [{ service: { name: "asc" } }, { priceCents: "asc" }] });
+      return { planos: plans.map((plan) => ({ servico: plan.service.name, periodo: periodLabels[plan.period] ?? plan.period, preco: formatCurrency(plan.priceCents), formasDePagamento: plan.allowedMethods.map(paymentMethodLabel) })), observacao: "Para contratar, a equipe faz o cadastro e envia o link de pagamento." };
+    },
+  },
+  {
+    name: "minha_assinatura",
+    label: "Consultou a assinatura do aluno",
+    description: "Situação da assinatura do próprio aluno que está conversando: plano, valor, próxima cobrança e último pagamento. Só funciona em conversa privada.",
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+    audiences: [AiAudience.STUDENT],
+    allowed: (context) => context.audience === AiAudience.STUDENT,
+    mutating: false,
+    async run(_args, context) {
+      if (context.isGroup) return { erro: "Por privacidade, dados da assinatura só são informados no privado. Peça para a pessoa chamar no privado." };
+      const student = await prisma.user.findFirst({ where: { id: context.actor.id, role: UserRole.STUDENT }, include: { subscription: true, payments: { orderBy: { createdAt: "desc" }, take: 1 } } });
+      if (!student) return { erro: "Cadastro do aluno não encontrado." };
+      const subscription = student.subscription;
+      const last = student.payments[0];
+      return {
+        nome: student.name, conta: student.active ? "ativa" : "inativa",
+        assinatura: subscription ? { situacao: subscriptionLabel(subscription.status), plano: subscription.planName, valor: formatCurrency(subscription.priceCents), periodo: periodLabels[subscription.billingPeriod] ?? subscription.billingPeriod, proximaCobranca: day(subscription.nextBillingAt) } : null,
+        ultimoPagamento: last ? { valor: formatCurrency(last.amountCents), situacao: paymentLabel(last.status), vencimento: day(last.dueAt), pagoEm: day(last.paidAt) } : null,
+        areaDoAluno: portalUrl("STUDENT", "/aluno"),
+      };
+    },
+  },
+  {
+    name: "chamar_equipe",
+    label: "Chamou a equipe",
+    description: "Pede atendimento humano: quando a pessoa quer contratar, fechar plano, falar com o treinador, reclamar, ou quando você não souber responder. Marca a conversa para a equipe e avisa quem estiver de plantão.",
+    parameters: { type: "object", properties: { motivo: { type: "string", description: "Em uma frase, o que a pessoa precisa." } }, required: ["motivo"], additionalProperties: false },
+    audiences: PUBLIC,
+    allowed: (context) => context.audience !== AiAudience.STAFF,
+    mutating: false,
+    async run(args, context) {
+      const reason = text(args.motivo, 240) || "Pediu para falar com a equipe";
+      const conversation = await prisma.aiConversation.update({ where: { id: context.conversationId }, data: { needsHuman: true, needsHumanReason: reason } });
+      const who = context.audience === AiAudience.STUDENT ? "Aluno" : "Lead";
+      const name = context.contact?.name || conversation.contactName || "sem nome";
+      const phone = context.contact?.phone ? formatWhatsapp(context.contact.phone) : "";
+      await notifyTeam(`Atendimento pedido pelo WhatsApp\n${who}: ${name}${phone ? ` · ${phone}` : ""}\nMotivo: ${reason}\nConversa: ${managementAppUrl()}/admin/assistente/whatsapp?c=${conversation.id}`);
+      return { status: "equipe_avisada", orientacao: "Diga que a equipe da Pace Lab já foi avisada e vai responder por aqui em breve." };
     },
   },
 ];

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { AiAssistantSettings } from "@/components/ai-assistant-settings";
 import { AiUsagePanel } from "@/components/ai-usage-panel";
+import { TeamWhatsappPanel } from "@/components/team-whatsapp-panel";
+import { canAccessFeature } from "@/lib/access-control";
 import { AppShell } from "@/components/app-shell";
 import { CollaboratorsManager } from "@/components/collaborators-manager";
 import { EmailLogPanel } from "@/components/email-log-panel";
@@ -25,8 +27,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const tabs = <nav className="tabs settings-tabs-nav" aria-label="Seções de configurações"><Link aria-current={section === "equipe" ? "page" : undefined} href="/admin/configuracoes">Equipe</Link><Link aria-current={section === "emails" ? "page" : undefined} href="/admin/configuracoes?secao=emails">E-mails</Link><Link aria-current={section === "assistente" ? "page" : undefined} href="/admin/configuracoes?secao=assistente">Assistente IA</Link></nav>;
 
   if (section === "assistente") {
-    const [settings, report] = await Promise.all([getAiSettingsSummary(), getAiUsageReport()]);
-    return <AppShell user={user} current="settings"><PageHeader context={{ label: "Administração" }} title="Configurações." lead="Ajuste o que o assistente sabe sobre a Pace Lab e acompanhe quanto ele custa." />{tabs}<AiAssistantSettings initial={{ generalInstructions: settings.generalInstructions, businessInfo: settings.businessInfo, monthlyBudgetUsd: settings.monthlyBudgetUsd }} /><AiUsagePanel report={report} budgetUsd={settings.monthlyBudgetUsd} /></AppShell>;
+    const [settings, report, team] = await Promise.all([
+      getAiSettingsSummary(),
+      getAiUsageReport(),
+      prisma.user.findMany({ where: { role: { in: [UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR] } }, select: { id: true, name: true, role: true, active: true, assistantWhatsapp: true, managerPermissions: true }, orderBy: [{ active: "desc" }, { name: "asc" }] }),
+    ]);
+    const members = team.map((member) => ({ id: member.id, name: member.name, role: member.role as "ADMIN" | "MANAGER" | "OPERATOR", active: member.active, whatsapp: member.assistantWhatsapp, hasAssistant: canAccessFeature(member, "assistant") }));
+    return <AppShell user={user} current="settings"><PageHeader context={{ label: "Administração" }} title="Configurações." lead="Ajuste o que o assistente sabe sobre a Pace Lab e acompanhe quanto ele custa." />{tabs}<AiAssistantSettings initial={{ assistantName: settings.assistantName, generalInstructions: settings.generalInstructions, businessInfo: settings.businessInfo, leadInstructions: settings.leadInstructions, studentInstructions: settings.studentInstructions, staffInstructions: settings.staffInstructions, monthlyBudgetUsd: settings.monthlyBudgetUsd }} /><TeamWhatsappPanel members={members} /><AiUsagePanel report={report} budgetUsd={settings.monthlyBudgetUsd} /></AppShell>;
   }
 
   if (section === "emails") {

@@ -12,10 +12,10 @@ import { STORE_ADMIN_URL, STORE_URL } from "@/lib/store-url";
 
 // Navegação abaixo de 900px. Equipe: topo compacto + barra inferior com as quatro primeiras áreas
 // permitidas e "Mais". Aluno: topo compacto com menu.
-export function MobileNav({ user, current }: { user: SessionUser; current: ShellSection }) {
+export function MobileNav({ user, current, assistantName }: { user: SessionUser; current: ShellSection; assistantName?: string | null }) {
   const [open, setOpen] = useState(false);
   const isStudent = user.role === UserRole.STUDENT;
-  const items = navItemsFor(user);
+  const items = navItemsFor(user, assistantName);
   const { tabs, rest } = splitForTabbar(items);
   const menuItems = isStudent ? items : rest;
   const moreIsCurrent = current === "settings" || rest.some((item) => item.key === current);
