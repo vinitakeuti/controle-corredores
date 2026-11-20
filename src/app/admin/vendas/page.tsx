@@ -63,7 +63,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
   };
 
   return <AppShell user={user} current="sales">
-    <PageHeader context={{ label: "Comercial" }} title="Vendas." lead="Cadastros e conversões do período selecionado." actions={<Link className="btn btn-secondary" href="/admin/vendas/analise"><Icon name="chart" />Analisar vendas</Link>} />
+    <PageHeader context={{ label: "Comercial" }} title="Vendas." lead="Cadastros e conversões do período selecionado." actions={<><Link className="btn btn-secondary" href="/admin/vendas/cartoes"><Icon name="link" />Cartões de venda</Link><Link className="btn btn-secondary" href="/admin/vendas/analise"><Icon name="chart" />Analisar vendas</Link></>} />
     <form className="sales-filters" method="get" aria-label="Filtrar vendas">
       <div className="form-field"><label htmlFor="sales-period">Período</label><select className="control" id="sales-period" name="period" defaultValue={period}>{periods.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></div>
       <div className="form-field"><label htmlFor="sales-status">Status</label><select className="control" id="sales-status" name="status" defaultValue={status}><option value="">Todos os status</option><option value="pending">Pendente</option><option value="approved">Aprovado</option></select></div>

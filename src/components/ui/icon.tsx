@@ -42,6 +42,9 @@ const paths = {
   calendar: <><rect x="4" y="5.5" width="16" height="14" rx="1" /><path d="M4 10h16" /><path d="M8.5 3.5v4M15.5 3.5v4" /></>,
   trash: <><path d="M5 7h14" /><path d="M10 4h4" /><path d="M7 7l1 12h8l1-12" /></>,
   share: <><path d="M12 15V4" /><path d="m8 8 4-4 4 4" /><path d="M7 11H6a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1h-1" /></>,
+  trophy: <><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5v1.5A3 3 0 0 0 8 10.5M16 6h3v1.5a3 3 0 0 1-3 3" /><path d="M12 13v4" /><path d="M8.5 20h7l-.8-3h-5.4z" /></>,
+  ticket: <><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z" /><path d="M14 7.5v9" strokeDasharray="1.5 2" /></>,
+  megaphone: <><path d="M4 10v4h3l8 4V6L7 10z" /><path d="M7 14l1 5h2.5l-1-5" /><path d="M18 9.5a3 3 0 0 1 0 5" /></>,
   addSquare: <><rect x="4.5" y="4.5" width="15" height="15" rx="3" /><path d="M12 8.5v7M8.5 12h7" /></>,
 } as const;
 

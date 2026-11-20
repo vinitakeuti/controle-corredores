@@ -14,6 +14,7 @@ type Plan = {
   allowedMethods: Method[];
   automaticPixEnabled: boolean;
   isFeatured: boolean;
+  name?: string | null;
   service: { name: string };
 };
 
@@ -32,6 +33,11 @@ type Props = {
   customPriceCents?: number | null;
   manualMonthlyBilling?: boolean;
   lockPlan?: boolean;
+  specialCondition?: boolean;
+  // O aluno acabou de escolher o plano (ex.: no QR de evento): começa no pagamento, mas pode voltar.
+  startAtPayment?: boolean;
+  // Desconto do cupom de Expert/Creator: só no 1º pagamento e só em cobrança avulsa.
+  coupon?: { code: string; percent: number } | null;
 };
 
 const periodLabel = {
@@ -47,6 +53,8 @@ const periodMonths = {
   SEMIANNUAL: 6,
   ANNUAL: 12,
 };
+
+const planTitle = (plan: Plan) => [plan.service.name, plan.name, periodLabel[plan.period]].filter(Boolean).join(" · ");
 
 function paymentChoices(methods: Method[], provider: "APPMAX" | "ASAAS" | null, automaticPixEnabled: boolean): CheckoutPaymentChoice[] {
   return [
@@ -72,11 +80,14 @@ export function StudentSubscriptionFlow({
   customPriceCents = null,
   manualMonthlyBilling = false,
   lockPlan = false,
+  specialCondition = false,
+  startAtPayment = false,
+  coupon = null,
 }: Props) {
-  const [stage, setStage] = useState<"plan" | "method" | "payment">(() => lockPlan && Boolean(plans.find((plan) => plan.id === initialPlanId)) ? "method" : "plan");
+  const [stage, setStage] = useState<"plan" | "method" | "payment">(() => (lockPlan || startAtPayment) && Boolean(plans.find((plan) => plan.id === initialPlanId)) ? "method" : "plan");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(() => plans.find((plan) => plan.id === initialPlanId) ?? null);
   const planMethods = manualMonthlyBilling ? allowedMethods : selectedPlan?.allowedMethods ?? allowedMethods;
-  const selectedAutomaticPixEnabled = !manualMonthlyBilling && (selectedPlan?.automaticPixEnabled ?? automaticPixEnabled);
+  const selectedAutomaticPixEnabled = !manualMonthlyBilling && !coupon && (selectedPlan?.automaticPixEnabled ?? automaticPixEnabled);
   const choices: Array<{ id: CheckoutPaymentChoice; title: string; description: string }> = paymentChoices(planMethods, activeProvider, selectedAutomaticPixEnabled).map((id) => ({
     id,
     title: id === "PIX" ? "Pix" : id === "PIX_AUTOMATIC" ? "Pix Automático" : id === "CARD" ? "Cartão" : "Boleto",
@@ -85,11 +96,12 @@ export function StudentSubscriptionFlow({
   const [method, setMethod] = useState<CheckoutPaymentChoice | null>(choices[0]?.id ?? null);
   const selectedPriceCents = selectedPlan && selectedPlan.id === initialPlanId && customPriceCents !== null ? customPriceCents : selectedPlan?.priceCents ?? 0;
   const paymentMonths = manualMonthlyBilling ? 1 : selectedPlan ? periodMonths[selectedPlan.period] : 1;
-  const chargeCents = selectedPriceCents * paymentMonths;
+  const fullChargeCents = selectedPriceCents * paymentMonths;
+  const chargeCents = coupon ? fullChargeCents - Math.round((fullChargeCents * coupon.percent) / 100) : fullChargeCents;
 
   function continueWithPlan(plan: Plan) {
     setSelectedPlan(plan);
-    setMethod(paymentChoices(plan.allowedMethods, activeProvider, !manualMonthlyBilling && plan.automaticPixEnabled)[0] ?? null);
+    setMethod(paymentChoices(plan.allowedMethods, activeProvider, !manualMonthlyBilling && !coupon && plan.automaticPixEnabled)[0] ?? null);
     setStage("method");
   }
 
@@ -113,9 +125,11 @@ export function StudentSubscriptionFlow({
       {stage === "method" && selectedPlan ? <div className="flow-stage">
         <div className="section-head"><div><h2 className="section-title">Como você prefere pagar?</h2><p className="section-lead">Selecione uma opção para continuar.</p></div></div>
         <dl className="summary-strip flow-summary">
-          <div><dt>{manualMonthlyBilling ? "Cobrança mensal manual" : customPriceCents !== null ? "Condição exclusiva" : "Plano escolhido"}</dt><dd>{selectedPlan.service.name} · {periodLabel[selectedPlan.period]}</dd></div>
+          <div><dt>{manualMonthlyBilling ? "Cobrança mensal manual" : specialCondition ? "Condição especial" : customPriceCents !== null ? "Condição exclusiva" : "Plano escolhido"}</dt><dd>{planTitle(selectedPlan)}</dd></div>
           <div><dt>{manualMonthlyBilling ? "Cobrança a cada mês" : selectedPlan.period === "MONTHLY" ? "Pagamento à vista" : `${formatCurrency(selectedPriceCents)} por mês · até ${periodMonths[selectedPlan.period]}x no cartão`}</dt><dd className="summary-figure">{formatCurrency(chargeCents)}</dd></div>
+          {coupon ? <div><dt>Cupom {coupon.code}</dt><dd>{coupon.percent}% de desconto · de {formatCurrency(fullChargeCents)}</dd></div> : null}
         </dl>
+        {coupon ? <p className="field-hint">O desconto vale para este primeiro pagamento. Pix Automático e cobrança recorrente ficam disponíveis a partir da próxima mensalidade.</p> : null}
         {choices.length ? <div className="pay-methods pay-methods-stacked" role="radiogroup" aria-label="Método de pagamento">
           {choices.map((choice) => <button className="method-option" type="button" role="radio" aria-checked={method === choice.id} key={choice.id} onClick={() => setMethod(choice.id)}><strong>{choice.title}</strong><span>{choice.description}</span></button>)}
         </div> : <div className="message" data-tone="warning"><Icon name="alert" /><div><strong>Nenhum método disponível</strong><p>Peça à assessoria para liberar uma forma de pagamento.</p></div></div>}
@@ -123,9 +137,9 @@ export function StudentSubscriptionFlow({
       </div> : null}
 
       {stage === "payment" && selectedPlan && method ? <div className="flow-stage">
-        <div className="section-head"><div><h2 className="section-title">Conclua seu pagamento</h2><p className="section-lead">{selectedPlan.service.name} · {periodLabel[selectedPlan.period]} · {manualMonthlyBilling ? `Cobrança mensal de ${formatCurrency(chargeCents)}` : `Total de ${formatCurrency(chargeCents)}${selectedPlan.period === "MONTHLY" ? "" : ` (${formatCurrency(selectedPriceCents)} por mês)`}`}</p></div></div>
+        <div className="section-head"><div><h2 className="section-title">Conclua seu pagamento</h2><p className="section-lead">{planTitle(selectedPlan)} · {manualMonthlyBilling ? `Cobrança mensal de ${formatCurrency(chargeCents)}` : `Total de ${formatCurrency(chargeCents)}${selectedPlan.period === "MONTHLY" ? "" : ` (${formatCurrency(selectedPriceCents)} por mês)`}`}</p></div></div>
         <button className="btn btn-quiet flow-back" type="button" onClick={() => setStage("method")}><Icon name="arrowLeft" />Trocar método de pagamento</button>
-        <CheckoutPayment token={token} name={name} cpf={cpf} amountCents={chargeCents} gatewayEnabled={gatewayEnabled} activeProvider={activeProvider} appmaxExternalId={appmaxExternalId} recurrenceEnabled={manualMonthlyBilling ? false : recurrenceEnabled} allowedMethods={planMethods} automaticPixEnabled={manualMonthlyBilling ? false : selectedPlan.automaticPixEnabled} installmentLimit={manualMonthlyBilling ? 1 : periodMonths[selectedPlan.period]} embedded hideHeading hideMethodSelector initialMethod={method} />
+        <CheckoutPayment token={token} name={name} cpf={cpf} amountCents={chargeCents} gatewayEnabled={gatewayEnabled} activeProvider={activeProvider} appmaxExternalId={appmaxExternalId} recurrenceEnabled={manualMonthlyBilling || coupon ? false : recurrenceEnabled} allowedMethods={planMethods} automaticPixEnabled={manualMonthlyBilling || coupon ? false : selectedPlan.automaticPixEnabled} installmentLimit={manualMonthlyBilling ? 1 : periodMonths[selectedPlan.period]} embedded hideHeading hideMethodSelector initialMethod={method} />
       </div> : null}
     </section>
   );

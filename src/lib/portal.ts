@@ -45,7 +45,7 @@ export function portalUrl(portal: Exclude<Portal, "UNKNOWN">, path = "/") {
 }
 
 export function portalUrlForRole(role: UserRole, path: string) {
-  return portalUrl(role === UserRole.STUDENT ? "STUDENT" : "MANAGEMENT", path);
+  return portalUrl(role === UserRole.STUDENT || role === UserRole.PARTNER ? "STUDENT" : "MANAGEMENT", path);
 }
 
 export function portalForHost(host: string | null | undefined): Portal {

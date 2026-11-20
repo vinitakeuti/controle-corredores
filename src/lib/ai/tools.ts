@@ -189,15 +189,15 @@ const tools: AssistantTool[] = [
   {
     name: "listar_planos",
     label: "Consultou os planos",
-    description: "Lista os planos ativos com serviço, período, preço e formas de pagamento.",
+    description: "Lista os planos ativos com serviço, período, preço e formas de pagamento, inclusive os ocultos (condições especiais que só a equipe aplica ou envia por link; nunca os divulgue a alunos ou leads).",
     parameters: { type: "object", properties: {}, additionalProperties: false },
     audiences: STAFF,
     allowed: (context) => can("plans")(context) || can("sales")(context) || can("students")(context),
     mutating: false,
     async run() {
-      const plans = await prisma.plan.findMany({ where: { active: true, service: { active: true } }, include: { service: { select: { name: true } } }, orderBy: [{ service: { name: "asc" } }, { priceCents: "asc" }] });
+      const plans = await prisma.plan.findMany({ where: { active: true, service: { active: true } }, include: { service: { select: { name: true } } }, orderBy: [{ service: { name: "asc" } }, { isHidden: "asc" }, { priceCents: "asc" }] });
       const periods: Record<string, string> = { MONTHLY: "mensal", QUARTERLY: "trimestral", SEMIANNUAL: "semestral", ANNUAL: "anual" };
-      return { planos: plans.map((plan) => ({ servico: plan.service.name, periodo: periods[plan.period] ?? plan.period, preco: formatCurrency(plan.priceCents), metodos: plan.allowedMethods.map(paymentMethodLabel), destaque: plan.isFeatured })) };
+      return { planos: plans.map((plan) => ({ servico: plan.service.name, ...(plan.name ? { nome: plan.name } : {}), periodo: plan.isCourtesy ? null : periods[plan.period] ?? plan.period, preco: plan.isCourtesy ? "Cortesia (sem cobrança)" : formatCurrency(plan.priceCents), metodos: plan.isCourtesy ? [] : plan.allowedMethods.map(paymentMethodLabel), destaque: plan.isFeatured, oculto: plan.isHidden })), observacao: "Planos ocultos não aparecem para alunos: a equipe aplica no perfil do aluno ou gera o link em Alunos › Novo aluno." };
     },
   },
   {
@@ -428,7 +428,8 @@ const tools: AssistantTool[] = [
     allowed: (context) => context.audience === AiAudience.STUDENT || (context.audience === AiAudience.LEAD && context.leadPrices),
     mutating: false,
     async run() {
-      const plans = await prisma.plan.findMany({ where: { active: true, service: { active: true } }, include: { service: { select: { name: true } } }, orderBy: [{ service: { name: "asc" } }, { priceCents: "asc" }] });
+      // Só planos públicos: os ocultos são condições especiais da equipe.
+      const plans = await prisma.plan.findMany({ where: { active: true, isHidden: false, service: { active: true } }, include: { service: { select: { name: true } } }, orderBy: [{ service: { name: "asc" } }, { priceCents: "asc" }] });
       return { planos: plans.map((plan) => ({ servico: plan.service.name, periodo: periodLabels[plan.period] ?? plan.period, preco: formatCurrency(plan.priceCents), formasDePagamento: plan.allowedMethods.map(paymentMethodLabel) })), observacao: "Para contratar, a equipe faz o cadastro e envia o link de pagamento." };
     },
   },

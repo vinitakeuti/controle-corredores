@@ -8,7 +8,7 @@ import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 import { generateTemporaryPassword } from "@/lib/tokens";
 
 const staffRoles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR] as const;
-const managerFeatures = ["overview", "demands", "sales", "students", "analysis", "finance", "plans", "integrations", "assistant"] as const;
+const managerFeatures = ["overview", "demands", "sales", "students", "analysis", "finance", "plans", "marketing", "integrations", "assistant"] as const;
 
 function managerPermissions(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -100,6 +100,7 @@ export async function DELETE(request: Request) {
     await prisma.$transaction([
       prisma.demand.updateMany({ where: { createdById: collaboratorId }, data: { createdById: admin.id } }),
       prisma.paymentLink.updateMany({ where: { createdById: collaboratorId }, data: { createdById: admin.id } }),
+      prisma.salesCard.updateMany({ where: { createdById: collaboratorId }, data: { createdById: admin.id } }),
       prisma.financialEntry.updateMany({ where: { createdById: collaboratorId }, data: { createdById: admin.id } }),
       prisma.user.delete({ where: { id: collaboratorId } }),
     ]);

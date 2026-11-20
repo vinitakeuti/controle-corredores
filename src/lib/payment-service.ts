@@ -28,6 +28,7 @@ import {
 import { getActivePaymentProvider } from "@/lib/integration-directory";
 import { sendPaymentNotification } from "@/lib/email";
 import { periodMonths, subscriptionChargeCents, subscriptionCycleMonths } from "@/lib/plan-billing";
+import { discountedCents, firstPaymentDiscount, onPaymentPaid, onPaymentRefunded } from "@/lib/influencers";
 import { prisma } from "@/lib/prisma";
 
 export type AppmaxPaymentMethod = "PIX" | "BOLETO" | "CARD";
@@ -214,13 +215,20 @@ export async function createPayment(input: CreatePaymentInput) {
     throw new PaymentServiceError("Complete o telefone e o CPF antes de gerar o pagamento.", 422);
   }
 
-  const expectedAmountCents = subscriptionChargeCents(account.subscription.priceCents, account.subscription.billingPeriod, account.subscription.manualMonthlyBilling);
-  const amountCents = input.amountCents ?? expectedAmountCents;
-  if (!Number.isInteger(amountCents) || amountCents < 100 || amountCents > 10_000_000) {
+  const fullAmountCents = subscriptionChargeCents(account.subscription.priceCents, account.subscription.billingPeriod, account.subscription.manualMonthlyBilling);
+  // O link fixa o preço cheio; o desconto do cupom (se houver) é aplicado aqui,
+  // só no 1º pagamento, e só em cobrança avulsa.
+  const requestedAmountCents = input.amountCents ?? fullAmountCents;
+  if (!Number.isInteger(requestedAmountCents) || requestedAmountCents < 100 || requestedAmountCents > 10_000_000) {
     throw new PaymentServiceError("O valor da cobrança é inválido.");
   }
-  if (amountCents !== expectedAmountCents) {
+  if (requestedAmountCents !== fullAmountCents) {
     throw new PaymentServiceError("O valor desta cobrança não corresponde ao plano selecionado.", 409);
+  }
+  const couponDiscount = await firstPaymentDiscount(account.id);
+  const amountCents = couponDiscount ? discountedCents(fullAmountCents, couponDiscount.percent) : fullAmountCents;
+  if (couponDiscount && input.automaticPix) {
+    throw new PaymentServiceError("O desconto do cupom vale para um pagamento avulso. Escolha Pix, cartão ou boleto; a cobrança automática fica para as próximas mensalidades.", 409);
   }
   const installmentCount = input.installmentCount ?? 1;
   const maxInstallments = account.subscription.manualMonthlyBilling ? 1 : periodMonths[account.subscription.billingPeriod];
@@ -250,7 +258,7 @@ export async function createPayment(input: CreatePaymentInput) {
       where: { id: input.paymentLinkId },
       select: { userId: true, amountCents: true, status: true },
     });
-    if (!link || link.userId !== account.id || link.amountCents !== amountCents || link.status !== "OPEN") {
+    if (!link || link.userId !== account.id || link.amountCents !== fullAmountCents || link.status !== "OPEN") {
       throw new PaymentServiceError("O link de pagamento não está mais disponível.", 409);
     }
   }
@@ -310,7 +318,7 @@ export async function createPayment(input: CreatePaymentInput) {
     }
   }
 
-  const recurringRequested = account.subscription.manualMonthlyBilling
+  const recurringRequested = account.subscription.manualMonthlyBilling || couponDiscount
     ? false
     : activeProvider === "ASAAS"
       ? Boolean(input.automaticPix)
@@ -681,6 +689,9 @@ export async function synchronizeAppmaxOrder(orderId: string, eventName?: string
         });
       }
     }
+    // Programa Experts & Creators: o 1º pagamento de um indicado gera a venda; o estorno a cancela.
+    if (becamePaid) await onPaymentPaid(transaction, current.id);
+    else if (current.status === PaymentStatus.PAID && nextStatus === PaymentStatus.REFUNDED) await onPaymentRefunded(transaction, current.id);
     return updated;
   });
   if (notification) await sendPaymentNotification(updated.id, notification).catch(() => undefined);
@@ -782,6 +793,9 @@ export async function synchronizeAsaasPayment(paymentId: string, eventName?: str
         });
       }
     }
+    // Programa Experts & Creators: o 1º pagamento de um indicado gera a venda; o estorno a cancela.
+    if (becamePaid) await onPaymentPaid(transaction, current.id);
+    else if (current.status === PaymentStatus.PAID && nextStatus === PaymentStatus.REFUNDED) await onPaymentRefunded(transaction, current.id);
     return updated;
   });
   if (notification) await sendPaymentNotification(updated.id, notification).catch(() => undefined);

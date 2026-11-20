@@ -1,0 +1,190 @@
+@layer reset, tokens, base, components, shell, screens; /* ordem das camadas: ver src/styles/layers.css */
+/* Marketing › Experts & Creators (/admin/marketing/creators) e portal do programa (/programa) */
+@layer screens {
+  /* Cupom: cartão na superfície escura da marca */
+  .coupon-card { position: relative; isolation: isolate; display: grid; gap: var(--space-2); padding: var(--space-5); color: var(--on-dark); background-color: var(--sidebar); border-radius: var(--radius); overflow: hidden; }
+  .coupon-card::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--stripes-dark); pointer-events: none; }
+  .coupon-card-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .coupon-card-label { color: var(--accent-on-dark); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  .coupon-card-code { font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3rem); font-weight: 400; line-height: 1; letter-spacing: 0.04em; overflow-wrap: anywhere; }
+  .coupon-card-note { max-width: 560px; color: var(--on-dark-muted); font-size: var(--text-sm); line-height: 1.5; }
+  .coupon-card-lg { max-width: 720px; padding: var(--space-6); }
+  .coupon-card-lg .coupon-card-code { font-size: clamp(2.5rem, 6vw, 4rem); }
+  .coupon-copy { color: var(--sidebar); background: var(--on-dark); border-color: var(--on-dark); }
+  .coupon-copy:hover { background: #ffffff; }
+  .coupon-links { display: grid; gap: var(--space-3); margin-top: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--on-dark-line); }
+  .coupon-link-list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+  .coupon-link-list li { display: grid; grid-template-columns: 12.5rem minmax(0, 1fr) auto; align-items: center; gap: 2px var(--space-4); }
+  .coupon-link-name { font-weight: 700; }
+  .coupon-link-url { min-width: 0; overflow: hidden; color: var(--on-dark-muted); font-family: var(--font-mono); font-size: var(--text-sm); text-overflow: ellipsis; white-space: nowrap; }
+  .coupon-link-copy { color: var(--on-dark); background: transparent; border: 1px solid var(--on-dark-line); }
+  .coupon-link-copy:hover { background: var(--sidebar-raised); }
+  .coupon-link-copy:focus-visible { outline-color: var(--accent); }
+  .coupon-links-note { margin: 0; color: var(--on-dark-subtle); font-size: var(--text-xs); }
+  .referral-coupon { margin: 0; }
+  .coupon-code { padding: 2px 6px; font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600; letter-spacing: 0.04em; background: var(--surface-sunken); border-radius: var(--radius); }
+  .coupon-input { font-family: var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; }
+  .coupon-input::placeholder { letter-spacing: 0; text-transform: none; }
+
+  /* Interruptor (mostrar comissão) */
+  .switch { position: relative; display: inline-flex; flex: none; align-items: center; gap: var(--space-3); font-weight: 600; cursor: pointer; }
+  /* O checkbox real cobre o interruptor inteiro: clique, toque e teclado vão direto nele. */
+  .switch input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .switch-track { position: relative; width: 44px; height: 24px; background: var(--line-control); border-radius: 999px; transition: background-color var(--dur-1) var(--ease-out); }
+  .switch-track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: var(--surface); border-radius: 50%; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); transition: transform var(--dur-1) var(--ease-out); }
+  .switch input:checked + .switch-track { background: var(--positive); }
+  .switch input:checked + .switch-track::after { transform: translateX(20px); }
+  .switch input:focus-visible + .switch-track { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+  /* Painel da equipe */
+  .program-rules { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr) auto; align-items: center; gap: var(--space-3) var(--space-5); margin-bottom: var(--space-3); padding: var(--space-4) var(--space-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .program-rules .section-lead { margin: 2px 0 0; }
+  .program-rules-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: 0; }
+  .program-rules-list dt { color: var(--text-muted); font-size: var(--text-xs); }
+  .program-rules-list dd { margin: 2px 0 0; font-weight: 700; }
+  .commission-rules-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+  .commission-rule-summary { margin: var(--space-2) 0 0; padding: var(--space-2) var(--space-3); color: var(--text); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius); font-size: var(--text-sm); font-weight: 600; }
+  .commission-visibility { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); margin-bottom: var(--space-5); padding: var(--space-4) var(--space-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .commission-visibility .section-lead { margin: 2px 0 0; }
+  .influencer-table td { vertical-align: middle; }
+  .influencer-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .influencer-type button, .influencer-source button { min-height: 64px; }
+  .influencer-source { margin-bottom: var(--space-2); }
+  .student-search { position: relative; }
+  .student-search-results { display: grid; margin: 4px 0 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line-control); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); }
+  .student-search-results button { display: grid; gap: 2px; width: 100%; padding: var(--space-2) var(--space-3); color: var(--text); text-align: left; background: transparent; border: 0; border-radius: var(--radius); cursor: pointer; }
+  .student-search-results button:hover, .student-search-results button:focus-visible { background: var(--surface-hover); outline: none; }
+  .student-search-results span { color: var(--text-muted); font-size: var(--text-xs); }
+  .marketing-period { min-width: 180px; }
+
+  .influencer-overview { display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: var(--space-4); align-items: stretch; margin-bottom: var(--space-2); }
+  .influencer-summary { height: 100%; }
+  .influencer-summary > div { display: grid; align-content: start; gap: 2px; }
+  .months-table td .cell-secondary { margin-left: var(--space-2); display: inline; }
+  .payout-cell { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .payout-error { width: 100%; color: var(--danger); font-size: var(--text-xs); }
+  .influencer-sales-table .sale-description, .program-sales-table .sale-description { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pix-key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); overflow-wrap: anywhere; }
+
+  /* Perfil do aluno: indicação e programa */
+  .profile-program { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+  .referral-control { display: grid; gap: var(--space-3); justify-items: start; }
+  .referral-control .form-field { width: 100%; }
+  .profile-program-role { display: grid; gap: var(--space-3); justify-items: start; padding: var(--space-4); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+  .profile-program-role p { margin: 0; }
+
+  /* Área do aluno: cupom antes do 1º pagamento */
+  .coupon-toggle { justify-self: start; }
+  .coupon-form { display: grid; grid-template-columns: minmax(0, 260px) auto; align-items: end; gap: var(--space-2) var(--space-3); }
+  .coupon-form .feedback, .coupon-form [role="alert"] { grid-column: 1 / -1; }
+
+  /* Portal do programa */
+  .program-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+  .program-metrics[data-count="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .program-metric { display: grid; align-content: start; gap: var(--space-2); padding: var(--space-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .program-metric-label { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-muted); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .program-metric-label .icon { width: 16px; height: 16px; }
+  .ordinal { margin-left: 2px; font-family: var(--font-body); font-size: 0.42em; font-weight: 700; vertical-align: 0.95em; }
+  .program-metric-value { font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3rem); font-weight: 400; line-height: 1; white-space: nowrap; }
+  .program-metric-note { color: var(--text-muted); font-size: var(--text-sm); }
+  .program-metric .delta { display: inline-block; margin-right: 4px; padding: 0 6px; color: var(--text); background: var(--surface-sunken); border-radius: 999px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .program-metric-accent { position: relative; isolation: isolate; color: var(--on-dark); background: var(--sidebar); border-color: var(--sidebar); overflow: hidden; }
+  .program-metric-accent::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--stripes-dark); }
+  .program-metric-accent .program-metric-label { color: var(--accent-on-dark); }
+  .program-metric-accent .program-metric-note { color: var(--on-dark-muted); }
+  .program-metric-accent .delta { color: var(--on-dark); background: rgba(255, 255, 255, 0.12); }
+
+  /* Pódio de prova: 2º | 1º | 3º sobre a linha de chegada. O 1º sobe na superfície da marca. */
+  .ranking-board { display: grid; gap: var(--space-5); }
+  .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; width: 100%; max-width: 760px; margin: var(--space-2) auto 0; padding: 0; list-style: none; border-bottom: 2px solid var(--line-strong); }
+  .podium-step { display: grid; grid-row: 1; min-width: 0; text-align: center; }
+  .podium-step[data-place="1"] { grid-column: 2; }
+  .podium-step[data-place="2"] { grid-column: 1; }
+  .podium-step[data-place="3"] { grid-column: 3; }
+  .podium-athlete { display: grid; justify-items: center; gap: 2px; min-width: 0; padding: 0 var(--space-2) var(--space-3); }
+  .podium-avatar { width: 48px; height: 48px; margin-bottom: var(--space-2); color: var(--text-secondary); background: var(--surface); border: 1px solid var(--line); font-size: 14px; }
+  .podium-step[data-place="1"] .podium-avatar { width: 60px; height: 60px; color: var(--on-dark); background: var(--sidebar); border-color: var(--sidebar); font-size: 16px; }
+  .podium-name { max-width: 100%; overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .podium-type { color: var(--text-muted); font-size: var(--text-xs); }
+  .podium-you { position: relative; padding-bottom: 8px; color: var(--text); font-size: var(--text-xs); font-weight: 700; }
+  /* Você está aqui: o mesmo paralelogramo da navegação, sob o rótulo. */
+  .podium-you::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 28px; height: 5px; background: var(--accent); clip-path: var(--marker-shape); transform: translateX(-50%); }
+  .podium-points { margin-top: var(--space-1); color: var(--text-muted); font-size: var(--text-sm); white-space: nowrap; }
+  .podium-points b { color: var(--text); font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; line-height: 1; }
+  .podium-open { padding-top: var(--space-6); color: var(--text-muted); font-size: var(--text-sm); }
+  .podium-block { position: relative; isolation: isolate; display: grid; place-items: start center; height: 92px; padding-top: var(--space-3); overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-bottom: 0; transform-origin: bottom; }
+  .podium-step[data-place="1"] .podium-block { height: 156px; color: var(--on-dark); background: var(--sidebar); border-color: var(--sidebar); }
+  .podium-step[data-place="1"] .podium-block::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--stripes-dark); }
+  .podium-step[data-place="2"] .podium-block { height: 116px; }
+  .podium-step[data-empty] .podium-block { background: transparent; border-style: dashed; border-color: var(--line-control); }
+  .podium-number { font-family: var(--font-display); font-size: 3rem; line-height: 1; color: var(--text-secondary); }
+  .podium-step[data-place="1"] .podium-number { font-size: 4.25rem; color: var(--on-dark); }
+  .podium-step[data-empty] .podium-number { color: var(--text-placeholder); }
+  /* Um só momento de movimento: os blocos sobem da linha de chegada, o 1º por último. */
+  @media (prefers-reduced-motion: no-preference) {
+    .podium-block { animation: podium-rise 560ms var(--ease-out) both; }
+    .podium-step[data-place="3"] .podium-block { animation-delay: 60ms; }
+    .podium-step[data-place="2"] .podium-block { animation-delay: 140ms; }
+    .podium-step[data-place="1"] .podium-block { animation-delay: 220ms; }
+    @keyframes podium-rise { from { transform: scaleY(0.35); opacity: 0; } }
+  }
+
+  /* Do 4º lugar em diante */
+  .ranking-list { max-width: 760px; width: 100%; margin: 0 auto; padding: 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .ranking-item { position: relative; display: grid; grid-template-columns: 44px 36px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); min-height: 56px; padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--line-soft); }
+  .ranking-item:last-child { border-bottom: 0; }
+  .ranking-item[data-me] { background: var(--surface-raised); }
+  .ranking-item[data-me]::before { content: ""; position: absolute; left: 0; top: 50%; width: 6px; height: 24px; background: var(--accent); clip-path: var(--marker-shape); transform: translateY(-50%); }
+  .ranking-gap { padding: var(--space-1) var(--space-4); color: var(--text-muted); text-align: center; letter-spacing: 0.3em; border-bottom: 1px solid var(--line-soft); }
+  .ranking-pos { font-family: var(--font-display); font-size: 1.25rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .ranking-avatar { width: 36px; height: 36px; font-size: 12px; }
+  .ranking-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--space-2); min-width: 0; }
+  .ranking-who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ranking-type { color: var(--text-muted); font-size: var(--text-xs); }
+  .ranking-me { color: var(--text); font-size: var(--text-xs); font-weight: 700; }
+  .ranking-points { color: var(--text-muted); font-size: var(--text-sm); white-space: nowrap; }
+  .ranking-points b { color: var(--text); font-family: var(--font-display); font-size: 1.25rem; font-weight: 400; }
+  .ranking-target { margin-bottom: var(--space-4); }
+
+  .table-foot { margin: 0; padding: var(--space-3) var(--space-4); color: var(--text-muted); font-size: var(--text-sm); border-top: 1px solid var(--line-soft); }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .payout-open { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 2px var(--space-4); margin-bottom: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--surface-raised); border: 1px dashed var(--line-control); border-radius: var(--radius); }
+  .payout-open strong { font-family: var(--font-display); font-size: 1.75rem; font-weight: 400; }
+  .payout-open small { grid-column: 1 / -1; color: var(--text-muted); }
+  .payout-ledger .ledger-row-content { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .payout-amount { font-family: var(--font-mono); font-weight: 600; }
+  .pix-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-4); padding: var(--space-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .pix-card-icon { display: grid; place-items: center; width: 44px; height: 44px; color: var(--text-secondary); background: var(--surface-sunken); border-radius: 50%; }
+  .pix-card-copy { display: grid; gap: 2px; min-width: 0; }
+  .pix-card-copy span { color: var(--text-muted); font-size: var(--text-sm); }
+  .pix-form { display: grid; grid-template-columns: minmax(140px, 180px) minmax(0, 1fr); align-items: end; gap: var(--space-3); grid-column: 1 / -1; }
+  .pix-form .btn-row, .pix-form [role="alert"] { grid-column: 1 / -1; }
+
+  @media (max-width: 899px) {
+    .program-rules { grid-template-columns: minmax(0, 1fr); }
+    .program-rules .btn { justify-self: start; }
+    .program-metrics, .program-metrics[data-count="4"] { grid-template-columns: minmax(0, 1fr); }
+    .influencer-overview, .profile-program { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 559px) {
+    .program-rules-list, .commission-rules-grid { grid-template-columns: minmax(0, 1fr); }
+    .coupon-card-lg { padding: var(--space-5); }
+    .ranking-item { grid-template-columns: 34px 32px minmax(0, 1fr) auto; gap: var(--space-2); padding: var(--space-2) var(--space-3); }
+    .podium-athlete { padding-inline: 2px; }
+    .podium-avatar { width: 40px; height: 40px; font-size: 13px; }
+    .podium-step[data-place="1"] .podium-avatar { width: 48px; height: 48px; }
+    .podium-name { font-size: var(--text-sm); }
+    .podium-block { height: 68px; padding-top: var(--space-2); }
+    .podium-step[data-place="2"] .podium-block { height: 88px; }
+    .podium-step[data-place="1"] .podium-block { height: 116px; }
+    .podium-number { font-size: 2.25rem; }
+    .podium-step[data-place="1"] .podium-number { font-size: 3.25rem; }
+    .coupon-link-list li { grid-template-columns: minmax(0, 1fr) auto; }
+    .coupon-link-url { grid-column: 1; grid-row: 2; }
+    .coupon-link-copy { grid-row: 1 / span 2; grid-column: 2; }
+    .pix-card { grid-template-columns: minmax(0, 1fr); }
+    .pix-card-icon { display: none; }
+    .pix-form, .coupon-form { grid-template-columns: minmax(0, 1fr); }
+    .payout-ledger .ledger-row-content { grid-template-columns: minmax(0, 1fr) auto; }
+  }
+}

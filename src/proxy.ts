@@ -2,11 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isStudentPortalEnabled, portalForHost, portalUrl } from "@/lib/portal";
 
 function isStudentPage(pathname: string) {
-  return pathname === "/aluno" || pathname.startsWith("/aluno/") || pathname === "/pagamento" || pathname.startsWith("/pagamento/");
+  return pathname === "/aluno" || pathname.startsWith("/aluno/") || pathname === "/programa" || pathname.startsWith("/programa/") || pathname === "/pagamento" || pathname.startsWith("/pagamento/") || pathname.startsWith("/primeiro-acesso/") || pathname.startsWith("/cadastro/") || pathname.startsWith("/indicacao/");
 }
 
 function isStudentApi(pathname: string) {
-  return /^\/api\/(student|payments|checkout)(\/|$)/.test(pathname);
+  return /^\/api\/(student|payments|checkout|program)(\/|$)/.test(pathname);
 }
 
 function isManagementPage(pathname: string) {

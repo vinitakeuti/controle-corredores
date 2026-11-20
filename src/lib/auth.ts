@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { UserRole } from "@prisma/client";
+import { InfluencerType, UserRole } from "@prisma/client";
 import { canAccessFeature, type ManagerFeature } from "@/lib/access-control";
 import { prisma } from "@/lib/prisma";
 import { hashOpaqueToken } from "@/lib/tokens";
@@ -21,6 +21,9 @@ export type SessionUser = {
   tutorialSeenAt: Date | null;
   managerPermissions: unknown;
   passwordResetLinkAccess: boolean;
+  // Expert ou Creator (aluno ou parceiro): libera o portal do programa. Pausado
+  // continua vendo histórico e repasses; só o cupom deixa de valer.
+  influencer: { id: string; type: InfluencerType; active: boolean } | null;
 };
 
 export { canAccessFeature, type ManagerFeature } from "@/lib/access-control";
@@ -33,6 +36,7 @@ export function defaultPathForRole(role: UserRole) {
   if (role === UserRole.ADMIN) return "/admin";
   if (role === UserRole.MANAGER) return "/admin";
   if (role === UserRole.OPERATOR) return "/admin/alunos";
+  if (role === UserRole.PARTNER) return "/programa";
   return "/aluno";
 }
 
@@ -95,7 +99,7 @@ export async function getCurrentUser(options: SessionAccess = {}): Promise<Sessi
 
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashOpaqueToken(token) },
-    include: { user: true },
+    include: { user: { include: { influencer: { select: { id: true, type: true, active: true } } } } },
   });
 
   if (!session || session.expiresAt < new Date() || (!session.user.active && session.user.role !== UserRole.STUDENT)) {
@@ -116,6 +120,7 @@ export async function getCurrentUser(options: SessionAccess = {}): Promise<Sessi
     tutorialSeenAt: session.user.tutorialSeenAt,
     managerPermissions: session.user.managerPermissions,
     passwordResetLinkAccess: session.user.passwordResetLinkAccess,
+    influencer: session.user.influencer ? { id: session.user.influencer.id, type: session.user.influencer.type, active: session.user.influencer.active } : null,
   };
 }
 

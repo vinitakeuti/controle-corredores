@@ -12,6 +12,8 @@ enum UserRole {
   MANAGER
   OPERATOR
   STUDENT
+  // Expert ou Creator que não é aluno: só acessa o portal do programa.
+  PARTNER
 }
 
 enum SubscriptionStatus {
@@ -73,6 +75,26 @@ enum FinancialEntryType {
 enum EmailLogStatus {
   SENT
   FAILED
+}
+
+enum InfluencerType {
+  EXPERT
+  CREATOR
+}
+
+enum InfluencerSaleSource {
+  PLAN
+  STORE
+}
+
+enum InfluencerSaleStatus {
+  CONFIRMED
+  CANCELED
+}
+
+enum InfluencerPayoutStatus {
+  APPROVED
+  PAID
 }
 
 enum AiChannel {
@@ -151,11 +173,20 @@ model User {
   assistantWhatsapp         String?              @unique
   financialEntries          FinancialEntry[]     @relation("FinancialEntryCreator")
   aiConversations           AiConversation[]
+  salesCardId               String?
+  salesCard                 SalesCard?           @relation("SalesCardSignup", fields: [salesCardId], references: [id], onDelete: SetNull)
+  createdSalesCards         SalesCard[]          @relation("SalesCardCreator")
+  influencer                Influencer?          @relation("InfluencerProfile")
+  referredByInfluencerId    String?
+  referredAt                DateTime?
+  referredBy                Influencer?          @relation("InfluencerReferral", fields: [referredByInfluencerId], references: [id], onDelete: SetNull)
 
   @@index([role])
   @@index([joinedAt])
   @@index([leftAt])
   @@index([saleOwnerId])
+  @@index([salesCardId])
+  @@index([referredByInfluencerId])
 }
 
 model WorkArea {
@@ -443,11 +474,17 @@ model Service {
   @@index([active, name])
 }
 
+// Plano público: um por categoria e período (regra garantida no código).
+// Plano oculto: não aparece para alunos nem leads; só a equipe aplica ou envia
+// por link. Pode ter nome próprio e ser cortesia (sem cobrança).
 model Plan {
   id                  String          @id @default(cuid())
   serviceId           String
   period              PlanPeriod
   priceCents          Int
+  name                String?
+  isHidden            Boolean         @default(false)
+  isCourtesy          Boolean         @default(false)
   allowedMethods      PaymentMethod[] @default([PIX, CARD, BOLETO])
   automaticPixEnabled Boolean         @default(true)
   isFeatured          Boolean         @default(false)
@@ -457,9 +494,118 @@ model Plan {
   service             Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   subscriptions       Subscription[]
   paymentLinks        PaymentLink[]
+  salesCards          SalesCard[]
 
-  @@unique([serviceId, period])
+  @@index([serviceId, period])
   @@index([active, serviceId])
+}
+
+// Cartão de venda: QR Code de uso múltiplo para eventos (tela de PDV). Quem
+// escaneia escolhe um dos planos do cartão e se cadastra sozinho, até expiresAt.
+// O código vai impresso no QR, então não é segredo: a proteção é o prazo.
+model SalesCard {
+  id          String    @id @default(cuid())
+  name        String
+  code        String    @unique
+  expiresAt   DateTime
+  closedAt    DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   User      @relation("SalesCardCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  plans       Plan[]
+  students    User[]    @relation("SalesCardSignup")
+
+  @@index([expiresAt])
+  @@index([createdById, createdAt])
+}
+
+// Programa Experts & Creators (Marketing). Cada influenciador tem um cupom fixo;
+// vendas de plano (1º pagamento do indicado) e da loja geram comissão mês a mês.
+model Influencer {
+  id              String             @id @default(cuid())
+  userId          String             @unique
+  type            InfluencerType
+  couponCode      String             @unique
+  // Regras de comissão próprias; vazio (null) = segue o padrão do programa.
+  commissionBps   Int?
+  planCommission  Boolean?
+  storeCommission Boolean?
+  discountPercent Int                @default(0)
+  discountUntil   DateTime?
+  active          Boolean            @default(true)
+  pixKeyType      String?
+  pixKeyEncrypted String?
+  pixKeyHint      String?
+  pixKeyUpdatedAt DateTime?
+  createdById     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  user            User               @relation("InfluencerProfile", fields: [userId], references: [id], onDelete: Cascade)
+  referrals       User[]             @relation("InfluencerReferral")
+  sales           InfluencerSale[]
+  payouts         InfluencerPayout[]
+
+  @@index([active, type])
+}
+
+// Uma venda atribuída: o 1º pagamento de um aluno indicado (PLAN) ou um pedido
+// da loja com o cupom (STORE). Valores e comissão ficam congelados na venda.
+model InfluencerSale {
+  id              String               @id @default(cuid())
+  influencerId    String
+  source          InfluencerSaleSource
+  externalId      String
+  reference       String
+  description     String
+  customerName    String?
+  studentId       String?
+  amountCents     Int
+  discountCents   Int                  @default(0)
+  commissionBps   Int
+  commissionCents Int
+  status          InfluencerSaleStatus @default(CONFIRMED)
+  occurredAt      DateTime
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  influencer      Influencer           @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+
+  @@unique([source, externalId])
+  @@index([influencerId, occurredAt])
+  @@index([occurredAt])
+}
+
+// Repasse de um mês fechado: aprovado pela equipe e depois marcado como pago.
+model InfluencerPayout {
+  id           String                 @id @default(cuid())
+  influencerId String
+  month        String
+  status       InfluencerPayoutStatus
+  amountCents  Int
+  salesCount   Int
+  approvedAt   DateTime
+  approvedById String?
+  paidAt       DateTime?
+  paidById     String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  influencer   Influencer             @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+
+  @@unique([influencerId, month])
+  @@index([month])
+}
+
+model MarketingSettings {
+  id                     String    @id @default("platform")
+  showCommission         Boolean   @default(false)
+  // Padrão do programa: comissão no 1º pagamento do plano, na loja e o percentual.
+  planCommissionEnabled  Boolean   @default(true)
+  storeCommissionEnabled Boolean   @default(true)
+  defaultCommissionBps   Int       @default(1000)
+  storeSyncedAt  DateTime?
+  updatedById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model BillingSettings {

@@ -1,4 +1,5 @@
 import { GatewayEventStatus, PaymentMethod, PaymentStatus, SubscriptionStatus } from "@prisma/client";
+import { onPaymentPaid } from "@/lib/influencers";
 import { cancelAsaasAutomaticPixAuthorization, getAsaasPayment } from "@/lib/asaas";
 import { synchronizeAsaasPayment } from "@/lib/payment-service";
 import { sendPaymentNotification } from "@/lib/email";
@@ -79,6 +80,7 @@ async function processAutomaticPixAuthorization(event: {
           });
         }
         notification.current = { paymentId: initialPayment.id, type: "paid" };
+        await onPaymentPaid(transaction, initialPayment.id);
       }
       return;
     }

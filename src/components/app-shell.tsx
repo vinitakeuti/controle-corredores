@@ -5,7 +5,7 @@ import { Brand } from "@/components/brand";
 import { MobileNav } from "@/components/mobile-nav";
 import { PlatformTutorial } from "@/components/platform-tutorial";
 import { Icon } from "@/components/ui/icon";
-import { homeHrefFor, navGroupLabels, navItemsFor, roleLabel, type NavItem, type ShellSection } from "@/components/shell/nav";
+import { homeHrefFor, navGroupLabels, navGroupOrder, navItemsFor, roleLabel, usesMemberLayout, type NavItem, type ShellSection } from "@/components/shell/nav";
 import { STORE_ADMIN_URL, STORE_URL } from "@/lib/store-url";
 import { getAssistantName } from "@/lib/ai/settings";
 
@@ -21,15 +21,18 @@ function SidebarLink({ item, current }: { item: NavItem; current: ShellSection }
 
 export async function AppShell({ user, children, current }: { user: SessionUser; children: React.ReactNode; current: ShellSection }) {
   // O nome do assistente (Configurações › Assistente IA) substitui "Assistente" no menu.
-  const assistantName = user.role === UserRole.STUDENT ? null : await getAssistantName();
+  const isMember = usesMemberLayout(user.role);
+  const assistantName = isMember ? null : await getAssistantName();
   const items = navItemsFor(user, assistantName);
   const isStudent = user.role === UserRole.STUDENT;
-  const groups = (["operation", "commercial", "finance", "student"] as const)
+  const groups = navGroupOrder
     .map((group) => ({ group, items: items.filter((item) => item.group === group) }))
     .filter((entry) => entry.items.length > 0);
+  // Aluno vê só os itens; com mais de um grupo (aluno Expert/Creator), os títulos ajudam.
+  const showGroupLabels = !isMember || groups.length > 1;
 
   return (
-    <div className="shell" data-nav={isStudent ? "student" : "staff"}>
+    <div className="shell" data-nav={isMember ? "student" : "staff"}>
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
       <MobileNav user={user} current={current} assistantName={assistantName} />
       <aside className="shell-sidebar brand-surface" aria-label="Menu lateral">
@@ -37,10 +40,10 @@ export async function AppShell({ user, children, current }: { user: SessionUser;
         <nav className="shell-nav" aria-label="Navegação principal">
           {groups.map(({ group, items: groupItems }) => (
             <div className="shell-nav-group" key={group}>
-              {!isStudent ? <span className="shell-nav-label" id={`nav-group-${group}`}>{navGroupLabels[group]}</span> : null}
-              <ul className="shell-nav-list" aria-labelledby={!isStudent ? `nav-group-${group}` : undefined}>
+              {showGroupLabels ? <span className="shell-nav-label" id={`nav-group-${group}`}>{navGroupLabels[group]}</span> : null}
+              <ul className="shell-nav-list" aria-labelledby={showGroupLabels ? `nav-group-${group}` : undefined}>
                 {groupItems.map((item) => <SidebarLink key={item.key} item={item} current={current} />)}
-                {isStudent ? <li><a className="shell-link" href={STORE_URL}><Icon name="store" />Loja</a></li> : null}
+                {isStudent && group === "student" ? <li><a className="shell-link" href={STORE_URL}><Icon name="store" />Loja</a></li> : null}
               </ul>
             </div>
           ))}
@@ -49,7 +52,7 @@ export async function AppShell({ user, children, current }: { user: SessionUser;
           <ul className="shell-nav-list">
             {user.role === UserRole.ADMIN ? <li><Link className="shell-link" href="/admin/configuracoes" aria-current={current === "settings" ? "page" : undefined}><Icon name="settings" />Configurações</Link></li> : null}
             {user.role === UserRole.ADMIN ? <li><a className="shell-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer"><Icon name="store" />Admin da loja<Icon name="external" className="icon-external" /><span className="visually-hidden"> (abre em nova aba)</span></a></li> : null}
-            {user.active ? <li><button className="shell-link" type="button" data-open-tutorial><Icon name="help" />Tutorial</button></li> : null}
+            {user.active && user.role !== UserRole.PARTNER ? <li><button className="shell-link" type="button" data-open-tutorial><Icon name="help" />Tutorial</button></li> : null}
           </ul>
           <div className="shell-account" data-tutorial-anchor="account-menu">
             <div className="shell-account-name"><strong title={user.name}>{user.name}</strong><span>{roleLabel(user.role)}</span></div>
@@ -65,7 +68,7 @@ export async function AppShell({ user, children, current }: { user: SessionUser;
           {children}
         </div>
       </main>
-      {user.active ? <PlatformTutorial role={user.role} name={user.name} userId={user.id} initiallySeen={Boolean(user.tutorialSeenAt)} /> : null}
+      {user.active && user.role !== UserRole.PARTNER ? <PlatformTutorial role={user.role} name={user.name} userId={user.id} initiallySeen={Boolean(user.tutorialSeenAt)} /> : null}
     </div>
   );
 }

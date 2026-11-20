@@ -1,4 +1,4 @@
-export const managerFeatures = ["overview", "demands", "sales", "students", "analysis", "finance", "plans", "integrations", "assistant"] as const;
+export const managerFeatures = ["overview", "demands", "sales", "students", "analysis", "finance", "plans", "marketing", "integrations", "assistant"] as const;
 export type ManagerFeature = typeof managerFeatures[number];
 
 export function canAccessFeature(user: { role: string; managerPermissions: unknown }, feature: ManagerFeature) {

@@ -85,3 +85,24 @@ export function checkPaymentRateLimit(userId: string, request: Request) {
   }
   return { allowed: true, retryAfterSeconds: 0 };
 }
+
+const signupRequests = new Map<string, RateLimitEntry>();
+
+// Cadastro pelo QR de evento (cartão de venda). Muita gente pode estar no mesmo
+// Wi-Fi, então o limite por IP é folgado: serve para conter robôs, não pessoas.
+export function checkSignupRateLimit(request: Request) {
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000;
+  const maxRequests = 40;
+  const key = `signup:ip:${getClientIp(request)}`;
+  for (const [entryKey, entry] of signupRequests) {
+    if (entry.resetAt <= now) signupRequests.delete(entryKey);
+  }
+  const current = signupRequests.get(key);
+  if (current && current.resetAt > now && current.count >= maxRequests) {
+    return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((current.resetAt - now) / 1000)) };
+  }
+  if (!current || current.resetAt <= now) signupRequests.set(key, { count: 1, resetAt: now + windowMs });
+  else current.count += 1;
+  return { allowed: true, retryAfterSeconds: 0 };
+}

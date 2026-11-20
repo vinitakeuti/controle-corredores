@@ -7,14 +7,14 @@ import type { SessionUser } from "@/lib/auth";
 import { Brand } from "@/components/brand";
 import { Icon } from "@/components/ui/icon";
 import { Sheet } from "@/components/ui/sheet";
-import { homeHrefFor, navItemsFor, roleLabel, splitForTabbar, type ShellSection } from "@/components/shell/nav";
+import { homeHrefFor, navItemsFor, roleLabel, splitForTabbar, usesMemberLayout, type ShellSection } from "@/components/shell/nav";
 import { STORE_ADMIN_URL, STORE_URL } from "@/lib/store-url";
 
 // Navegação abaixo de 900px. Equipe: topo compacto + barra inferior com as quatro primeiras áreas
 // permitidas e "Mais". Aluno: topo compacto com menu.
 export function MobileNav({ user, current, assistantName }: { user: SessionUser; current: ShellSection; assistantName?: string | null }) {
   const [open, setOpen] = useState(false);
-  const isStudent = user.role === UserRole.STUDENT;
+  const isStudent = usesMemberLayout(user.role);
   const items = navItemsFor(user, assistantName);
   const { tabs, rest } = splitForTabbar(items);
   const menuItems = isStudent ? items : rest;
@@ -56,8 +56,8 @@ export function MobileNav({ user, current, assistantName }: { user: SessionUser;
             ))}
             {user.role === UserRole.ADMIN ? <li><Link className="shell-menu-link" href="/admin/configuracoes" onClick={close} aria-current={current === "settings" ? "page" : undefined}><Icon name="settings" />Configurações</Link></li> : null}
             {user.role === UserRole.ADMIN ? <li><a className="shell-menu-link" href={STORE_ADMIN_URL} target="_blank" rel="noreferrer"><Icon name="store" />Admin da loja<Icon name="external" className="icon-external" /><span className="visually-hidden"> (abre em nova aba)</span></a></li> : null}
-            {isStudent ? <li><a className="shell-menu-link" href={STORE_URL}><Icon name="store" />Loja</a></li> : null}
-            {user.active ? <li><button className="shell-menu-link" type="button" onClick={openTutorial}><Icon name="help" />Tutorial</button></li> : null}
+            {user.role === UserRole.STUDENT ? <li><a className="shell-menu-link" href={STORE_URL}><Icon name="store" />Loja</a></li> : null}
+            {user.active && user.role !== UserRole.PARTNER ? <li><button className="shell-menu-link" type="button" onClick={openTutorial}><Icon name="help" />Tutorial</button></li> : null}
           </ul>
         </nav>
         <div className="shell-menu-account">

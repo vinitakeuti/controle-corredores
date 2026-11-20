@@ -15,6 +15,7 @@ export function CheckoutAccessForm({ token, mode, initialEmail = "" }: CheckoutA
   const [cpf, setCpf] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [password, setPassword] = useState("");
+  const [couponCode, setCouponCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +24,7 @@ export function CheckoutAccessForm({ token, mode, initialEmail = "" }: CheckoutA
     setError("");
     setLoading(true);
     const endpoint = mode === "login" ? "login" : "register";
-    const body = mode === "login" ? { email, password } : { name, email, phone, cpf, birthDate, password };
+    const body = mode === "login" ? { email, password } : { name, email, phone, cpf, birthDate, password, couponCode };
     try {
       const response = await fetch(`/api/checkout/${encodeURIComponent(token)}/${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json();
@@ -48,6 +49,7 @@ export function CheckoutAccessForm({ token, mode, initialEmail = "" }: CheckoutA
       </> : null}
       <div className="form-field"><label htmlFor="checkout-email">E-mail</label><input className="control" id="checkout-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></div>
       <div className="form-field"><label htmlFor="checkout-password">Senha</label><input className="control" id="checkout-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={8} required aria-describedby={mode === "register" ? "checkout-password-hint" : undefined} />{mode === "register" ? <p className="field-hint" id="checkout-password-hint">Mínimo de 8 caracteres.</p> : null}</div>
+      {mode === "register" ? <div className="form-field"><label htmlFor="checkout-coupon">Cupom <span className="optional-tag">opcional</span></label><input className="control coupon-input" id="checkout-coupon" value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase().replace(/\s+/g, ""))} maxLength={20} autoCapitalize="characters" autoComplete="off" spellCheck={false} placeholder="Ex.: PACELAB10" /></div> : null}
       <Feedback error={error} />
       <button className="btn btn-primary btn-block" type="submit" disabled={loading} aria-busy={loading}>{loading ? "Aguarde..." : mode === "login" ? "Entrar e continuar" : "Criar acesso e continuar"}</button>
     </form>

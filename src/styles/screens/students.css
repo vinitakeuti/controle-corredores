@@ -18,6 +18,10 @@
   .create-credentials { margin-bottom: var(--space-4); }
   .create-credentials dd { overflow-wrap: anywhere; }
   .create-password { font-family: var(--font-mono); font-size: var(--text-lg); }
+  .create-stage .qr-panel { margin-bottom: var(--space-5); }
+  .create-subtitle { margin: 0 0 var(--space-3); color: var(--text-muted); font-size: var(--text-sm); font-weight: 600; }
+  .create-link-output { display: grid; gap: var(--space-4); }
+  .create-link-output .qr-panel { margin-bottom: 0; }
 
   @media (max-width: 559px) {
     .create-fields { grid-template-columns: 1fr; }

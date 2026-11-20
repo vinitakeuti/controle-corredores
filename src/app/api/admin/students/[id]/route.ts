@@ -3,7 +3,7 @@ import { PaymentLinkStatus, PaymentMethod, SubscriptionStatus, UserRole } from "
 import { cancelAsaasAutomaticPixAuthorization } from "@/lib/asaas";
 import { parseAmountCents } from "@/lib/billing";
 import { subscriptionChargeCents } from "@/lib/plan-billing";
-import { planDisplayName } from "@/lib/plans";
+import { findStaffPlan, planDisplayName } from "@/lib/plans";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
@@ -79,18 +79,23 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
 
     const planId = typeof input.planId === "string" ? input.planId : student.subscription.planId;
-    const plan = planId ? await prisma.plan.findFirst({ where: { id: planId, active: true, service: { active: true } }, include: { service: true } }) : null;
+    // A equipe pode aplicar planos públicos e ocultos (condição especial).
+    const plan = planId ? await findStaffPlan(planId) : null;
     if (!plan) return NextResponse.json({ error: "Selecione um plano ativo para este aluno" }, { status: 400, headers: noStoreHeaders() });
-    const priceCents = input.priceCents === undefined ? (student.subscription.planId === plan.id ? student.subscription.priceCents : plan.priceCents) : parseAmountCents(input.priceCents);
-    const isCourtesy = input.isCourtesy === undefined ? student.subscription.isCourtesy : input.isCourtesy === true;
-    const manualMonthlyBilling = input.manualMonthlyBilling === undefined ? student.subscription.manualMonthlyBilling : input.manualMonthlyBilling === true;
+    // Plano de cortesia: quem pode aplicar o plano pode dar a cortesia, porque
+    // o administrador já a autorizou ao criar o plano. Sair dele remove a cortesia,
+    // a não ser que um administrador a mantenha marcada.
+    const leavingCourtesyPlan = Boolean(student.subscription.plan?.isCourtesy) && !plan.isCourtesy;
+    const priceCents = plan.isCourtesy ? 0 : input.priceCents === undefined ? (student.subscription.planId === plan.id ? student.subscription.priceCents : plan.priceCents) : parseAmountCents(input.priceCents);
+    const isCourtesy = plan.isCourtesy || (input.isCourtesy === undefined ? !leavingCourtesyPlan && student.subscription.isCourtesy : input.isCourtesy === true);
+    const manualMonthlyBilling = !plan.isCourtesy && (input.manualMonthlyBilling === undefined ? student.subscription.manualMonthlyBilling : input.manualMonthlyBilling === true);
     // Esta condição é uma exceção individual: ela sempre gera uma cobrança
     // avulsa em Pix, uma vez por mês, independentemente da duração do plano.
     if (manualMonthlyBilling && !plan.allowedMethods.includes(PaymentMethod.PIX)) {
       return NextResponse.json({ error: "Este plano não permite Pix, necessário para a cobrança mensal manual." }, { status: 400, headers: noStoreHeaders() });
     }
     const allowedMethods = manualMonthlyBilling ? [PaymentMethod.PIX] : plan.allowedMethods;
-    if (!priceCents) return NextResponse.json({ error: "Informe um valor entre R$ 1,00 e R$ 100.000,00" }, { status: 400, headers: noStoreHeaders() });
+    if (priceCents === null || (!plan.isCourtesy && priceCents < 100)) return NextResponse.json({ error: "Informe um valor entre R$ 1,00 e R$ 100.000,00" }, { status: 400, headers: noStoreHeaders() });
 
     const methodsChanged = allowedMethods.length !== student.subscription.allowedMethods.length
       || allowedMethods.some((method) => !student.subscription!.allowedMethods.includes(method));
@@ -101,7 +106,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const automaticPixChanged = automaticPixEnabled !== student.subscription.automaticPixEnabled;
     const manualBillingChanged = manualMonthlyBilling !== student.subscription.manualMonthlyBilling;
     const courtesyChanged = isCourtesy !== student.subscription.isCourtesy;
-    const hasCustomPrice = priceCents !== plan.priceCents;
+    const hasCustomPrice = !plan.isCourtesy && priceCents !== plan.priceCents;
     const cancelAutomaticPix = Boolean(
       student.subscription.asaasPixAuthorizationId
       && student.subscription.recurringEnabled

@@ -15,11 +15,13 @@ export async function PATCH(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const planId = typeof body.planId === "string" ? body.planId : "";
     const [plan, subscription] = await Promise.all([
-      prisma.plan.findFirst({ where: { id: planId, active: true, service: { active: true } }, include: { service: true } }),
-      prisma.subscription.findUnique({ where: { userId: user.id } }),
+      // Plano oculto nunca é escolhido pelo aluno: só a equipe aplica.
+      prisma.plan.findFirst({ where: { id: planId, active: true, isHidden: false, service: { active: true } }, include: { service: true } }),
+      prisma.subscription.findUnique({ where: { userId: user.id }, include: { plan: { select: { isHidden: true } } } }),
     ]);
     if (!plan || !subscription) return NextResponse.json({ error: "Plano ou assinatura não encontrados." }, { status: 404, headers: noStoreHeaders() });
     if (subscription.isCourtesy) return NextResponse.json({ error: "Sua cortesia está ativa. Fale com a Pace Lab caso precise alterar o plano." }, { status: 409, headers: noStoreHeaders() });
+    if (subscription.plan?.isHidden && subscription.planId !== plan.id) return NextResponse.json({ error: "Seu plano é uma condição especial da Pace Lab. Fale com a equipe para trocar." }, { status: 409, headers: noStoreHeaders() });
     const termsChanged = subscription.priceCents !== plan.priceCents
       || subscription.billingPeriod !== plan.period
       || subscription.manualMonthlyBilling

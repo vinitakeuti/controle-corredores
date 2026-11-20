@@ -43,6 +43,7 @@
   .plan-fieldset legend { margin-bottom: var(--space-1); padding: 0; }
   .plan-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-5); }
   .plan-featured-check { padding-top: var(--space-3); border-top: 1px solid var(--line-soft); }
+  .plan-hidden-check { padding-bottom: var(--space-3); border-bottom: 1px solid var(--line-soft); }
 
   /* Integrações: uma seção por categoria (Pagamentos, Inteligência artificial, Mensagens) */
   .integration-category .section-head { margin-bottom: var(--space-2); }

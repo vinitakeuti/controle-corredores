@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { UserRole } from "@prisma/client";
 import { createSession, defaultPathForRole, isStaffRole, verifyCredentialsIncludingInactive } from "@/lib/auth";
 import { isStudentPortalEnabled, portalForHost, portalUrlForRole } from "@/lib/portal";
 import { checkLoginRateLimit, clearLoginFailures, loginRateLimitKeys, registerLoginFailure } from "@/lib/rate-limit";
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401, headers: noStoreHeaders() });
     }
 
-    if (!user.active && isStaffRole(user.role)) {
+    if (!user.active && user.role !== UserRole.STUDENT) {
       clearLoginFailures(keys);
       return NextResponse.json({ error: "Esta conta está inativa. Entre em contato com o suporte da Pace Lab.", inactive: true }, { status: 403, headers: noStoreHeaders() });
     }

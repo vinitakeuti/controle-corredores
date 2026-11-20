@@ -522,6 +522,17 @@
     overflow-wrap: anywhere;
     user-select: all;
   }
+  /* QR Code: sempre preto no branco, com margem própria (ver ui/qr-code.tsx) */
+  .qr-code { display: block; width: 100%; max-width: 248px; height: auto; aspect-ratio: 1; background: #ffffff; border-radius: var(--radius); }
+  .qr-panel { display: flex; align-items: center; gap: var(--space-5); margin: 0; padding: var(--space-4); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+  .qr-panel .qr-code { flex: 0 0 auto; width: 216px; box-shadow: 0 0 0 1px var(--line); }
+  .qr-panel-copy { display: grid; gap: var(--space-2); min-width: 0; color: var(--text-muted); font-size: var(--text-sm); line-height: 1.5; }
+  .qr-panel-copy strong { color: var(--text); font-size: var(--text-md); }
+  .qr-panel-copy p { margin: 0; }
+  @media (max-width: 559px) {
+    .qr-panel { flex-direction: column; align-items: stretch; text-align: center; }
+    .qr-panel .qr-code { width: min(100%, 248px); margin: 0 auto; }
+  }
   .optional-tag { margin-left: 4px; color: var(--text-muted); font-size: var(--text-xs); font-weight: 500; }
 }
 

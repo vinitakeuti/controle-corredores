@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PaymentStatus, UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
@@ -8,19 +9,24 @@ import { LiabilityTermReview } from "@/components/liability-term-review";
 import { liabilityTermStatusLabel } from "@/components/liability-term-labels";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusPill, toneForLabel } from "@/components/ui/status-pill";
-import { canGeneratePasswordResetLink } from "@/lib/access-control";
+import { canAccessFeature, canGeneratePasswordResetLink } from "@/lib/access-control";
+import { StudentReferralControl } from "@/components/student-referral-control";
+import { commissionRule, getMarketingSettings, influencerTypeLabel, ruleSummary } from "@/lib/influencers";
 import { requireFeature } from "@/lib/auth";
 import { calculateAge, formatCpf, formatCurrency, formatDate, formatPhone, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { getActivePlans } from "@/lib/plans";
+import { getStaffPlans } from "@/lib/plans";
 
 export default async function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireFeature("students");
   const { id } = await params;
-  const [student, plans] = await Promise.all([
-    prisma.user.findUnique({ where: { id }, include: { subscription: { include: { plan: { include: { service: true } } } }, payments: { where: { status: PaymentStatus.PAID }, orderBy: { paidAt: "asc" } } } }),
-    getActivePlans(),
+  const [student, plans, influencers] = await Promise.all([
+    prisma.user.findUnique({ where: { id }, include: { subscription: { include: { plan: { include: { service: true } } } }, payments: { where: { status: PaymentStatus.PAID }, orderBy: { paidAt: "asc" } }, influencer: true, referredBy: { select: { id: true, couponCode: true, active: true, user: { select: { name: true } } } } } }),
+    getStaffPlans(),
+    prisma.influencer.findMany({ where: { active: true, userId: { not: id } }, select: { id: true, couponCode: true, user: { select: { name: true } } }, orderBy: { couponCode: "asc" } }),
   ]);
+  const canMarketing = canAccessFeature(user, "marketing");
+  const programSettings = student?.influencer ? await getMarketingSettings() : null;
   if (!student || student.role !== UserRole.STUDENT) notFound();
 
   const firstPayment = student.payments[0];
@@ -34,7 +40,8 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
   const subscription = student.subscription;
   const nextCharge = subscription?.isCourtesy ? "Cortesia ativa" : formatDate(subscription?.nextBillingAt);
   const currentValue = subscription?.isCourtesy ? "Cortesia" : subscription ? formatCurrency(subscription.priceCents) : "—";
-  const priceKind = subscription?.isCourtesy ? "Cortesia" : subscription?.hasCustomPrice ? "Valor exclusivo" : "Valor do plano";
+  const priceKind = subscription?.isCourtesy ? "Cortesia" : subscription?.hasCustomPrice ? "Valor exclusivo" : subscription?.plan?.isHidden ? "Condição especial" : "Valor do plano";
+  const planLabel = !subscription?.plan ? "Ainda não escolhido" : !subscription.plan.name ? periodLabel[subscription.plan.period] : subscription.plan.isCourtesy ? `${subscription.plan.name} (oculto)` : `${subscription.plan.name} · ${periodLabel[subscription.plan.period]} (oculto)`;
   const paymentsNewestFirst = student.payments.slice().reverse();
 
   return (
@@ -73,13 +80,27 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
       <section className="section-block" aria-labelledby="profile-enrollment">
         <div className="section-head">
           <div><h2 className="section-title" id="profile-enrollment">Plano atual</h2><p className="section-lead">Serviço e condição comercial deste aluno.</p></div>
-          <StatusPill tone={subscription?.isCourtesy || subscription?.hasCustomPrice ? "info" : "neutral"}>{priceKind}</StatusPill>
+          <StatusPill tone={subscription?.isCourtesy || subscription?.hasCustomPrice || subscription?.plan?.isHidden ? "info" : "neutral"}>{priceKind}</StatusPill>
         </div>
         <dl className="dl-grid profile-enrollment-grid">
           <div><dt>Categoria</dt><dd>{subscription?.plan?.service.name ?? "Ainda não definida"}</dd></div>
-          <div><dt>Plano</dt><dd>{subscription?.plan ? periodLabel[subscription.plan.period] : "Ainda não escolhido"}</dd></div>
+          <div><dt>Plano</dt><dd>{planLabel}</dd></div>
           <div><dt>Cobrança</dt><dd>{subscription?.isCourtesy ? "Isenta" : subscription?.manualMonthlyBilling ? "Mensal manual" : "Por período"}</dd></div>
         </dl>
+      </section>
+
+      <section className="section-block" aria-labelledby="profile-program">
+        <div className="section-head">
+          <div><h2 className="section-title" id="profile-program">Experts & Creators</h2><p className="section-lead">Indicação por cupom e participação deste aluno no programa.</p></div>
+          {student.influencer ? <StatusPill tone="info">{influencerTypeLabel[student.influencer.type]}</StatusPill> : null}
+        </div>
+        <div className="profile-program">
+          <StudentReferralControl studentId={student.id} current={student.referredBy?.id ?? null} options={[...influencers.map((item) => ({ id: item.id, label: `${item.couponCode} · ${item.user.name}` })), ...(student.referredBy && !student.referredBy.active ? [{ id: student.referredBy.id, label: `${student.referredBy.couponCode} · ${student.referredBy.user.name} (pausado)` }] : [])]} />
+          <div className="profile-program-role">
+            {student.influencer ? <p>{student.name.split(" ")[0]} é {influencerTypeLabel[student.influencer.type]} com o cupom <code className="coupon-code">{student.influencer.couponCode}</code> e comissão {programSettings ? ruleSummary(commissionRule(student.influencer, programSettings)) : ""}.{canMarketing ? <> <Link className="link" href={`/admin/marketing/creators/${student.influencer.id}`}>Ver no programa</Link></> : null}</p>
+              : canMarketing ? <><p>Não participa do programa.</p><Link className="btn btn-secondary" href={`/admin/marketing/creators?aluno=${student.id}`}>Tornar Expert ou Creator</Link></> : <p>Não participa do programa.</p>}
+          </div>
+        </div>
       </section>
 
       {subscription && student.active ? <StudentBillingControls studentId={student.id} initialPriceCents={subscription.priceCents} initialPlanId={subscription.planId} initialAllowedMethods={subscription.allowedMethods} initialManualMonthlyBilling={subscription.manualMonthlyBilling} initialIsCourtesy={subscription.isCourtesy} automaticPixActive={subscription.recurringEnabled && subscription.asaasPixAuthorizationStatus === "ACTIVE"} hasCustomPrice={subscription.hasCustomPrice} plans={plans} canDelete={user.role === UserRole.ADMIN} canManageCourtesy={user.role === UserRole.ADMIN} /> : null}

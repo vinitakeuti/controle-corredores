@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, isStaffRole } from "@/lib/auth";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
+import { resolveSignupCoupon, setReferral } from "@/lib/influencers";
+import { findStaffPlan } from "@/lib/plans";
 import { createStudentAccount, findStudentConflict, validateNewStudent } from "@/lib/student-account";
 
 const MAX_BODY_LENGTH = 16_384;
@@ -19,7 +21,15 @@ export async function POST(request: Request) {
     const conflict = await findStudentConflict(validation.data);
     if (conflict) return NextResponse.json({ error: conflict }, { status: 409, headers: noStoreHeaders() });
 
-    const created = await createStudentAccount(validation.data, admin.id);
+    const planId = typeof body.planId === "string" ? body.planId.slice(0, 100) : "";
+    const plan = planId ? await findStaffPlan(planId) : null;
+    if (planId && !plan) return NextResponse.json({ error: "Este plano não está mais disponível." }, { status: 404, headers: noStoreHeaders() });
+
+    const coupon = await resolveSignupCoupon(body.couponCode);
+    if (!coupon.ok) return NextResponse.json({ error: coupon.error }, { status: 400, headers: noStoreHeaders() });
+
+    const created = await createStudentAccount(validation.data, admin.id, plan, { firstAccess: true });
+    if (coupon.influencerId) await setReferral({ studentId: created.studentId, influencerId: coupon.influencerId, by: "staff" });
     return NextResponse.json(created, { headers: noStoreHeaders() });
   } catch (error) {
     console.error("student creation failed", error);

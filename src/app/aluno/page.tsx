@@ -12,11 +12,13 @@ import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDate, paymentLabel, paymentMethodLabel, subscriptionLabel } from "@/lib/format";
 import { getPaymentCheckoutConfig } from "@/lib/payment-gateway";
 import { periodMonths, subscriptionChargeCents } from "@/lib/plan-billing";
-import { getActivePlans } from "@/lib/plans";
+import { getPlansForStudent } from "@/lib/plans";
+import { StudentCouponBox } from "@/components/student-coupon-box";
+import { firstPaymentDiscount, hasPaidBefore } from "@/lib/influencers";
 import { prisma } from "@/lib/prisma";
 
-export default async function StudentPage({ searchParams }: { searchParams: Promise<{ termDownloadError?: string }> }) {
-  const { termDownloadError } = await searchParams;
+export default async function StudentPage({ searchParams }: { searchParams: Promise<{ termDownloadError?: string; etapa?: string }> }) {
+  const { termDownloadError, etapa } = await searchParams;
   const user = await requireRole(UserRole.STUDENT, { allowInactiveStudent: true });
   if (!user.active) {
     return <AppShell user={user} current="student"><section className="blocked" role="status">
@@ -26,12 +28,14 @@ export default async function StudentPage({ searchParams }: { searchParams: Prom
   }
   const account = await prisma.user.findUnique({
     where: { id: user.id },
-    include: { subscription: true, payments: { orderBy: { createdAt: "desc" }, take: 6 } },
+    include: { subscription: { include: { plan: { select: { isHidden: true } } } }, payments: { orderBy: { createdAt: "desc" }, take: 6 }, referredBy: { select: { couponCode: true } } },
   });
   const subscription = account?.subscription;
   const gateway = await getPaymentCheckoutConfig();
-  const plans = await getActivePlans();
-  const selectingPlan = Boolean(subscription && !subscription.hasCustomPrice && !subscription.manualMonthlyBilling);
+  const plans = await getPlansForStudent(subscription?.planId);
+  // Plano oculto aplicado pela equipe: o aluno paga, mas não troca de plano sozinho.
+  const specialCondition = Boolean(subscription?.plan?.isHidden);
+  const selectingPlan = Boolean(subscription && !subscription.hasCustomPrice && !subscription.manualMonthlyBilling && !specialCondition);
 
   if (subscription?.status === "ACTIVE" && account?.liabilityTermRequiredAt && account.liabilityTermStatus !== "APPROVED") {
     const termStatus = account.liabilityTermStatus === "SUBMITTED" || account.liabilityTermStatus === "REJECTED" ? account.liabilityTermStatus : "PENDING";
@@ -39,12 +43,16 @@ export default async function StudentPage({ searchParams }: { searchParams: Prom
   }
 
   if (!subscription || !subscription.planId || subscription.status !== "ACTIVE") {
-    const exclusive = subscription?.hasCustomPrice || subscription?.manualMonthlyBilling;
+    const exclusive = subscription?.hasCustomPrice || subscription?.manualMonthlyBilling || specialCondition;
+    // Cupom de Expert/Creator: aparece até o primeiro pagamento.
+    const [paidBefore, discount] = await Promise.all([hasPaidBefore(prisma, user.id), firstPaymentDiscount(user.id)]);
+    const couponBox = subscription && !subscription.isCourtesy && !paidBefore ? <StudentCouponBox appliedCode={account?.referredBy?.couponCode ?? null} discountPercent={discount?.percent ?? 0} /> : null;
     return <AppShell user={user} current="student">
       <PageHeader tutorialAnchor="student-heading" context={{ label: "Área do aluno" }} title={selectingPlan ? "Escolha seu plano." : `Olá, ${user.name.split(" ")[0]}.`} lead={selectingPlan ? "Selecione o serviço e a duração que fazem sentido para sua rotina." : exclusive ? "Sua condição comercial já está definida. Escolha como pagar." : "Escolha seu plano e conclua seu primeiro pagamento."} />
       {subscription?.status === "PAST_DUE" ? <div className="message student-note" data-tone="warning" role="status"><Icon name="alert" /><div><strong>Vamos colocar sua assinatura em dia?</strong><p>{subscription.nextBillingAt ? `Sua mensalidade venceu em ${formatDate(subscription.nextBillingAt)}. ` : ""}Escolha como pagar abaixo e siga no ritmo.</p></div></div> : null}
-      {exclusive ? <p className="message student-note" data-tone="info"><Icon name="info" /><span>{subscription?.manualMonthlyBilling ? "Sua cobrança é manual e mensal, conforme a condição definida pela Pace Lab." : "Você recebeu um valor exclusivo definido pela Pace Lab para esta assinatura."}</span></p> : null}
-      {plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} automaticPixEnabled={subscription.automaticPixEnabled} customPriceCents={subscription.hasCustomPrice ? subscription.priceCents : null} manualMonthlyBilling={subscription.manualMonthlyBilling} lockPlan={(subscription.hasCustomPrice || subscription.manualMonthlyBilling) && Boolean(subscription.planId)} /> : <div className="state-empty"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></div>}
+      {couponBox}
+      {exclusive ? <p className="message student-note" data-tone="info"><Icon name="info" /><span>{subscription?.manualMonthlyBilling ? "Sua cobrança é manual e mensal, conforme a condição definida pela Pace Lab." : specialCondition && !subscription?.hasCustomPrice ? "Você recebeu uma condição especial da Pace Lab para esta assinatura." : "Você recebeu um valor exclusivo definido pela Pace Lab para esta assinatura."}</span></p> : null}
+      {plans.length && subscription ? <StudentSubscriptionFlow plans={plans} initialPlanId={subscription.planId} name={account?.name ?? user.name} cpf={account?.cpf ?? ""} gatewayEnabled={gateway.enabled} activeProvider={gateway.activeProvider} appmaxExternalId={gateway.appmaxExternalId} recurrenceEnabled={gateway.recurrenceEnabled} allowedMethods={subscription.allowedMethods} automaticPixEnabled={subscription.automaticPixEnabled} customPriceCents={subscription.hasCustomPrice ? subscription.priceCents : null} manualMonthlyBilling={subscription.manualMonthlyBilling} lockPlan={(subscription.hasCustomPrice || subscription.manualMonthlyBilling || specialCondition) && Boolean(subscription.planId)} specialCondition={specialCondition} startAtPayment={etapa === "pagamento"} coupon={discount ? { code: discount.couponCode, percent: discount.percent } : null} /> : <div className="state-empty"><strong>Os planos estarão disponíveis em breve.</strong><p>A assessoria ainda não publicou opções de assinatura para escolha.</p></div>}
     </AppShell>;
   }
 
@@ -68,7 +76,7 @@ export default async function StudentPage({ searchParams }: { searchParams: Prom
       </section>
 
       {paymentOverdue ? <p className="message student-note" data-tone="warning" role="status"><Icon name="alert" /><span>A mensalidade de {formatDate(subscription.nextBillingAt)} ainda não foi confirmada. Se você usa Pix Automático ou cartão recorrente, a confirmação pode levar alguns dias.</span></p> : null}
-      {subscription.isCourtesy || subscription.hasCustomPrice || subscription.manualMonthlyBilling ? <p className="message student-note" data-tone="info"><Icon name="info" /><span>{subscription.isCourtesy ? "Você recebeu uma cortesia da Pace Lab. Não há pagamento pendente para esta assinatura." : subscription.manualMonthlyBilling ? "Sua cobrança é manual e mensal. A cada mês, gere o pagamento do valor indicado acima." : "Sua assinatura possui um valor exclusivo definido pela Pace Lab."}</span></p> : null}
+      {subscription.isCourtesy || subscription.hasCustomPrice || subscription.manualMonthlyBilling || specialCondition ? <p className="message student-note" data-tone="info"><Icon name="info" /><span>{subscription.isCourtesy ? "Você recebeu uma cortesia da Pace Lab. Não há pagamento pendente para esta assinatura." : subscription.manualMonthlyBilling ? "Sua cobrança é manual e mensal. A cada mês, gere o pagamento do valor indicado acima." : subscription.hasCustomPrice ? "Sua assinatura possui um valor exclusivo definido pela Pace Lab." : "Sua assinatura é uma condição especial da Pace Lab."}</span></p> : null}
 
       {!subscription.isCourtesy ? <section className="section-block student-payment" data-tutorial-anchor="student-payment">
         <CheckoutPayment
@@ -86,7 +94,7 @@ export default async function StudentPage({ searchParams }: { searchParams: Prom
         />
       </section> : null}
 
-      {plans.length && !subscription.isCourtesy && !subscription.hasCustomPrice && !subscription.manualMonthlyBilling ? <details className="disclosure student-change-plan">
+      {plans.length && !subscription.isCourtesy && !subscription.hasCustomPrice && !subscription.manualMonthlyBilling && !specialCondition ? <details className="disclosure student-change-plan">
         <summary><span><span className="section-title">Trocar plano</span><span className="section-lead disclosure-lead">Selecione o serviço e a duração que fazem sentido para sua rotina.</span></span><Icon name="chevronRight" /></summary>
         <div className="disclosure-body"><StudentPlanPicker plans={plans} currentPlanId={subscription.planId} compact /></div>
       </details> : null}

@@ -331,7 +331,7 @@ Cantos quase retos (2px, `rounded.base`) em botões, campos, menus, diálogos no
 A forma-assinatura é o **paralelogramo inclinado a -12°**, o ângulo do itálico do wordmark. Ele é recortado por `clip-path` com dois tokens: `--marker-shape` (corte de 4px, marcadores curtos) e `--marker-shape-bar` (corte de 7px, barras longas como aba ativa e barra inferior, para o corte aparecer em 1x). O mesmo ângulo diagonal aparece nas faixas translúcidas a 112° das superfícies escuras (`--stripes-dark` no shell e no tutorial; faixas mais largas no painel do login).
 
 ### Named Rules
-**The You-Are-Here Rule.** O paralelogramo laranja marca só a posição atual: item atual da sidebar, aba atual da barra inferior e do menu "Mais", aba ativa, passo atual do stepper, métrica atual numa faixa que navega (no hover, só um fundo leve, e apenas com mouse). Ele nunca decora título, seção, botão ou cartão.
+**The You-Are-Here Rule.** O paralelogramo laranja marca só a posição atual: item atual da sidebar, aba atual da barra inferior e do menu "Mais", aba ativa, passo atual do stepper, métrica atual numa faixa que navega (no hover, só um fundo leve, e apenas com mouse) e a sua posição no ranking do programa Experts & Creators. Ele nunca decora título, seção, botão ou cartão.
 
 ## Components
 
@@ -399,6 +399,13 @@ Diretos e firmes; texto curto em sans 600.
 
 ### Wordmark
 - `Brand`: o SVG "PACE LAB." de `public/assets/images/pace-lab.svg`, invertido para branco por filtro em superfícies escuras. 104px na sidebar e no login, 64px no topo do celular.
+
+### Programa Experts & Creators (portal do influenciador)
+- **Cartão do cupom:** superfície da marca (`sidebar` com `--stripes-dark`), rótulo curto em `accent-on-dark`, o código em Anton grande e o botão Copiar claro. Abaixo de uma divisória `on-dark-line`, "Seus links": rótulo do link em 700, endereço em mono `on-dark-muted` com reticências (o endereço completo fica no `title`) e Copiar com contorno `on-dark-line`. Abaixo de 560px o endereço desce para a segunda linha.
+- **Pódio do ranking:** lista ordenada 1º, 2º, 3º no HTML, posicionada 2º | 1º | 3º pelo grid, sobre uma régua `line-strong` (a linha de chegada). O 1º é o bloco mais alto, na superfície da marca, com o número em `on-dark`; 2º e 3º são blocos brancos com borda `line`, cada um mais baixo; o número da posição em Anton. Acima de cada bloco: avatar (o do 1º maior e escuro), nome abreviado, tipo e pontos (número em Anton). Vaga sem ninguém: bloco tracejado em `line-control` e "Vaga aberta". Empate repete o número. Movimento: os blocos sobem da linha de chegada uma vez (560ms, `--ease-out`, o 1º por último); com movimento reduzido, nada sobe.
+- **Lista do 4º em diante:** linhas brancas de 56px divididas por `line-soft`, posição em Anton sem "º" (o "º lugar" vai para o leitor de tela), avatar, nome, tipo e pontos.
+- **Você:** no pódio, rótulo "Você" com o paralelogramo laranja embaixo; na lista, o paralelogramo colado à borda esquerda e fundo `surface-raised`. É o marcador de "você está aqui", sempre com o texto "Você".
+- **Ordinal em Anton:** o glifo "º" de Anton parece um "0" sobrescrito. Onde o ordinal aparece num número display, ele vai em `.ordinal` (sans 700, 0.42em, elevado).
 
 ## Do's and Don'ts
 

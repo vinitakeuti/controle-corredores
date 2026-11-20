@@ -4,7 +4,7 @@ import { cancelAsaasAutomaticPixAuthorization } from "@/lib/asaas";
 import { getCurrentUser } from "@/lib/auth";
 import { parseAllowedMethods, parseAmountCents } from "@/lib/billing";
 import { planTotalCents, subscriptionChargeCents } from "@/lib/plan-billing";
-import { parsePlanPeriod } from "@/lib/plans";
+import { parsePlanName, parsePlanPeriod, planDisplayName } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 import { isSameOrigin, noStoreHeaders } from "@/lib/security";
 
@@ -15,15 +15,26 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (!user || user.role !== UserRole.ADMIN) return NextResponse.json({ error: "Apenas administradores podem editar planos" }, { status: 403, headers: noStoreHeaders() });
     const { id } = await context.params;
     const body = await request.json() as Record<string, unknown>;
-    const current = await prisma.plan.findUnique({ where: { id } });
+    const current = await prisma.plan.findUnique({ where: { id }, include: { service: { select: { name: true } } } });
     if (!current) return NextResponse.json({ error: "Plano não encontrado." }, { status: 404, headers: noStoreHeaders() });
-    const priceCents = body.priceCents === undefined ? current.priceCents : parseAmountCents(body.priceCents);
-    const period = body.period === undefined ? current.period : parsePlanPeriod(body.period);
+    // Oculto e cortesia são definidos na criação. Na cortesia só mudam nome e situação.
+    const locked = current.isCourtesy;
+    const priceCents = locked || body.priceCents === undefined ? current.priceCents : parseAmountCents(body.priceCents);
+    const period = locked || body.period === undefined ? current.period : parsePlanPeriod(body.period);
     const active = body.active === undefined ? current.active : body.active === true;
-    const allowedMethods = body.allowedMethods === undefined ? current.allowedMethods : parseAllowedMethods(body.allowedMethods);
-    const automaticPixEnabled = body.automaticPixEnabled === undefined ? current.automaticPixEnabled : body.automaticPixEnabled === true;
-    const isFeatured = body.isFeatured === undefined ? current.isFeatured : body.isFeatured === true;
-    if (!priceCents || !period || !allowedMethods) return NextResponse.json({ error: "Informe período, valor e pelo menos um método de pagamento." }, { status: 400, headers: noStoreHeaders() });
+    const allowedMethods = locked || body.allowedMethods === undefined ? current.allowedMethods : parseAllowedMethods(body.allowedMethods);
+    const automaticPixEnabled = locked || body.automaticPixEnabled === undefined ? current.automaticPixEnabled : body.automaticPixEnabled === true;
+    const isFeatured = !current.isHidden && (body.isFeatured === undefined ? current.isFeatured : body.isFeatured === true);
+    const name = current.isHidden && body.name !== undefined ? parsePlanName(body.name) : current.name;
+    if (current.isHidden && !name) return NextResponse.json({ error: "Dê um nome ao plano oculto (de 2 a 60 caracteres)." }, { status: 400, headers: noStoreHeaders() });
+    if (priceCents === null || !period || !allowedMethods) return NextResponse.json({ error: "Informe período, valor e pelo menos um método de pagamento." }, { status: 400, headers: noStoreHeaders() });
+    const nameChanged = name !== current.name;
+    if (period !== current.period || nameChanged) {
+      const duplicate = current.isHidden
+        ? await prisma.plan.findFirst({ where: { id: { not: id }, serviceId: current.serviceId, isHidden: true, name: { equals: name!, mode: "insensitive" }, period }, select: { id: true } })
+        : await prisma.plan.findFirst({ where: { id: { not: id }, serviceId: current.serviceId, isHidden: false, period }, select: { id: true } });
+      if (duplicate) return NextResponse.json({ error: current.isHidden ? "Já existe um plano oculto com esse nome e período nesta categoria." : "Esse serviço já possui um plano para esse período." }, { status: 409, headers: noStoreHeaders() });
+    }
     const priceChanged = priceCents !== current.priceCents;
     const periodChanged = period !== current.period;
     const methodsChanged = allowedMethods.length !== current.allowedMethods.length || allowedMethods.some((method) => !current.allowedMethods.includes(method));
@@ -40,7 +51,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     await Promise.all(authorizations.map((authorizationId) => cancelAsaasAutomaticPixAuthorization(authorizationId)));
     const plan = await prisma.$transaction(async (transaction) => {
       if (isFeatured) await transaction.plan.updateMany({ where: { serviceId: current.serviceId, id: { not: id }, isFeatured: true }, data: { isFeatured: false } });
-      const updated = await transaction.plan.update({ where: { id }, data: { priceCents, period, active, allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled, isFeatured }, include: { service: true } });
+      const updated = await transaction.plan.update({ where: { id }, data: { priceCents, period, name, active, allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled, isFeatured }, include: { service: true } });
+      // O nome do plano fica gravado na assinatura e no link: acompanha a edição.
+      if (nameChanged || periodChanged) {
+        const planName = planDisplayName(updated);
+        await transaction.subscription.updateMany({ where: { planId: id }, data: { planName } });
+        await transaction.paymentLink.updateMany({ where: { planId: id, status: "OPEN" }, data: { planName } });
+      }
       if (subscriptions.length) {
         await transaction.subscription.updateMany({ where: { id: { in: subscriptions.map((subscription) => subscription.id) } }, data: { billingPeriod: period, ...(authorizations.length ? { asaasPixAuthorizationStatus: "CANCELLED", recurringEnabled: false, recurringMethod: null } : {}) } });
         await transaction.subscription.updateMany({ where: { id: { in: subscriptions.filter((subscription) => !subscription.manualMonthlyBilling).map((subscription) => subscription.id) } }, data: { allowedMethods, automaticPixEnabled: nextAutomaticPixEnabled } });
@@ -62,8 +79,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     });
     return NextResponse.json({ plan, updatedStudents: subscriptions.length, reauthorizationRequired: authorizations.length }, { headers: noStoreHeaders() });
   } catch (error) {
-    const message = error instanceof Error && /Unique constraint/.test(error.message) ? "Esse serviço já possui um plano para esse período." : "Não foi possível atualizar o plano.";
-    return NextResponse.json({ error: message }, { status: 400, headers: noStoreHeaders() });
+    console.error("plan update failed", error);
+    return NextResponse.json({ error: "Não foi possível atualizar o plano." }, { status: 400, headers: noStoreHeaders() });
   }
 }
 
